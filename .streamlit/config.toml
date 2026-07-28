@@ -1,0 +1,24 @@
+# Streamlit settings for MedRAG.
+
+[browser]
+# Off by default here. This tool is used to look at live deals, and the names of
+# assets under diligence should not be leaving the machine as telemetry.
+gatherUsageStats = false
+
+[server]
+# Nothing here is written for a shared deployment: no auth, no multi-user
+# separation. Binding to localhost keeps it on the one machine it was built for.
+address = "localhost"
+headless = false
+
+[client]
+# Errors surface in the app with a plain-language message and a foldable
+# "Technical details" box, rather than a raw traceback in the page body.
+showErrorDetails = false
+
+[theme]
+base = "light"
+primaryColor = "#1e4f8f"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f7f8fa"
+textColor = "#14181f"

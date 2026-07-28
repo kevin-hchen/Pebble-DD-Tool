@@ -1,0 +1,28 @@
+.env
+.streamlit/secrets.toml
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Generated memos — filenames encode the asset under diligence.
+out/
+
+# Fetched trial store and any other sqlite DBs — public data, but there is no
+# reason to commit hundreds of MB of registry dumps.
+*.db
+*.sqlite
+
+data/index/*
+data/raw/*
+!data/raw/.gitkeep
+!data/index/.gitkeep
+.pytest_cache/
+.DS_Store
+*.egg-info/
+
+# Generated memos — can contain live asset names
+out/
+# Fetched trial stores
+*.db
+.streamlit/secrets.toml

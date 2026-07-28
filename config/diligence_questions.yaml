@@ -1,0 +1,91 @@
+# Fixed diligence question set.
+#
+# DRAFT — this exists so the config loader has something real to load and so the
+# memo has a shape; the questions themselves are a starting point, not a
+# recommendation. A house question set is what makes two assets comparable, and
+# it should be tuned to how you actually underwrite, not a generic template.
+#
+# Run identically against every asset. That is the whole point: a chat box gives
+# you a different shaped answer every time, which is useless in a memo.
+#
+# Fields per question:
+#   id        stable slug, used as the memo section anchor — do not renumber
+#   section   heading in the memo, in file order
+#   question  asked verbatim; {asset} and {indication} are substituted
+#   route     structured | semantic | both | auto  (auto lets the router decide)
+#   k         passages to retrieve for this question
+#   negative  run the negative-evidence pass against this answer
+
+version: 1
+name: "Biomedical asset diligence — reference question set (draft)"
+
+questions:
+  - id: mechanism
+    section: "Mechanism and scientific rationale"
+    question: "What is the mechanism of action of {asset}, and what is the strongest published evidence supporting it?"
+    route: semantic
+    k: 6
+    negative: true
+
+  - id: competitive-trials
+    section: "Who else has run trials on this target"
+    question: "Which other sponsors have run clinical trials on this mechanism or target, and what happened to those trials?"
+    route: structured
+    k: 8
+    negative: false
+
+  - id: terminated-trials
+    section: "Trials stopped early"
+    question: "Have any trials on this mechanism or in {indication} been terminated, withdrawn or suspended, and for what stated reason?"
+    route: structured
+    k: 10
+    negative: false
+
+  - id: efficacy
+    section: "Efficacy evidence"
+    question: "What efficacy has been demonstrated for {asset} in {indication}? Report effect sizes, confidence intervals and endpoints exactly as published."
+    route: semantic
+    k: 8
+    negative: true
+
+  - id: endpoints
+    section: "Regulatory endpoints"
+    question: "What clinical endpoints have regulators accepted in {indication}, and are they clinical or surrogate?"
+    route: semantic
+    k: 6
+    negative: false
+
+  - id: comparator
+    section: "Standard of care and comparator"
+    question: "What is the current standard of care in {indication}, and how strong is the evidence behind it?"
+    route: semantic
+    k: 6
+    negative: false
+
+  - id: safety
+    section: "Safety profile"
+    question: "What does the literature report about the safety and tolerability of {asset} or its drug class, including discontinuation rates?"
+    route: semantic
+    k: 8
+    negative: true
+
+  - id: evidence-quality
+    section: "Evidence quality distribution"
+    question: "Is the evidence base for {asset} in {indication} built on randomised trials and meta-analyses, or on observational studies and case reports?"
+    route: semantic
+    k: 10
+    negative: false
+
+  - id: development-stage
+    section: "Development stage and timelines"
+    question: "What phase has {asset} reached, what is the enrollment, and what are the stated primary completion dates?"
+    route: structured
+    k: 8
+    negative: false
+
+  - id: bear-case
+    section: "Most credible argument against"
+    question: "What is the most credible evidence-based argument against {asset} succeeding in {indication}?"
+    route: both
+    k: 10
+    negative: true
