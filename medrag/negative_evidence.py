@@ -6,9 +6,13 @@ its own stage with its own output section.
 
 Two halves, doing different jobs:
 
-  Deterministic - any trial on the same intervention or target with status
-  TERMINATED, WITHDRAWN or SUSPENDED, with whyStopped attached. A database
-  query. It cannot hallucinate and it cannot be talked out of a result.
+  Deterministic - facts from databases, which cannot hallucinate and cannot be
+  talked out of a result: trials that stopped early (TERMINATED / WITHDRAWN /
+  SUSPENDED, with whyStopped attached), and, for a device, its FDA recalls and
+  MAUDE adverse-event reports. A recall is a fact from a database, not a model
+  judgement, so it lives here beside the stopped trials — but on its own lines in
+  the memo, because a recall and a halted trial are different failure modes and
+  deserve different framing.
 
   Model - a second call over the retrieved literature whose ONLY instruction is
   to find findings that contradict, fail to replicate, or fail to support the
@@ -25,6 +29,7 @@ from dataclasses import dataclass, field
 
 from .config import Config
 from .context import Evidence, render_context
+from .fda.client import AdverseEvent, Recall
 from .providers import make_client
 from .trials.client import TrialRecord
 
@@ -99,14 +104,25 @@ class Finding:
 class NegativeEvidence:
     claim: str = ""
     stopped_trials: list[StoppedTrial] = field(default_factory=list)
+    recalls: list[Recall] = field(default_factory=list)
+    adverse_events: list[AdverseEvent] = field(default_factory=list)
+    event_totals: dict = field(default_factory=dict)   # event_type -> count in store
     findings: list[Finding] = field(default_factory=list)
+    product_code: str = ""
     model: str = ""
     searched: bool = True          # False when the model half could not run
+    fda_searched: bool = True      # False when no FDA store was available to check
     note: str = ""
 
     @property
     def is_empty(self) -> bool:
-        return not self.stopped_trials and not self.findings
+        return not (self.stopped_trials or self.recalls or self.adverse_events or self.findings)
+
+    @property
+    def events_shown_of(self) -> int:
+        """Total adverse-event reports in the store for this device — the memo
+        shows a handful and must say of how many, never imply it saw them all."""
+        return sum(self.event_totals.values())
 
     def summary(self) -> str:
         if not self.searched:
@@ -125,6 +141,13 @@ class NegativeEvidence:
             bits.append(
                 f"{len(self.stopped_trials)} trial(s) stopped early "
                 f"({stated} with a stated reason)"
+            )
+        if self.recalls:
+            bits.append(f"{len(self.recalls)} FDA recall(s)")
+        if self.adverse_events:
+            bits.append(
+                f"{len(self.adverse_events)} of {self.events_shown_of} adverse-event "
+                "report(s) shown"
             )
         if self.findings:
             bits.append(f"{len(self.findings)} contradicting or undercutting finding(s)")
@@ -166,6 +189,57 @@ def find_stopped_trials(
     # Trials with a stated reason first: they carry more information.
     records.sort(key=lambda r: (not bool(r.why_stopped), r.nct_id))
     return [StoppedTrial(record=r) for r in records[:limit]]
+
+
+def _resolve_product_codes(fda_store, product_code, device_name) -> list[str]:
+    if product_code:
+        return [product_code.upper()]
+    if device_name:
+        return fda_store.product_codes_for_device(device_name)
+    return []
+
+
+def find_device_recalls(fda_store, product_code=None, device_name=None,
+                        limit: int = 25) -> list[Recall]:
+    """Deterministic half for devices. Recalls for the product code(s) OR the
+    device description — never the manufacturer, which fragments on live data.
+    Pure SQL; no model judgement."""
+    if fda_store is None:
+        return []
+    seen: set[str] = set()
+    out: list[Recall] = []
+    for code in _resolve_product_codes(fda_store, product_code, device_name):
+        for r in fda_store.recalls(product_code=code, limit=limit):
+            if r.recall_number not in seen:
+                seen.add(r.recall_number)
+                out.append(r)
+    if device_name:
+        for r in fda_store.recalls(device_name=device_name, limit=limit):
+            if r.recall_number not in seen:
+                seen.add(r.recall_number)
+                out.append(r)
+    return out[:limit]
+
+
+def find_adverse_events(fda_store, product_code=None, device_name=None,
+                        limit: int = 15) -> tuple[list[AdverseEvent], dict]:
+    """MAUDE reports for the device, worst-severity first, hard-capped. Returns
+    the shown events and the per-type totals in the store, so the memo can say
+    '3 of 812 shown' rather than implying the list is complete."""
+    if fda_store is None:
+        return [], {}
+    events: list[AdverseEvent] = []
+    totals: dict[str, int] = {}
+    seen: set[str] = set()
+    for code in _resolve_product_codes(fda_store, product_code, device_name):
+        for et, n in fda_store.event_counts(code).items():
+            totals[et] = totals.get(et, 0) + n
+        for e in fda_store.events(product_code=code, limit=limit):
+            if e.report_number not in seen:
+                seen.add(e.report_number)
+                events.append(e)
+    events.sort(key=lambda e: (e.severity_rank, e.date_received), reverse=False)
+    return events[:limit], totals
 
 
 class ContradictionHunter:
@@ -235,9 +309,23 @@ def run_negative_pass(
     trial_store=None,
     intervention: str | None = None,
     condition: str | None = None,
+    fda_store=None,
+    product_code: str | None = None,
+    device_name: str | None = None,
+    max_events: int = 15,
 ) -> NegativeEvidence:
-    """Run both halves and assemble the section."""
+    """Run every half and assemble the section.
+
+    The deterministic halves — stopped trials, and (for a device) FDA recalls and
+    adverse events — always run when their store is present. The FDA device_name
+    defaults to the trial intervention, since the asset name is the same string."""
     stopped = find_stopped_trials(trial_store, intervention=intervention, condition=condition)
+
+    device = device_name or intervention
+    recalls = find_device_recalls(fda_store, product_code=product_code, device_name=device)
+    events, event_totals = find_adverse_events(
+        fda_store, product_code=product_code, device_name=device, limit=max_events)
+
     findings, model, searched = ContradictionHunter(cfg).hunt(claim, evidence or [])
 
     note = ""
@@ -250,8 +338,14 @@ def run_negative_pass(
     return NegativeEvidence(
         claim=claim,
         stopped_trials=stopped,
+        recalls=recalls,
+        adverse_events=events,
+        event_totals=event_totals,
         findings=findings,
+        product_code=product_code or "",
         model=model,
         searched=searched,
+        # Distinct from "no recalls found": no FDA store means we did not check.
+        fda_searched=fda_store is not None,
         note=note,
     )

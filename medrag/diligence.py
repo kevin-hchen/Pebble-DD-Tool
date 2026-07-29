@@ -150,7 +150,8 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
 class DiligenceRunner:
     """Orchestrates routing, dual-store retrieval, answering and the negative pass."""
 
-    def __init__(self, cfg: Config | None = None, rag=None, trial_store: TrialStore | None = None):
+    def __init__(self, cfg: Config | None = None, rag=None, trial_store: TrialStore | None = None,
+                 fda_store=None):
         self.cfg = cfg or load_config()
         self.router = Router(self.cfg)
 
@@ -182,6 +183,20 @@ class DiligenceRunner:
             else:
                 self.warnings.append("trial store not found — run `medrag trials` first")
 
+        # The FDA store is optional too: a device asset benefits from it, a drug
+        # asset simply has no clearances and the section stays empty.
+        self.fda_store = fda_store
+        if self.fda_store is None:
+            from .fda.store import FDAStore, FDAStoreSchemaError
+            from .pipeline import FDA_DB
+
+            db = self.cfg.raw_dir / FDA_DB
+            if db.exists():
+                try:
+                    self.fda_store = FDAStore(db)
+                except FDAStoreSchemaError as exc:
+                    self.warnings.append(str(exc).splitlines()[0])
+
     # ------------------------------------------------------------ retrieval
 
     def _trials_for(self, question: str, asset: str, indication: str, filters: dict,
@@ -211,6 +226,29 @@ class DiligenceRunner:
             return []
         return self.rag.retriever.retrieve(question, k=k)
 
+    def _fda_for(self, asset: str, filters: dict):
+        """510(k) clearances for the asset, capped at cfg.fda_max_clearances.
+        Matches on product code and device name — never the applicant, which
+        fragments on live data. Returns the records and a provenance dict stating
+        the sample against both the local-store total and the openFDA category
+        total, so the memo never implies the sample is the whole category."""
+        if self.fda_store is None:
+            return [], {}
+        code = filters.get("product_code")
+        records = self.fda_store.clearances(
+            product_code=code, device_name=asset or None,
+            limit=self.cfg.fda_max_clearances,
+        )
+        if not code and records:
+            code = records[0].product_code
+        meta = {
+            "fda_product_code": code or "",
+            "n_fda_store_total": self.fda_store.clearances_total(product_code=code) if code
+            else self.fda_store.clearances_total(device_name=asset or None),
+            "n_fda_category_total": self.fda_store.category_total(code),
+        }
+        return records, meta
+
     # ------------------------------------------------------------ one section
 
     def run_question(self, q: DiligenceQuestion, asset: str, indication: str) -> SectionResult:
@@ -221,11 +259,13 @@ class DiligenceRunner:
             decision = self.router.route(rendered)
             route, method = decision.route, decision.method
             filters = decision.filters
+            needs_regulatory = decision.needs_regulatory
         else:
             route, method = Route(q.route), "config"
-            from .router import extract_filters
+            from .router import classify_by_rules, extract_filters
 
             filters = extract_filters(rendered)
+            needs_regulatory = classify_by_rules(rendered).needs_regulatory
 
         trials = (
             self._trials_for(rendered, asset, indication, filters, q.k)
@@ -233,8 +273,9 @@ class DiligenceRunner:
             else []
         )
         passages = self._passages(rendered, q.k) if route in (Route.SEMANTIC, Route.BOTH) else []
+        fda, fda_meta = self._fda_for(asset, filters) if needs_regulatory else ([], {})
 
-        evidence = build_evidence(trials=trials, passages=passages,
+        evidence = build_evidence(trials=trials, passages=passages, fda=fda,
                                   max_chars=self.cfg.max_context_chars)
         answer = self._answer(rendered, evidence)
         # Validate against the assembled evidence, not the literature subset:
@@ -243,6 +284,9 @@ class DiligenceRunner:
 
         negative = None
         if q.negative:
+            # The FDA deterministic half always runs when a store is present, like
+            # the stopped-trial half — a recall does not need the question to ask
+            # for it. The device name is the asset string.
             negative = run_negative_pass(
                 claim=rendered,
                 cfg=self.cfg,
@@ -250,7 +294,13 @@ class DiligenceRunner:
                 trial_store=self.trial_store,
                 intervention=asset or None,
                 condition=indication or None,
+                fda_store=self.fda_store,
+                product_code=filters.get("product_code"),
+                device_name=asset or None,
             )
+
+        provenance = provenance_summary(evidence)
+        provenance.update(fda_meta)   # sample-vs-total counts for the FDA caveat
 
         return SectionResult(
             question=q,
@@ -260,7 +310,7 @@ class DiligenceRunner:
             validation=report,
             route=route,
             route_method=method,
-            provenance=provenance_summary(evidence),
+            provenance=provenance,
             negative=negative,
         )
 
@@ -332,3 +382,5 @@ class DiligenceRunner:
     def close(self) -> None:
         if self.trial_store is not None:
             self.trial_store.close()
+        if self.fda_store is not None:
+            self.fda_store.close()

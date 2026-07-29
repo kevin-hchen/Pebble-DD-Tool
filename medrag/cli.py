@@ -86,6 +86,54 @@ def cmd_trials(args) -> int:
     return 0
 
 
+def cmd_fda(args) -> int:
+    """Ingest openFDA device data (clearances, recalls, adverse events) into the
+    structured store. Match on product code and/or device name — never company."""
+    from .fda.client import count_510k, search_510k, search_events, search_recalls
+    from .fda.store import FDAStore
+    from .pipeline import FDA_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    if not args.product_code and not args.device_name:
+        print("error: pass --product-code and/or --device-name", file=sys.stderr)
+        return 2
+
+    clearances = search_510k(product_code=args.product_code, device_name=args.device_name,
+                             max_records=args.max_records, offline=cfg.offline)
+    # The openFDA-reported total for the category, so the memo can later say how
+    # much of it the local store actually holds.
+    category_total = count_510k(product_code=args.product_code, device_name=args.device_name,
+                                offline=cfg.offline)
+    recalls = search_recalls(product_code=args.product_code, device_name=args.device_name,
+                             max_records=args.max_records, offline=cfg.offline)
+    # MAUDE is enormous; events need a product code and a hard cap.
+    events = []
+    code = args.product_code
+    if not code and clearances:
+        code = clearances[0].product_code
+    if code:
+        events = search_events(product_code=code, max_records=args.max_events, offline=cfg.offline)
+
+    cat = f" (of {category_total} in the category)" if category_total else ""
+    print(f"[medrag] fetched {len(clearances)} clearances{cat}, {len(recalls)} recalls, "
+          f"{len(events)} adverse events")
+
+    resolved_code = args.product_code or (clearances[0].product_code if clearances else None)
+    with FDAStore(cfg.raw_dir / FDA_DB) as store:
+        store.upsert_clearances(clearances)
+        store.upsert_recalls(recalls)
+        store.upsert_events(events)
+        store.set_category_total(resolved_code, category_total)
+        stats = store.stats()
+
+    print(f"[medrag] FDA store now holds {stats['clearances']} clearances, "
+          f"{stats['recalls']} recalls, {stats['events']} events "
+          f"across {stats['product_codes']} product code(s)")
+    return 0
+
+
 def cmd_route(args) -> int:
     """Show how a question would be routed, without answering it."""
     cfg = _config_from(args)
@@ -413,6 +461,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_tr.add_argument("--max-records", "-n", type=int, default=200)
     p_tr.set_defaults(func=cmd_trials)
+
+    p_fda = sub.add_parser("fda", parents=[common],
+                           help="ingest openFDA device clearances, recalls and adverse events")
+    p_fda.add_argument("--product-code", "-p", help='device product code, e.g. "FRN" (infusion pump)')
+    p_fda.add_argument("--device-name", "-d", help='device name, e.g. "infusion pump"')
+    p_fda.add_argument("--max-records", "-n", type=int, default=200,
+                       help="cap on clearances and recalls fetched")
+    p_fda.add_argument("--max-events", type=int, default=100,
+                       help="cap on MAUDE adverse-event reports (the endpoint is enormous)")
+    p_fda.set_defaults(func=cmd_fda)
 
     p_rt = sub.add_parser("route", parents=[common], help="show how a question would be routed")
     p_rt.add_argument("question")

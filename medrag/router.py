@@ -59,6 +59,17 @@ _SEMANTIC_HINTS = re.compile(
 # never enough on their own to pull a registry question into BOTH.
 _TOPIC_NOUNS = re.compile(r"\b(mechanism|pathway|target|indication|biology)\b", re.IGNORECASE)
 
+# Regulatory / device vocabulary that names the openFDA store's fields. This is
+# an ORTHOGONAL signal, not a fourth Route value: a question can want clearances
+# AND the literature. It only decides whether the FDA store is consulted.
+_REGULATORY_HINTS = re.compile(
+    r"\b(510\s*\(?k\)?|clearance|cleared|premarket|pma|de\s*novo|fda|"
+    r"recall|recalled|adverse event|maude|product code|device class|"
+    r"predicate|substantially equivalent|regulatory|approval|approved|"
+    r"class\s*(?:i{1,3}|1|2|3)\s+device)\b",
+    re.IGNORECASE,
+)
+
 ROUTER_PROMPT = """Classify this question about a biomedical asset.
 
 STRUCTURED - answerable from a clinical trial registry: which trials exist, their \
@@ -70,9 +81,13 @@ BOTH - genuinely needs registry facts AND published findings.
 Prefer STRUCTURED or SEMANTIC over BOTH. Choose BOTH only when the question \
 cannot be answered without each kind of evidence.
 
+Separately, set "regulatory" true if the question touches FDA clearance, device \
+class, product code, recalls, or adverse events — an openFDA store answers those.
+
 Question: {question}
 
-Reply with JSON only: {{"route": "structured|semantic|both", "reason": "<8 words>"}}"""
+Reply with JSON only: {{"route": "structured|semantic|both", "regulatory": \
+true|false, "reason": "<8 words>"}}"""
 
 
 @dataclass
@@ -81,6 +96,7 @@ class RoutingDecision:
     reason: str = ""
     method: str = "rules"          # rules | llm | llm-fallback
     filters: dict = field(default_factory=dict)
+    needs_regulatory: bool = False  # consult the openFDA store as well
 
     @property
     def needs_trials(self) -> bool:
@@ -119,12 +135,19 @@ def extract_filters(question: str) -> dict:
     if ncts:
         filters["nct_ids"] = [n.upper() for n in ncts]
 
+    # An FDA product code stated outright ("product code FRN"). Only when named
+    # as such — a bare three-letter token is far too broad to guess from.
+    pc = re.search(r"\bproduct code\s+([A-Za-z]{3})\b", question, re.IGNORECASE)
+    if pc:
+        filters["product_code"] = pc.group(1).upper()
+
     return filters
 
 
 def classify_by_rules(question: str) -> RoutingDecision:
     structured = bool(_STRUCTURED_HINTS.search(question))
     semantic = bool(_SEMANTIC_HINTS.search(question))
+    regulatory = bool(_REGULATORY_HINTS.search(question))
 
     if structured and semantic:
         route, reason = Route.BOTH, "registry and literature terms present"
@@ -132,13 +155,18 @@ def classify_by_rules(question: str) -> RoutingDecision:
         route, reason = Route.STRUCTURED, "registry vocabulary"
     elif semantic or _TOPIC_NOUNS.search(question):
         route, reason = Route.SEMANTIC, "literature vocabulary"
+    elif regulatory:
+        # A purely regulatory question (clearances, recalls) has no trial or
+        # literature signal; route it structured so the registry is also checked,
+        # and let needs_regulatory pull in the FDA store.
+        route, reason = Route.STRUCTURED, "regulatory vocabulary"
     else:
         # Unmatched questions go to literature: it is the larger, more forgiving
         # store, and a missed registry filter degrades worse than a broad search.
         route, reason = Route.SEMANTIC, "no registry signal; default to literature"
 
     return RoutingDecision(route=route, reason=reason, method="rules",
-                           filters=extract_filters(question))
+                           filters=extract_filters(question), needs_regulatory=regulatory)
 
 
 class Router:
@@ -166,6 +194,9 @@ class Router:
                 reason=str(payload.get("reason", ""))[:80],
                 method="llm",
                 filters=rules.filters,  # regex filters are more reliable than the model's
+                # OR with the regex: the model may miss a regulatory cue, but a
+                # false positive only costs one extra structured lookup.
+                needs_regulatory=bool(payload.get("regulatory")) or rules.needs_regulatory,
             )
         except Exception:
             # Bad JSON, unknown enum value, API error - fall back rather than fail.

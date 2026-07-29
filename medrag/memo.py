@@ -32,6 +32,28 @@ def _fmt_date(stamp: datetime | None) -> str:
     return (stamp or datetime.now()).strftime("%d %B %Y")
 
 
+def _fda_caveat(prov: dict) -> str | None:
+    """One line stating the 510(k) sample against the total, plus the caveat that
+    applicant names over-count companies. Without the sample line a memo implies a
+    25-clearance sample is the whole category; without the caveat a reader counts
+    four names for Imed/Alaris/CareFusion/BD and reads one product line as four
+    competitors."""
+    n = prov.get("n_fda", 0)
+    if not n:
+        return None
+    store_total = prov.get("n_fda_store_total") or n
+    code = prov.get("fda_product_code") or "this category"
+    line = f"FDA 510(k) clearances: showing {n} of {store_total} held locally for product code {code}."
+    category = prov.get("n_fda_category_total")
+    if category and category > store_total:
+        line += f" openFDA reports {category} cleared in this category."
+    line += (" Distinct applicant names over-count distinct companies — acquisitions "
+             "and renames (e.g. Imed → Alaris → CareFusion → BD are one product "
+             "line) are not resolved, so a consolidated market can read as more "
+             "fragmented than it is.")
+    return line
+
+
 def _section_md(s: SectionResult) -> list[str]:
     out = [f"## {s.question.section}", ""]
     out.append(f"*{s.rendered_question}*")
@@ -56,6 +78,35 @@ def _section_md(s: SectionResult) -> list[str]:
                     bits.append(r.lead_sponsor)
                 out.append(f"- {' · '.join(bits)} — **{st.reason}**")
             out.append("")
+        # FDA recalls and adverse events are database facts like the stopped
+        # trials, but a recall and a halted trial are different failure modes, so
+        # they get their own headings rather than one merged "bad things" list.
+        if s.negative.recalls:
+            out.append("**FDA recalls**")
+            out.append("")
+            for r in s.negative.recalls:
+                bits = [f"`{r.recall_number}`", r.recall_status or "status not stated"]
+                if r.root_cause_description:
+                    bits.append(r.root_cause_description)
+                if r.recalling_firm:
+                    bits.append(r.recalling_firm)
+                reason = (r.reason_for_recall or "no reason stated").strip()
+                out.append(f"- {' · '.join(bits)} — {reason}")
+            out.append("")
+        if s.negative.adverse_events:
+            total = s.negative.events_shown_of
+            out.append(f"**FDA adverse events** (showing {len(s.negative.adverse_events)} "
+                       f"of {total} on file, most severe first)")
+            out.append("")
+            for e in s.negative.adverse_events:
+                head = f"`{e.report_number}` · **{e.event_type or 'unspecified'}**"
+                if e.brand_name:
+                    head += f" · {e.brand_name}"
+                problems = ", ".join(e.product_problems[:2]) if e.product_problems else ""
+                if problems:
+                    head += f" · {problems}"
+                out.append(f"- {head}")
+            out.append("")
         if s.negative.findings:
             out.append("**Findings against**")
             out.append("")
@@ -69,6 +120,11 @@ def _section_md(s: SectionResult) -> list[str]:
         if s.negative.note:
             out.append(f"> {s.negative.note}")
             out.append("")
+
+    fda_caveat = _fda_caveat(s.provenance)
+    if fda_caveat:
+        out.append(f"> {fda_caveat}")
+        out.append("")
 
     if s.evidence:
         out.append("<details><summary>Sources for this section</summary>")
@@ -277,6 +333,29 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
                                            styles["body"]))
                     )
                 story.append(ListFlowable(items, bulletType="bullet", leftIndent=16))
+            if s.negative.recalls:
+                story.append(Paragraph("FDA recalls", styles["small"]))
+                story.append(ListFlowable(
+                    [ListItem(Paragraph(
+                        f"<b>{_inline_to_rl(r.recall_number)}</b> — "
+                        f"{_inline_to_rl(r.recall_status or 'status not stated')}"
+                        + (f" ({_inline_to_rl(r.root_cause_description)})"
+                           if r.root_cause_description else "")
+                        + f"<br/>{_inline_to_rl((r.reason_for_recall or 'no reason stated').strip())}",
+                        styles["body"])) for r in s.negative.recalls],
+                    bulletType="bullet", leftIndent=16))
+            if s.negative.adverse_events:
+                story.append(Paragraph(
+                    f"FDA adverse events (showing {len(s.negative.adverse_events)} of "
+                    f"{s.negative.events_shown_of} on file, most severe first)", styles["small"]))
+                story.append(ListFlowable(
+                    [ListItem(Paragraph(
+                        f"<b>{_inline_to_rl(e.report_number)}</b> — <b>{e.event_type or 'unspecified'}</b>"
+                        + (f" · {_inline_to_rl(e.brand_name)}" if e.brand_name else "")
+                        + (f" · {_inline_to_rl(', '.join(e.product_problems[:2]))}"
+                           if e.product_problems else ""),
+                        styles["body"])) for e in s.negative.adverse_events],
+                    bulletType="bullet", leftIndent=16))
             if s.negative.findings:
                 story.append(
                     ListFlowable(
@@ -299,6 +378,10 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
                 story.append(Paragraph(_inline_to_rl(s.negative.summary()), styles["note"]))
             if s.negative.note:
                 story.append(Paragraph(_inline_to_rl(s.negative.note), styles["note"]))
+
+        fda_caveat = _fda_caveat(s.provenance)
+        if fda_caveat:
+            story.append(Paragraph(_inline_to_rl(fda_caveat), styles["note"]))
 
         if s.evidence:
             story.append(Paragraph("Sources for this section", styles["h3"]))

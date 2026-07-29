@@ -47,6 +47,12 @@ class Config:
     temperature: float = 0.0
     max_context_chars: int = 12000
 
+    # --- fda ---
+    # How many 510(k) clearances a diligence section shows. A category can hold
+    # hundreds; the memo states this as "N of M" so the cap is never mistaken for
+    # the whole category. Configurable via MEDRAG_FDA_MAX_CLEARANCES.
+    fda_max_clearances: int = 25
+
     # --- storage ---
     data_dir: Path = field(default_factory=lambda: Path(os.getenv("MEDRAG_DATA_DIR", "data")))
 
@@ -109,6 +115,8 @@ def load_config() -> Config:
     cfg.chat_model = resolve_model(cfg)
     if os.getenv("MEDRAG_TOP_K"):
         cfg.top_k = int(os.environ["MEDRAG_TOP_K"])
+    if os.getenv("MEDRAG_FDA_MAX_CLEARANCES"):
+        cfg.fda_max_clearances = int(os.environ["MEDRAG_FDA_MAX_CLEARANCES"])
 
     cfg.encrypt = _truthy(os.getenv("MEDRAG_ENCRYPT"))
     cfg.offline = _truthy(os.getenv("MEDRAG_OFFLINE"))
