@@ -1,4 +1,4 @@
-# MedRAG
+# MedRAG (Built for Pebble Accelerator)
 
 MedRAG reads the public evidence on a biomedical asset — published papers, the
 clinical-trial registry, and the FDA's device databases — and produces a cited
@@ -73,7 +73,7 @@ python -m medrag landscape --condition "colorectal cancer" --biomarker "MSS"
 synthetic sample dataset (`scripts/make_sample_*.py`) so the whole thing runs
 end to end with no network and no key.
 
-## Decisions I'd defend
+## Trusting the information
 
 These are the reasons to trust the output, so they're here rather than buried.
 
