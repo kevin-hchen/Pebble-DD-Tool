@@ -72,6 +72,11 @@ def _text(node: ET.Element | None) -> str:
     return "".join(node.itertext()).strip()
 
 
+def _unique(values) -> list[str]:
+    """Non-empty values, de-duplicated, order preserved."""
+    return list(dict.fromkeys(v for v in values if v))
+
+
 def _parse_article(art: ET.Element) -> Document | None:
     pmid = _text(art.find(".//PMID"))
     if not pmid:
@@ -106,6 +111,21 @@ def _parse_article(art: ET.Element) -> Document | None:
     mesh = [_text(m) for m in art.findall(".//MeshHeadingList/MeshHeading/DescriptorName")]
     pub_types = [_text(t) for t in art.findall(".//PublicationTypeList/PublicationType")]
 
+    # Funding and conflict signals, captured here so a disclosure in any part of
+    # the record travels with every chunk of the document. Independence cannot be
+    # judged from the cited chunk alone — the funder and the result almost always
+    # sit in different chunks — so it is decided at ingest, like evidence grading.
+    from ..disclosures import scan_funding_sentences
+
+    affiliations = _unique(_text(a) for a in art.findall(".//AuthorList/Author/AffiliationInfo/Affiliation"))
+    grants = _unique(
+        " ".join(p for p in (_text(g.find("Agency")), _text(g.find("GrantID")),
+                             _text(g.find("Country"))) if p)
+        for g in art.findall(".//GrantList/Grant")
+    )
+    coi = _text(art.find(".//CoiStatement"))
+    funding_scan = scan_funding_sentences(abstract)
+
     return Document(
         doc_id=pmid,
         title=title,
@@ -115,7 +135,14 @@ def _parse_article(art: ET.Element) -> Document | None:
         journal=journal,
         year=year,
         url=f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-        meta={"mesh_terms": mesh, "publication_types": pub_types},
+        meta={
+            "mesh_terms": mesh,
+            "publication_types": pub_types,
+            "affiliations": affiliations,
+            "grants": grants,
+            "coi_statement": coi,
+            "funding_scan": funding_scan,
+        },
     )
 
 

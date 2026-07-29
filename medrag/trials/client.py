@@ -22,7 +22,10 @@ API_URL = "https://clinicaltrials.gov/api/v2/studies"
 # of the negative-evidence pass: no model judgement, just a database query.
 STOPPED_STATUSES = {"TERMINATED", "WITHDRAWN", "SUSPENDED"}
 
-# Requesting only the modules we persist keeps responses small and stable.
+# Requesting only the modules we persist keeps responses small and stable. The
+# eligibility/contacts/description trio is what the patient-facing trial landscape
+# needs — who can enrol, where, and whom to contact — and is dead weight for the
+# asset-diligence flow, but one field list keeps ingestion uniform.
 DEFAULT_FIELDS = [
     "protocolSection.identificationModule",
     "protocolSection.statusModule",
@@ -30,6 +33,9 @@ DEFAULT_FIELDS = [
     "protocolSection.sponsorCollaboratorsModule",
     "protocolSection.conditionsModule",
     "protocolSection.armsInterventionsModule",
+    "protocolSection.eligibilityModule",
+    "protocolSection.contactsLocationsModule",
+    "protocolSection.descriptionModule",
 ]
 
 _LAST_CALL = {"t": 0.0}
@@ -55,9 +61,44 @@ class TrialRecord:
     interventions: list[str] = field(default_factory=list)
     collaborators: list[str] = field(default_factory=list)
 
+    # --- patient-perspective fields (trial landscape) ---
+    brief_summary: str = ""
+    eligibility_criteria: str = ""     # the full inclusion/exclusion text
+    minimum_age: str = ""              # "18 Years" as the registry states it
+    maximum_age: str = ""
+    sex: str = ""                      # ALL | FEMALE | MALE
+    healthy_volunteers: bool | None = None
+    overall_officials: list[dict] = field(default_factory=list)   # name, role, affiliation
+    central_contacts: list[dict] = field(default_factory=list)    # name, email, phone
+    locations: list[dict] = field(default_factory=list)           # facility, city, state, country, status
+
     @property
     def url(self) -> str:
         return f"https://clinicaltrials.gov/study/{self.nct_id}"
+
+    @property
+    def principal_investigator(self) -> dict | None:
+        """The lead contact a patient would ask for. Prefer a named PI, then a
+        study director, then whoever is listed — an official with no useful role
+        is still better than a blank."""
+        officials = [o for o in self.overall_officials if o.get("name")]
+        if not officials:
+            return None
+        for want in ("PRINCIPAL_INVESTIGATOR", "STUDY_DIRECTOR", "STUDY_CHAIR"):
+            for o in officials:
+                if (o.get("role") or "").upper() == want:
+                    return o
+        return officials[0]
+
+    @property
+    def primary_contact(self) -> dict | None:
+        """A contact a patient could actually reach. Central contacts are the
+        recruiting desk; fall back to a location contact if the sponsor filed
+        one there instead."""
+        for c in self.central_contacts:
+            if c.get("name") or c.get("email") or c.get("phone"):
+                return c
+        return None
 
     @property
     def stopped_early(self) -> bool:
@@ -114,6 +155,9 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
     sponsor = proto.get("sponsorCollaboratorsModule") or {}
     conds = proto.get("conditionsModule") or {}
     arms = proto.get("armsInterventionsModule") or {}
+    elig = proto.get("eligibilityModule") or {}
+    contacts = proto.get("contactsLocationsModule") or {}
+    desc = proto.get("descriptionModule") or {}
 
     nct_id = ident.get("nctId", "")
     if not nct_id:
@@ -122,6 +166,32 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
     phases = design.get("phases") or []
     enrollment = design.get("enrollmentInfo") or {}
     lead = sponsor.get("leadSponsor") or {}
+
+    officials = [
+        {"name": o.get("name", ""), "role": o.get("role", ""),
+         "affiliation": o.get("affiliation", "")}
+        for o in (contacts.get("overallOfficials") or []) if o.get("name")
+    ]
+    central = [
+        {"name": c.get("name", ""), "email": c.get("email", ""), "phone": c.get("phone", "")}
+        for c in (contacts.get("centralContacts") or [])
+        if c.get("name") or c.get("email") or c.get("phone")
+    ]
+    locations = [
+        {"facility": loc.get("facility", ""), "city": loc.get("city", ""),
+         "state": loc.get("state", ""), "country": loc.get("country", ""),
+         "status": loc.get("status", ""),
+         # Recruiting trials nest a per-site contacts[] here — the coordinator at
+         # the patient's own site, which is more actionable than the overall
+         # study chair. Kept as name/role/email/phone.
+         "contacts": [
+             {"name": c.get("name", ""), "role": c.get("role", ""),
+              "email": c.get("email", ""), "phone": c.get("phone", "")}
+             for c in (loc.get("contacts") or [])
+             if c.get("name") or c.get("email") or c.get("phone")
+         ]}
+        for loc in (contacts.get("locations") or [])
+    ]
 
     return TrialRecord(
         nct_id=nct_id,
@@ -143,6 +213,17 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
             i.get("name", "") for i in (arms.get("interventions") or []) if i.get("name")
         ],
         collaborators=[c.get("name", "") for c in (sponsor.get("collaborators") or []) if c.get("name")],
+        brief_summary=(desc.get("briefSummary") or "").strip(),
+        eligibility_criteria=(elig.get("eligibilityCriteria") or "").strip(),
+        minimum_age=elig.get("minimumAge", ""),
+        maximum_age=elig.get("maximumAge", ""),
+        sex=elig.get("sex", ""),
+        # The API sends a real boolean here; keep None distinct from False so
+        # "not stated" never reads as "no healthy volunteers".
+        healthy_volunteers=elig.get("healthyVolunteers"),
+        overall_officials=officials,
+        central_contacts=central,
+        locations=locations,
     )
 
 

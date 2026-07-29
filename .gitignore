@@ -26,3 +26,6 @@ out/
 # Fetched trial stores
 *.db
 .streamlit/secrets.toml
+
+# Scratch run artifacts
+rowut/

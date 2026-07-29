@@ -48,6 +48,22 @@ class Retriever:
                 f"index was built with '{store.embedder_name}' but the active embedder is "
                 f"'{embedder.name}'. Re-run `medrag index` to rebuild."
             )
+        # Refuse an index that predates the funding-disclosure fields, the same way
+        # a mismatched embedder is refused: it would answer the independence axis
+        # from stale data (every source reading NO DISCLOSURE) without saying so.
+        from .vectorstore import INDEX_SCHEMA
+
+        if store.index_schema and store.index_schema != INDEX_SCHEMA:
+            raise RuntimeError(
+                f"index schema '{store.index_schema}' is out of date (current is "
+                f"'{INDEX_SCHEMA}'). Re-run `medrag index` to rebuild."
+            )
+        if not store.index_schema:
+            raise RuntimeError(
+                "this index was built before funding-disclosure tracking was added, "
+                "so the independence check cannot run against it. Re-run "
+                "`medrag index` to rebuild it."
+            )
 
     def retrieve(
         self,

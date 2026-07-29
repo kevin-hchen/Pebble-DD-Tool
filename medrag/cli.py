@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from .config import load_config
 from .crypto import ENV_PASSPHRASE, CryptoError, get_passphrase, is_encrypted
@@ -129,6 +130,126 @@ def cmd_diligence(args) -> int:
         print("[medrag] of those, passing:       n/a — no model ran, so nothing was checked")
     print(f"[medrag] trials stopped early:   {cov['stopped_trials_found']}")
     print(f"[medrag] findings against:       {cov['contradicting_findings']}")
+    print(f"[medrag] markdown -> {paths['markdown']}")
+    print(f"[medrag] pdf      -> {paths['pdf']}")
+    return 0
+
+
+def cmd_verify(args) -> int:
+    """Check a list of claims (one per line) against independent evidence."""
+    from .claims import (
+        ClaimVerifier,
+        ConfirmationRequired,
+        parse_claims_text,
+        transmission_notice,
+    )
+    from .claims_memo import export as export_claims
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    path = Path(args.claims)
+    if not path.exists():
+        print(f"error: claims file not found: {path}", file=sys.stderr)
+        return 2
+    claims = parse_claims_text(path.read_text(encoding="utf-8"))
+    if not claims:
+        print(f"error: no claims found in {path} (one claim per line)", file=sys.stderr)
+        return 2
+    print(f"[medrag] {len(claims)} claim(s) to verify")
+
+    # Confidentiality gate. Show exactly what would leave the machine and to
+    # which provider, and require a per-run yes. A local provider skips this.
+    notice = transmission_notice(cfg, claims, kind="claims")
+    if notice.local:
+        print(f"[medrag] {notice.render()}")
+        confirmed = True
+    else:
+        print()
+        print(notice.render())
+        print()
+        if args.yes:
+            confirmed = True
+        elif not sys.stdin.isatty():
+            print(
+                "error: this run would transmit claim text to an external provider. "
+                "Re-run with --yes to confirm, or configure a local provider "
+                "(ollama / none / --offline).",
+                file=sys.stderr,
+            )
+            return 2
+        else:
+            reply = input("Transmit these claims for this run? [y/N] ").strip().lower()
+            confirmed = reply in ("y", "yes")
+        if not confirmed:
+            print("[medrag] not confirmed — nothing was transmitted.")
+            return 1
+
+    verifier = ClaimVerifier(cfg)
+    try:
+        report = verifier.verify(
+            claims,
+            asset=args.asset,
+            indication=args.indication,
+            company=args.company,
+            confirmed=confirmed,
+            progress=True,
+        )
+    except ConfirmationRequired as exc:
+        # Defence in depth: verify() gates too, so a mismatch here is a bug.
+        print(exc.notice.render(), file=sys.stderr)
+        return 1
+    finally:
+        verifier.close()
+
+    paths = export_claims(report, args.out_dir, stem=args.stem)
+    support = report.support_counts()
+    independence = report.independence_counts()
+
+    print()
+    for w in report.warnings:
+        print(f"[warn] {w}")
+    print("[medrag] support (does the evidence back the claim?)")
+    for verdict in ("SUPPORTED", "PARTIALLY SUPPORTED", "CONTRADICTED", "NOT FOUND",
+                    "NOT VERIFIABLE", "UNVERIFIED"):
+        print(f"[medrag]   {verdict:<22} {support.get(verdict, 0)}")
+    print("[medrag] independence (whose evidence is it?)")
+    for label in ("COMPANY-LINKED", "MIXED", "NO DISCLOSURE", "INDEPENDENT", "N/A"):
+        print(f"[medrag]   {label:<22} {independence.get(label, 0)}")
+    print(f"[medrag] markdown -> {paths['markdown']}")
+    print(f"[medrag] pdf      -> {paths['pdf']}")
+    return 0
+
+
+def cmd_landscape(args) -> int:
+    """Enumerate the trials a patient with a condition + biomarker could enter."""
+    from .landscape import build_landscape
+    from .landscape_memo import export as export_landscape
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    db = cfg.raw_dir / TRIALS_DB
+    if not db.exists():
+        print("error: no trial store found. Ingest trials for the condition first, e.g.\n"
+              f'    python -m medrag trials --condition "{args.condition}"',
+              file=sys.stderr)
+        return 2
+
+    # A stale (pre-eligibility) database raises TrialStoreSchemaError here; the
+    # top-level handler prints its rebuild instruction.
+    with TrialStore(db) as store:
+        landscape = build_landscape(
+            store, condition=args.condition, biomarker=args.biomarker,
+            location=args.location or "",
+        )
+
+    paths = export_landscape(landscape, args.out_dir, stem=args.stem)
+
+    print()
+    for w in landscape.warnings:
+        print(f"[warn] {w}")
+    print(f"[medrag] {landscape.counts_line()}")
     print(f"[medrag] markdown -> {paths['markdown']}")
     print(f"[medrag] pdf      -> {paths['pdf']}")
     return 0
@@ -306,6 +427,31 @@ def main(argv: list[str] | None = None) -> int:
     p_dg.add_argument("--out-dir", "-o", default="out", help="directory for the memo files")
     p_dg.add_argument("--stem", default=None, help="filename stem for the outputs")
     p_dg.set_defaults(func=cmd_diligence)
+
+    p_vf = sub.add_parser("verify", parents=[common],
+                          help="check a founder's claims against independent evidence")
+    p_vf.add_argument("--claims", "-f", required=True,
+                      help="path to a claims file, one claim per line ('#' lines are comments)")
+    p_vf.add_argument("--asset", "-a", default="", help='asset or drug name, e.g. "Compound X"')
+    p_vf.add_argument("--indication", "-i", default="", help='indication, e.g. "heart failure"')
+    p_vf.add_argument("--company", "-c", default="",
+                      help="manufacturer name, used to flag company-authored evidence")
+    p_vf.add_argument("--out-dir", "-o", default="out", help="directory for the result files")
+    p_vf.add_argument("--stem", default=None, help="filename stem for the outputs")
+    p_vf.add_argument("--yes", action="store_true",
+                      help="confirm transmitting claim text to the configured provider for this run")
+    p_vf.set_defaults(func=cmd_verify)
+
+    p_ls = sub.add_parser("landscape", parents=[common],
+                          help="enumerate trials a patient could enter, by condition + biomarker")
+    p_ls.add_argument("--condition", "-c", required=True, help='condition, e.g. "colorectal cancer"')
+    p_ls.add_argument("--biomarker", "-b", required=True,
+                      help='biomarker the patient has, e.g. "MSS" (microsatellite stable)')
+    p_ls.add_argument("--location", "-l", default="",
+                      help="optional city/state/country; matching sites sort to the top")
+    p_ls.add_argument("--out-dir", "-o", default="out", help="directory for the table files")
+    p_ls.add_argument("--stem", default=None, help="filename stem for the outputs")
+    p_ls.set_defaults(func=cmd_landscape)
 
     p_dr = sub.add_parser("doctor", parents=[common],
                           help="check that PubMed, ClinicalTrials.gov and OpenAI are reachable")

@@ -84,6 +84,29 @@ def _numbers(text: str) -> set[str]:
     return {m.group(1) for m in _NUM_RE.finditer(text)}
 
 
+def extract_figures(text: str) -> set[str]:
+    """Public alias for the figure extractor, so the claim verifier reuses the
+    exact same tokenisation the memo validator does rather than a parallel one."""
+    return _numbers(text)
+
+
+def figure_grounded(num: str, corpus_numbers: set[str]) -> bool:
+    """Is a single figure supported by some number in the cited evidence?
+
+    One rule, shared between memo validation and claim verification, so "95%
+    grounded by 89%" is judged identically in both. The tolerance is deliberate:
+    an exact match, a small ordinal, or a rounding relationship all count.
+    """
+    if num in corpus_numbers:
+        return True
+    # tolerate rounding: 12.3 grounded by 12.34, and small ordinals
+    if float(num) <= 10 and "." not in num:
+        return True
+    if any(c.startswith(num) or num.startswith(c) for c in corpus_numbers):
+        return True
+    return False
+
+
 # Answers produced without a model. Nothing to validate: the text either
 # reproduces the sources verbatim or reports that nothing was retrieved.
 _NO_MODEL = {"extractive-fallback", "extractive", "none"}
@@ -152,13 +175,7 @@ def validate_answer(
     for _, text in items:
         corpus_numbers |= _numbers(text)
     for num in _numbers(answer.text):
-        if num in corpus_numbers:
-            continue
-        # tolerate rounding: 12.3 grounded by 12.34, and small ordinals
-        if float(num) <= 10 and "." not in num:
-            continue
-        if any(c.startswith(num) or num.startswith(c) for c in corpus_numbers):
-            continue
-        report.ungrounded_numbers.append(num)
+        if not figure_grounded(num, corpus_numbers):
+            report.ungrounded_numbers.append(num)
 
     return report

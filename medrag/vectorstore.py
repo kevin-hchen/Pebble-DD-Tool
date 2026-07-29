@@ -26,11 +26,22 @@ try:
 except ImportError:  # pragma: no cover
     HAS_FAISS = False
 
+# Bumped whenever a chunk field the pipeline depends on is added. An index built
+# before the field exists cannot answer the question the field was added for, so
+# it is refused with a rebuild instruction rather than silently degraded — the
+# same contract as the embedder-name check. "disclosure-v1" adds the per-chunk
+# funder/COI signal the independence axis reads.
+INDEX_SCHEMA = "disclosure-v1"
+
 
 class VectorStore:
-    def __init__(self, dim: int, embedder_name: str = "unknown"):
+    def __init__(self, dim: int, embedder_name: str = "unknown",
+                 index_schema: str = INDEX_SCHEMA):
         self.dim = dim
         self.embedder_name = embedder_name
+        # A freshly built store is current by construction; only load() sets this
+        # from a manifest, where an older or absent value signals a stale index.
+        self.index_schema = index_schema
         self.chunks: list[Chunk] = []
         if HAS_FAISS:
             self.index = faiss.IndexFlatIP(dim)
@@ -110,6 +121,7 @@ class VectorStore:
         manifest = {
             "dim": self.dim,
             "embedder": self.embedder_name,
+            "schema": self.index_schema,
             "n_chunks": len(self.chunks),
             "backend": "faiss" if HAS_FAISS else "numpy",
             "encrypted": bool(passphrase),
@@ -126,7 +138,13 @@ class VectorStore:
     def load(cls, directory: str | Path, passphrase: str | None = None) -> "VectorStore":
         directory = Path(directory)
         manifest = json.loads((directory / "manifest.json").read_text())
-        store = cls(dim=manifest["dim"], embedder_name=manifest.get("embedder", "unknown"))
+        store = cls(
+            dim=manifest["dim"],
+            embedder_name=manifest.get("embedder", "unknown"),
+            # Absent on indexes built before schema tracking, which is the signal
+            # that they predate the disclosure fields.
+            index_schema=manifest.get("schema", ""),
+        )
 
         faiss_path, npy_path = directory / "index.faiss", directory / "vectors.npy"
         if HAS_FAISS and faiss_path.exists():

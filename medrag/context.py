@@ -122,7 +122,13 @@ def build_evidence(
                 url=t.url,
                 citation=t.lead_sponsor,
                 meta={"status": t.overall_status, "phase": t.phase,
-                      "stopped_early": t.stopped_early},
+                      "stopped_early": t.stopped_early,
+                      # Carried so the claim verifier can flag company-authored
+                      # evidence from the structured sponsor fields rather than
+                      # guessing an affiliation out of prose.
+                      "lead_sponsor": t.lead_sponsor,
+                      "sponsor_class": t.sponsor_class,
+                      "collaborators": list(t.collaborators)},
             )
         )
         used += len(block)
@@ -148,6 +154,10 @@ def build_evidence(
                     "section": r.chunk.section,
                     "evidence_key": getattr(r.chunk, "evidence_key", "unclassified"),
                     "evidence_rank": getattr(r.chunk, "evidence_rank", 8),
+                    # The document-level funder signal, carried so independence is
+                    # judged from the whole record, not the one cited chunk.
+                    "disclosure": getattr(r.chunk, "disclosure", ""),
+                    "disclosure_independent": getattr(r.chunk, "disclosure_independent", False),
                 },
             )
         )

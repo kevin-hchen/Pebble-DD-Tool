@@ -21,6 +21,13 @@ from pathlib import Path
 
 from .client import STOPPED_STATUSES, TrialRecord
 
+# Bumped when the columns change. Written to PRAGMA user_version so a database
+# built before the eligibility/location columns existed is refused on open
+# rather than read with columns silently missing — the same fail-closed choice
+# the vector index makes on an embedder or schema mismatch. v1 was the original
+# diligence schema; v2 adds the patient-perspective fields.
+STORE_VERSION = 2
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trials (
     nct_id                  TEXT PRIMARY KEY,
@@ -39,6 +46,15 @@ CREATE TABLE IF NOT EXISTS trials (
     conditions              TEXT,   -- JSON array
     interventions           TEXT,   -- JSON array
     collaborators           TEXT,   -- JSON array
+    brief_summary           TEXT,
+    eligibility_criteria    TEXT,
+    minimum_age             TEXT,
+    maximum_age             TEXT,
+    sex                     TEXT,
+    healthy_volunteers      INTEGER,  -- 1/0/NULL; NULL means not stated
+    overall_officials       TEXT,   -- JSON array of {name, role, affiliation}
+    central_contacts        TEXT,   -- JSON array of {name, email, phone}
+    locations               TEXT,   -- JSON array of {facility, city, state, country, status}
     ingested_at             TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_status     ON trials(overall_status);
@@ -57,7 +73,17 @@ CREATE VIRTUAL TABLE IF NOT EXISTS trials_fts USING fts5(
 );
 """
 
-_ARRAY_FIELDS = ("conditions", "interventions", "collaborators")
+# JSON-encoded on write, decoded on read. The three patient-perspective lists
+# join the diligence trio here.
+_ARRAY_FIELDS = (
+    "conditions", "interventions", "collaborators",
+    "overall_officials", "central_contacts", "locations",
+)
+
+
+class TrialStoreSchemaError(RuntimeError):
+    """A trials.db built before the current schema. Carries a rebuild instruction
+    so the CLI can print something a user can act on, not a traceback."""
 
 
 class TrialStore:
@@ -68,7 +94,25 @@ class TrialStore:
 
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
+
+        # Refuse a stale database before touching it. Running the new SCHEMA over
+        # an old file would leave the table missing columns (CREATE TABLE IF NOT
+        # EXISTS does not add them), so every landscape query would then fail on a
+        # column that isn't there. Fail closed instead, with a rebuild step.
+        if not new_file:
+            version = self.conn.execute("PRAGMA user_version").fetchone()[0]
+            if version != STORE_VERSION:
+                self.conn.close()
+                raise TrialStoreSchemaError(
+                    f"the trial database at {self.path} was built by an older version "
+                    f"(schema v{version or 1}, current is v{STORE_VERSION}) and lacks the "
+                    "eligibility and location columns. Delete it and re-ingest:\n"
+                    f"    rm {self.path}\n"
+                    '    python -m medrag trials --condition "..." --intervention "..."'
+                )
+
         self.conn.executescript(SCHEMA)
+        self.conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
         self.conn.commit()
 
         if new_file:
@@ -132,6 +176,10 @@ class TrialStore:
         d = {k: row[k] for k in row.keys() if k != "ingested_at"}
         for f in _ARRAY_FIELDS:
             d[f] = json.loads(d[f] or "[]")
+        # SQLite has no bool; restore it, keeping NULL ("not stated") distinct
+        # from False.
+        hv = d.get("healthy_volunteers")
+        d["healthy_volunteers"] = None if hv is None else bool(hv)
         return TrialRecord.from_dict(d)
 
     def __len__(self) -> int:

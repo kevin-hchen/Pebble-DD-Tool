@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from .config import Config
+from .disclosures import disclosure_from_document
 from .documents import Chunk, Document
 from .evidence_grade import grade_document
 
@@ -118,6 +119,9 @@ def chunk_document(doc: Document, cfg: Config) -> list[Chunk]:
     # Graded once per document at ingest: publication type is already in the
     # PubMed metadata, so this costs nothing and needs no model.
     grade = grade_document(doc)
+    # Same move for the funder: derive once, stamp on every chunk, so the cited
+    # chunk carries the disclosure even when it lives in a different section.
+    disclosure = disclosure_from_document(doc)
 
     for label, body in split_sections(doc.text):
         for piece in _pack(split_sentences(body), cfg):
@@ -141,6 +145,8 @@ def chunk_document(doc: Document, cfg: Config) -> list[Chunk]:
                     evidence_key=grade.key,
                     evidence_tag=grade.tag,
                     evidence_rank=grade.rank,
+                    disclosure=disclosure.blob,
+                    disclosure_independent=disclosure.independent,
                 )
             )
             ordinal += 1

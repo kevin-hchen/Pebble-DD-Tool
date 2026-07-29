@@ -56,6 +56,10 @@ class Chunk:
     evidence_key: str = "unclassified"
     evidence_tag: str = "UNGRADED"
     evidence_rank: int = 8
+    # Document-level funding/affiliation/COI signal, propagated onto every chunk
+    # at ingest so a disclosure in one section is visible when another is cited.
+    disclosure: str = ""
+    disclosure_independent: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

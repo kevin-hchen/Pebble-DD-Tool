@@ -169,10 +169,16 @@ class DiligenceRunner:
         self.trial_store = trial_store
         if self.trial_store is None:
             from .pipeline import TRIALS_DB
+            from .trials.store import TrialStoreSchemaError
 
             db = self.cfg.raw_dir / TRIALS_DB
             if db.exists():
-                self.trial_store = TrialStore(db)
+                # A stale trials.db must not crash the memo: degrade to a
+                # literature-only run with the rebuild instruction surfaced.
+                try:
+                    self.trial_store = TrialStore(db)
+                except TrialStoreSchemaError as exc:
+                    self.warnings.append(str(exc).splitlines()[0])
             else:
                 self.warnings.append("trial store not found — run `medrag trials` first")
 
