@@ -1,6 +1,6 @@
 # MedRAG — Clinical Evidence Assistant
 
-**Personal project.** Built on public data sources — PubMed via the NCBI
+**Built for Pebble Accelerator** Built on public data sources — PubMed via the NCBI
 E-utilities API, and the ClinicalTrials.gov v2 registry — with no proprietary
 inputs and no affiliation with any employer. Released under the MIT License.
 
