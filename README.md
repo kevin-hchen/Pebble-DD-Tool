@@ -48,6 +48,32 @@ indirectly — it excludes the opposite marker rather than naming the patient's 
 it's kept and flagged as uncertain, not dropped. A missed trial is worse than an
 uncertain one when someone is looking for an option.
 
+## Why not just ask a chatbot
+
+Fair question. I asked it a lot while building this.
+
+Ask a good general model about a drug and you get a good answer. What you don't
+get is a procedure. This tool exists for the parts that aren't a model call at
+all:
+
+- **It counts.** "57 of the 500 trials held stopped early, 52 gave a reason" is
+  a database query, not a guess — and it tells you the denominator, so you can
+  see what it didn't cover.
+- **It checks its own citations.** Every figure in the memo has to appear in a
+  passage that was actually retrieved. A model cites; nothing verifies the
+  citation.
+- **It scores independence separately from support.** A claim can be
+  well-evidenced and entirely company-funded, and both show up as separate
+  columns. No disclosure statement means "no disclosure", never "independent".
+- **It asks the same questions in the same order every time**, so two memos are
+  comparable.
+- **It can run entirely on your own machine**, with nothing sent anywhere.
+
+Where a general model still wins: open-ended synthesis, anything outside PubMed
+and ClinicalTrials.gov and openFDA, and questions nobody thought to put in the
+question set. This isn't trying to replace that. It's trying to be the part you
+can check.
+
 ## Running it
 
 ```bash
@@ -125,3 +151,5 @@ should be checked against the original source before it informs anything. It's
 covered by about 260 tests that run with no network and no API key, and building
 it turned up several real bugs — but a tool like this is only as good as the last
 source you verified by hand.
+
+
