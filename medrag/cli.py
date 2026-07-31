@@ -9,6 +9,7 @@ from pathlib import Path
 from .config import load_config
 from .crypto import ENV_PASSPHRASE, CryptoError, get_passphrase, is_encrypted
 from .diligence import DiligenceRunner, load_question_set
+from .freshness import cautions, store_freshness
 from .ingest.store import read_corpus
 from .memo import export
 from .pipeline import CORPUS_FILE, TRIALS_DB, MedRAG, build_index, ingest_pdfs, ingest_pubmed
@@ -420,6 +421,16 @@ def cmd_stats(args) -> int:
             print(f"  {status}: {n}")
     else:
         print("trials: not ingested")
+
+    # Freshness last, because it is the thing most likely to change how the
+    # numbers above should be read.
+    print()
+    print("data freshness:")
+    for f in store_freshness(cfg):
+        flag = "  STALE" if f.stale else ""
+        print(f"  {f.label:<20} {f.describe()}{flag}")
+    for note in cautions(cfg):
+        print(f"  ! {note}")
 
     print(f"offline mode: {'on' if cfg.offline else 'off'}")
     return 0

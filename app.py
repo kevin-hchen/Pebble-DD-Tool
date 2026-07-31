@@ -29,6 +29,7 @@ from medrag.autoload import ensure_data
 from medrag.config import load_config
 from medrag.crypto import CryptoError, is_encrypted, read_secure
 from medrag.diligence import DiligenceRunner, MemoResult, load_question_set
+from medrag.freshness import cautions, store_freshness
 from medrag.ingest.store import corpus_health
 from medrag.memo import export
 from medrag.pipeline import CORPUS_FILE, TRIALS_DB
@@ -224,12 +225,31 @@ _corpus_problem = corpus_problem(cfg)
 if _corpus_problem:
     _badge("warning", "SOME STORED RESEARCH UNREADABLE", _corpus_problem)
 
+# A snapshot ageing silently is this system's characteristic failure: the memo
+# looks identical whether the registry was pulled this morning or in March. The
+# caution is at the top level, not buried in Settings, because it changes how
+# every number below it should be read.
+for _note in cautions(cfg):
+    _badge("warning", "STORED RESEARCH IS OUT OF DATE", _note)
+
 with st.expander("Settings"):
     st.markdown(f"**Provider:** {provider.label}")
     st.markdown(f"**Model:** `{cfg.chat_model}`")
     st.caption(f"Research loaded: {loaded_summary(cfg)}")
     if _corpus_problem:
         st.caption(f"Stored research: {_corpus_problem}")
+
+    st.markdown("**Last refreshed**")
+    theme.data_table(
+        ["Source", "Last refreshed", "Status"],
+        [
+            [f.label, f.describe(), "OUT OF DATE" if f.stale else
+             ("not loaded" if not f.present else "current")]
+            for f in store_freshness(cfg)
+        ],
+        verdict_cols=set(),
+        numbered=False,
+    )
 
     question_files = sorted(Path("config").glob("*.yaml"))
     labels = [p.name for p in question_files] or ["diligence_questions.yaml"]

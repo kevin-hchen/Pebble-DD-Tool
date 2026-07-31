@@ -26,6 +26,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -140,16 +141,48 @@ def test_offline_does_not_warn_about_the_registry():
 # st.checkbox. They drive the real page file.
 
 
-def _app(tmp: Path):
-    """The claims page, wired to a scratch data dir and a remote provider."""
+@contextmanager
+def _configured_app():
+    """A scratch working directory holding a .env, yielding the claims page.
+
+    The page decides whether it is configured by calling `read_env()`, which
+    reads the `.env` FILE — `setup_env.read_env` binds `Path(".env")` as a
+    default at definition time, so the working directory is the only lever and
+    setting os.environ is not enough.
+
+    That distinction is not pedantry. These tests first passed only because the
+    developer's machine happened to have a `.env`; on a clean checkout the page
+    took its "SETUP NEEDED" branch, called st.stop(), rendered no widgets, and
+    all four failed. A fresh-clone run caught it. Anything that depends on
+    untracked local state has to create that state itself.
+    """
     from streamlit.testing.v1 import AppTest
 
-    os.environ["MEDRAG_DATA_DIR"] = str(tmp)
+    tmp = Path(tempfile.mkdtemp())
+    (tmp / ".env").write_text(
+        "MEDRAG_PROVIDER=groq\nGROQ_API_KEY=test-key-no-call-is-made\n", encoding="utf-8"
+    )
+    keys = ("MEDRAG_DATA_DIR", "MEDRAG_PROVIDER", "GROQ_API_KEY", "MEDRAG_OFFLINE")
+    saved = {k: os.environ.get(k) for k in keys}
+    cwd = os.getcwd()
+
+    os.chdir(tmp)
+    os.environ["MEDRAG_DATA_DIR"] = str(tmp / "data")
     os.environ["MEDRAG_PROVIDER"] = "groq"
-    os.environ["GROQ_API_KEY"] = "test-key-not-used-no-call-is-made"
+    os.environ["GROQ_API_KEY"] = "test-key-no-call-is-made"
     os.environ.pop("MEDRAG_OFFLINE", None)
-    at = AppTest.from_file(str(REPO / "pages" / "2_Verify_Claims.py"), default_timeout=30)
-    return at
+    try:
+        yield AppTest.from_file(
+            str(REPO / "pages" / "2_Verify_Claims.py"), default_timeout=30
+        )
+    finally:
+        # Restored so the chdir cannot leak into another test file under pytest.
+        os.chdir(cwd)
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 def _consent_boxes(at):
@@ -158,37 +191,38 @@ def _consent_boxes(at):
 
 
 def test_page_renders_a_consent_checkbox_for_pasted_claims():
-    tmp = Path(tempfile.mkdtemp())
-    at = _app(tmp).run()
-    at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
+    with _configured_app() as app:
+        at = app.run()
+        at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
 
-    boxes = _consent_boxes(at)
-    assert boxes, "a remote provider must ask for confirmation"
-    assert any(k.startswith("verify_") for k in boxes), (
-        f"consent must use a content-derived key, got {list(boxes)}"
-    )
+        boxes = _consent_boxes(at)
+        assert boxes, "a remote provider must ask for confirmation"
+        assert any(k.startswith("verify_") for k in boxes), (
+            f"consent must use a content-derived key, got {list(boxes)}"
+        )
 
 
 def test_consent_does_not_survive_a_claim_text_swap_at_the_same_count():
     """The regression for finding 1, at the layer where it happened."""
-    tmp = Path(tempfile.mkdtemp())
-    at = _app(tmp).run()
+    with _configured_app() as app:
+        at = app.run()
 
-    at.text_area(key="claims_text").set_value("SECRET-A\nSECRET-B\nSECRET-C").run()
-    first = _consent_boxes(at)
-    key_before = next(k for k in first if k.startswith("verify_"))
-    first[key_before].check().run()
-    assert at.session_state[key_before] is True, "the analyst ticked it"
+        at.text_area(key="claims_text").set_value("SECRET-A\nSECRET-B\nSECRET-C").run()
+        first = _consent_boxes(at)
+        key_before = next(k for k in first if k.startswith("verify_"))
+        first[key_before].check().run()
+        assert at.session_state[key_before] is True, "the analyst ticked it"
 
-    # Same count, entirely different confidential text.
-    at.text_area(key="claims_text").set_value("DIFFERENT-X\nDIFFERENT-Y\nDIFFERENT-Z").run()
-    second = _consent_boxes(at)
-    key_after = next(k for k in second if k.startswith("verify_"))
+        # Same count, entirely different confidential text.
+        at.text_area(key="claims_text").set_value(
+            "DIFFERENT-X\nDIFFERENT-Y\nDIFFERENT-Z").run()
+        second = _consent_boxes(at)
+        key_after = next(k for k in second if k.startswith("verify_"))
 
-    assert key_after != key_before, "different claims must be a different consent"
-    assert second[key_after].value is False, (
-        "consent for SECRET-A/B/C must not carry over to DIFFERENT-X/Y/Z"
-    )
+        assert key_after != key_before, "different claims must be a different consent"
+        assert second[key_after].value is False, (
+            "consent for SECRET-A/B/C must not carry over to DIFFERENT-X/Y/Z"
+        )
 
 
 def test_consent_is_dropped_once_the_analyst_edits_away_from_it():
@@ -196,21 +230,21 @@ def test_consent_is_dropped_once_the_analyst_edits_away_from_it():
     not even survive a round trip through other content. Pinned because the
     docstring on consent_key claims this, and an unasserted claim about a
     security control is the thing that produced finding 1."""
-    tmp = Path(tempfile.mkdtemp())
-    at = _app(tmp).run()
+    with _configured_app() as app:
+        at = app.run()
 
-    at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
-    key = next(k for k in _consent_boxes(at) if k.startswith("verify_"))
-    _consent_boxes(at)[key].check().run()
-    assert at.session_state[key] is True
+        at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
+        key = next(k for k in _consent_boxes(at) if k.startswith("verify_"))
+        _consent_boxes(at)[key].check().run()
+        assert at.session_state[key] is True
 
-    at.text_area(key="claims_text").set_value("something else entirely").run()
-    assert key not in at.session_state, "stale consent must not linger in state"
+        at.text_area(key="claims_text").set_value("something else entirely").run()
+        assert key not in at.session_state, "stale consent must not linger in state"
 
-    at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
-    assert _consent_boxes(at)[key].value is False, (
-        "coming back to previously confirmed claims must ask again"
-    )
+        at.text_area(key="claims_text").set_value("claim one\nclaim two").run()
+        assert _consent_boxes(at)[key].value is False, (
+            "coming back to previously confirmed claims must ask again"
+        )
 
 
 def test_the_page_never_uses_a_fixed_consent_key():
@@ -230,15 +264,15 @@ def test_the_page_never_uses_a_fixed_consent_key():
 
 def test_verify_button_is_blocked_until_consent_is_given():
     """The run path re-checks; a stale tick is not the only thing standing here."""
-    tmp = Path(tempfile.mkdtemp())
-    at = _app(tmp).run()
-    at.text_area(key="claims_text").set_value("claim one").run()
+    with _configured_app() as app:
+        at = app.run()
+        at.text_area(key="claims_text").set_value("claim one").run()
 
-    at.button[0].click().run()  # "Verify claims" without ticking
+        at.button[0].click().run()  # "Verify claims" without ticking
 
-    assert any("Confirm the transmission first" in e.value for e in at.error), (
-        f"expected a refusal, got errors={[e.value for e in at.error]}"
-    )
+        assert any("Confirm the transmission first" in e.value for e in at.error), (
+            f"expected a refusal, got errors={[e.value for e in at.error]}"
+        )
 
 
 def _run_all() -> int:
