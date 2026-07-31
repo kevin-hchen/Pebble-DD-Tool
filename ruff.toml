@@ -1,0 +1,32 @@
+# Lint config for CI.
+#
+# Deliberately narrow. Ruff's wider rule set flags 245 things here, almost all of
+# them style opinions (blind-except, printf formatting, naive datetimes) that this
+# codebase makes on purpose and documents in CLAUDE.md. A CI gate that fails on
+# taste teaches people to ignore CI.
+#
+# What is selected are rules that catch defects a reader would call a bug:
+#   F     pyflakes — undefined names, unused imports, redefinitions
+#   E4/E7/E9  real errors, not whitespace pedantry
+#   E741  ambiguous names (`l` vs `1` is a genuine reading hazard)
+#   I     import order, so diffs stay small and merges stay boring
+#
+# Widen this when someone wants to, not because a tool defaults to it.
+
+line-length = 100
+target-version = "py39"
+exclude = [".venv", "data", "out", ".git"]
+
+[lint]
+select = ["F", "E4", "E7", "E9", "E741", "I"]
+
+[lint.per-file-ignores]
+# Test files insert the repo root on sys.path before importing medrag, so their
+# imports cannot be sorted to the top. Same for the Streamlit pages, which must
+# call set_page_config before anything else renders.
+"tests/*" = ["E402"]
+"app.py" = ["E402"]
+"pages/*" = ["E402"]
+
+[lint.isort]
+known-first-party = ["medrag", "theme"]

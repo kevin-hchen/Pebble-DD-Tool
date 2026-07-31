@@ -1,34 +1,55 @@
+# Runtime dependencies, pinned exactly.
+#
+# Every version here is the one this project is known to work against, verified
+# by a full test run and a fresh-clone install. They were floor pins (`>=`) until
+# a security review found the failure that makes exact pinning non-negotiable
+# here: `sentence-transformers` was COMMENTED OUT while data/index/manifest.json
+# records it as the embedder, and an embedder mismatch is refused on load. So
+# `pip install -r requirements.txt` produced an install that completed and then
+# could not open the shipped index. That is the first thing a new person hits.
+#
+# requirements.lock holds the full transitive closure with hashes. Use it for a
+# reproducible install:
+#     pip install --require-hashes -r requirements.lock
+#
+# Known vulnerabilities: `pip-audit` currently reports findings against several
+# of these (streamlit, torch, transformers, pillow and others). They are pinned
+# here anyway because these are the versions that work, and upgrading is a
+# separate change that needs its own test run — notably Streamlit, where the
+# theme depends on `data-testid` attributes that move between releases. See
+# docs/RUNBOOK.md, "Dependencies and known vulnerabilities", for the current
+# list and what upgrading each one risks. Do not bump these casually.
+
 # Core
-numpy>=1.24
-requests>=2.31
-python-dotenv>=1.0
+numpy==2.0.2
+requests==2.32.5
+python-dotenv==1.2.1
 
 # Vector search
-faiss-cpu>=1.7.4
+faiss-cpu==1.13.0
 
-# LLM + embeddings (primary path)
-openai>=1.30
+# LLM client (OpenAI-compatible; also used for Groq, Cerebras, OpenRouter, Ollama)
+openai==2.48.0
 
 # PDF ingestion
-pypdf>=4.2
+pypdf==6.14.2
 
-# UI
-streamlit>=1.33
+# UI. Pinned exactly and deliberately: theme.py targets Streamlit's internal
+# `data-testid` DOM, which is not a public API and changes between releases.
+# Bumping this without re-running the visual checks will silently break the
+# theme.
+streamlit==1.50.0
 
 # Encryption at rest (AES-256-GCM + scrypt)
-cryptography>=42.0
+cryptography==49.0.0
 
 # Question-set config and memo export
-PyYAML>=6.0
-reportlab>=4.0
+PyYAML==6.0.3
+reportlab==5.0.0
 
-# Local embeddings. NOT optional despite the name: the index in data/index/ was
-# built with sentence-transformers, and vectorstore refuses to load an index whose
-# embedder does not match. Commented out, `pip install -r requirements.txt` gave a
-# working install that then could not open the shipped index.
-#
-# Pinned exactly, and torch with it, because the embedder name is written into the
-# index manifest and a different build can change it. The rest of this file is
-# still floor-pinned; the lockfile is a separate task.
+# Local embeddings. NOT optional despite requirements-offline.txt: the shipped
+# index was built with sentence-transformers, and vectorstore refuses to load an
+# index whose embedder name does not match. torch is pinned alongside it because
+# the embedder name is written into the index manifest.
 sentence-transformers==5.1.2
 torch==2.8.0

@@ -16,6 +16,12 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fixtures.pubmed import efetch_xml  # noqa: E402
@@ -31,7 +37,6 @@ from medrag.documents import Chunk, Document  # noqa: E402
 from medrag.ingest import pubmed  # noqa: E402
 from medrag.retriever import Retriever  # noqa: E402
 from medrag.vectorstore import INDEX_SCHEMA, VectorStore  # noqa: E402
-
 
 # --------------------------------------------------------------- parser capture
 

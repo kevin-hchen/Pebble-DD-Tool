@@ -15,8 +15,6 @@ from pathlib import Path
 import streamlit as st
 
 import theme
-
-from medrag.biomarker import ELIGIBLE, UNCLEAR
 from medrag.config import load_config
 from medrag.crypto import read_secure
 from medrag.landscape import build_landscape

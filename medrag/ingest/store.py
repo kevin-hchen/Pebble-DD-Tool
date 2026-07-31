@@ -277,7 +277,7 @@ def _read_ids(path: Path) -> set[str]:
     if sidecar.exists():
         try:
             text = read_secure(sidecar, None).decode("utf-8", errors="replace")
-            return {l.strip() for l in split_lines(text)}
+            return {line.strip() for line in split_lines(text)}
         except (CryptoError, OSError):
             pass  # fall through and rebuild it
     return _scan_ids(path)

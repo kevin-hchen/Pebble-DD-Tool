@@ -21,7 +21,6 @@ from pathlib import Path
 import streamlit as st
 
 import theme
-
 from medrag.autoload import ensure_data
 from medrag.claims import (
     ClaimVerifier,

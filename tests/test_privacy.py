@@ -26,14 +26,22 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fixtures.ctgov import PAGE_ONE  # noqa: E402
 
-from medrag.config import Config, load_config  # noqa: E402
+from medrag.chunking import chunk_document  # noqa: E402
+from medrag.config import Config  # noqa: E402
 from medrag.context import build_evidence  # noqa: E402
-from medrag.diligence import DiligenceRunner, DiligenceQuestion  # noqa: E402
+from medrag.diligence import DiligenceQuestion, DiligenceRunner  # noqa: E402
 from medrag.documents import Chunk, Document, Retrieved  # noqa: E402
+from medrag.embeddings import HashingEmbedder  # noqa: E402
 from medrag.generator import Generator  # noqa: E402
 from medrag.ingest import pubmed  # noqa: E402
 from medrag.ingest.store import save_corpus  # noqa: E402
@@ -46,8 +54,6 @@ from medrag.trials import client as ctgov  # noqa: E402
 from medrag.trials.client import parse_study  # noqa: E402
 from medrag.trials.store import TrialStore  # noqa: E402
 from medrag.vectorstore import VectorStore  # noqa: E402
-from medrag.embeddings import HashingEmbedder  # noqa: E402
-from medrag.chunking import chunk_document  # noqa: E402
 
 SECRET = "gsk_THISISTHESECRETKEYVALUE1234567890"
 REPO = Path(__file__).resolve().parents[1]

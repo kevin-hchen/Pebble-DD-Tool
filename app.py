@@ -28,8 +28,8 @@ import theme
 from medrag.autoload import ensure_data
 from medrag.config import load_config
 from medrag.crypto import CryptoError, is_encrypted, read_secure
-from medrag.ingest.store import corpus_health
 from medrag.diligence import DiligenceRunner, MemoResult, load_question_set
+from medrag.ingest.store import corpus_health
 from medrag.memo import export
 from medrag.pipeline import CORPUS_FILE, TRIALS_DB
 from medrag.providers import FREE_PROVIDERS, PROVIDERS, get_provider

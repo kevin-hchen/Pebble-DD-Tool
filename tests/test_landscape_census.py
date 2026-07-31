@@ -14,6 +14,12 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from medrag.biomarker_gating import (  # noqa: E402
@@ -241,6 +247,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 def _load_study(nct):
     import json
+
     from medrag.trials.client import parse_study
     return parse_study(json.loads((FIXTURES / f"ctgov_study_{nct}.json").read_text()))
 

@@ -164,5 +164,5 @@ class VectorStore:
             raise FileNotFoundError(f"no vector data found in {directory}")
 
         text = read_secure(directory / "chunks.jsonl", passphrase).decode("utf-8")
-        store.chunks = [Chunk.from_dict(json.loads(l)) for l in split_lines(text)]
+        store.chunks = [Chunk.from_dict(json.loads(line)) for line in split_lines(text)]
         return store

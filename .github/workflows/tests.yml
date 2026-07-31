@@ -1,0 +1,90 @@
+name: tests
+
+# Thirteen test files that only run when someone remembers to run them will rot
+# within a month. This is the safety net that does not depend on anyone
+# remembering.
+#
+# No deploy step. This project does not deploy anywhere yet, and a pipeline that
+# ships nothing is ceremony.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 3.9 because that is what this project actually runs on, and CI that
+      # tests a different interpreter than the developer uses catches the wrong
+      # bugs (3.9 rejects backslashes inside f-string expressions, for one).
+      #
+      # 3.9 is also past end of life, which is why `pip-audit` reports fixes this
+      # project cannot install: requests 2.33.0 and python-dotenv 1.2.2 are both
+      # Requires-Python >=3.10. Moving to 3.11 is the real remediation and is
+      # tracked in docs/RUNBOOK.md.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+          cache-dependency-path: |
+            requirements.lock
+            requirements-dev.txt
+
+      - name: Install runtime dependencies (hash-verified)
+        run: |
+          python -m pip install --upgrade pip
+          pip install --require-hashes -r requirements.lock
+
+      # Pinned explicitly rather than via -r requirements-dev.txt, because that
+      # file re-includes requirements.txt and pip refuses to mix hashed and
+      # unhashed requirements in one resolution.
+      - name: Install dev tooling
+        run: pip install pytest==8.4.2 ruff==0.16.1
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test suite (pytest)
+        env:
+          KMP_DUPLICATE_LIB_OK: "TRUE"
+        run: pytest tests/ -q
+
+      # CLAUDE.md documents that each test file is runnable on its own. That is
+      # a real convention — it is how the no-network guard gets installed outside
+      # pytest — so CI runs every file that way too. A convention nothing checks
+      # stops being true.
+      - name: Test suite (each file directly, as CLAUDE.md documents)
+        env:
+          KMP_DUPLICATE_LIB_OK: "TRUE"
+        run: |
+          failed=0
+          for f in tests/test_*.py; do
+            echo "::group::$f"
+            if python "$f"; then
+              echo "ok $f"
+            else
+              echo "::error file=$f::direct run failed"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $failed
+
+      # Advisory only. The pinned set has known findings that cannot be fixed on
+      # Python 3.9 (see the setup-python note above), so failing the build on
+      # them would mean a permanently red CI teaching everyone to ignore it. The
+      # report is printed so a regression is visible in the log.
+      - name: Dependency audit (advisory)
+        continue-on-error: true
+        run: |
+          pip install pip-audit==2.9.0
+          pip-audit -r requirements.txt || true

@@ -12,6 +12,12 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
+
 from medrag.chunking import _pack, chunk_document, split_sections, split_sentences  # noqa: E402
 from medrag.config import Config  # noqa: E402
 from medrag.documents import Document, Retrieved  # noqa: E402
@@ -87,9 +93,10 @@ def test_runt_tail_survives_real_pubmed_efetch_xml():
     # captured live PubMed response. PMID 36571459's Results section, at default
     # chunk_size=900, packs into two chunks with a ~78-char tail, which triggers
     # the runt-tail merge. Fixture is the raw efetch XML - do not edit it.
-    from tests.fixtures.pubmed import efetch_xml
-    from medrag.ingest.pubmed import _parse_article
     import xml.etree.ElementTree as ET
+
+    from medrag.ingest.pubmed import _parse_article
+    from tests.fixtures.pubmed import efetch_xml
 
     root = ET.fromstring(efetch_xml("36571459"))
     articles = root.findall(".//PubmedArticle")
@@ -165,7 +172,6 @@ def test_mmr_trades_relevance_for_diversity():
 
 
 def test_context_respects_char_budget():
-    emb = HashingEmbedder(dim=128)
     chunks = [c for d in DOCS for c in chunk_document(d, CFG)]
     retrieved = [Retrieved(chunk=c, score=0.5) for c in chunks]
     ctx = build_context(retrieved, max_chars=300)

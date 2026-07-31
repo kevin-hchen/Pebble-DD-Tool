@@ -18,6 +18,12 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fixtures.ctgov import PAGE_ONE, PAGE_TWO  # noqa: E402
@@ -55,7 +61,6 @@ from medrag.context import build_evidence  # noqa: E402
 from medrag.documents import Chunk, Retrieved  # noqa: E402
 from medrag.trials.client import parse_study  # noqa: E402
 from medrag.trials.store import TrialStore  # noqa: E402
-
 
 # --------------------------------------------------------------- helpers
 

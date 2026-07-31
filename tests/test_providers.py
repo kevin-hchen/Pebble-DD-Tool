@@ -15,13 +15,18 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
+
 from medrag.autoload import LoadReport, _friendly, ensure_data, has_data_for  # noqa: E402
 from medrag.config import Config, load_config  # noqa: E402
 from medrag.embeddings import get_embedder  # noqa: E402
 from medrag.providers import (  # noqa: E402
     FREE_PROVIDERS,
     PROVIDERS,
-    get_provider,
     make_client,
     resolve_model,
 )
@@ -228,6 +233,7 @@ def _run_doctor(cfg: Config, models_list_effect=None):
     """Run cmd_doctor with mocks in place; return (return_code, stdout, ctor)."""
     import io
     from contextlib import redirect_stdout
+
     from medrag.cli import cmd_doctor
 
     args = MagicMock(encrypt=False, offline=False)

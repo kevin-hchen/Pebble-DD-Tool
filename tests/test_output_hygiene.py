@@ -27,6 +27,12 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
+
 from medrag.claims import (  # noqa: E402
     ClaimReport,
     ClaimVerdict,
@@ -35,8 +41,8 @@ from medrag.claims import (  # noqa: E402
 )
 from medrag.claims_memo import export as export_claims  # noqa: E402
 from medrag.config import Config  # noqa: E402
-from medrag.crypto import MAGIC, read_secure  # noqa: E402
 from medrag.context import build_evidence  # noqa: E402
+from medrag.crypto import MAGIC, read_secure  # noqa: E402
 from medrag.documents import Chunk, Retrieved  # noqa: E402
 
 

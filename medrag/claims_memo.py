@@ -14,7 +14,6 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from .crypto import harden_outputs, write_secure
 from .claims import (
     COMPANY_LINKED,
     CONTRADICTED,
@@ -32,6 +31,7 @@ from .claims import (
     ClaimVerdict,
 )
 from .context import TRIAL_LABEL
+from .crypto import harden_outputs, write_secure
 from .memo import DISCLAIMER, _fmt_date, _inline_to_rl
 from .table_render import markdown_table, pdf_table
 

@@ -18,8 +18,8 @@ from datetime import datetime
 from pathlib import Path
 
 from .biomarker_gating import MARKER_LABELS
+from .context import TRIAL_LABEL
 from .crypto import harden_outputs, write_secure
-from .context import LIT_LABEL, TRIAL_LABEL
 from .diligence import MemoResult, SectionResult
 from .table_render import markdown_table, pdf_table
 
@@ -452,7 +452,6 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
         for w in memo.warnings:
             story.append(Paragraph(_inline_to_rl(w), styles["body"]))
 
-    from reportlab.lib.units import inch
 
     for s in memo.sections:
         story.append(Paragraph(_inline_to_rl(s.question.section), styles["h2"]))

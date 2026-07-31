@@ -16,6 +16,12 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
+
 from medrag import crypto  # noqa: E402
 from medrag.chunking import chunk_document  # noqa: E402
 from medrag.config import Config  # noqa: E402

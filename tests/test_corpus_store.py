@@ -33,6 +33,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
+
 from medrag.documents import Document  # noqa: E402
 from medrag.ingest.store import (  # noqa: E402
     IDS_SUFFIX,
@@ -107,7 +113,7 @@ def test_malformed_record_is_kept_not_discarded():
     assert health.quarantine_path == quarantine
     assert quarantine.exists(), "a skipped record must be recoverable, not gone"
 
-    entries = [json.loads(l) for l in quarantine.read_text().splitlines() if l.strip()]
+    entries = [json.loads(ln) for ln in quarantine.read_text().splitlines() if ln.strip()]
     assert len(entries) == 1
     assert entries[0]["line"] == 5
     assert "Unterminated string" in entries[0]["error"]
@@ -412,7 +418,7 @@ def test_the_id_sidecar_tracks_stored_ids():
 
     sidecar = path.with_name(path.name + IDS_SUFFIX)
     assert sidecar.exists()
-    assert {l.strip() for l in sidecar.read_text().splitlines() if l.strip()} == {"1", "2", "3"}
+    assert {ln.strip() for ln in sidecar.read_text().splitlines() if ln.strip()} == {"1", "2", "3"}
 
 
 def test_the_sidecar_is_rebuilt_when_missing():

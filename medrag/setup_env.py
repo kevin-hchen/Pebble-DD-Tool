@@ -7,7 +7,6 @@ setup screen reports whether a key is present, never what it is.
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 
 ENV_PATH = Path(".env")

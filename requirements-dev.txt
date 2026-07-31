@@ -1,0 +1,22 @@
+# Development and CI dependencies.
+#
+# pytest is documented in CLAUDE.md as a supported way to run the suite but was
+# never declared anywhere — it had to be installed by hand, which is how a
+# documented convention quietly becomes untrue. It is declared here now.
+#
+#     pip install -r requirements.txt -r requirements-dev.txt
+
+-r requirements.txt
+
+# Test runner. Each test file is also runnable directly (see CLAUDE.md); both
+# modes install the no-network guard from tests/netguard.py.
+pytest==8.4.2
+
+# Linter. Configured narrowly in ruff.toml — defects, not taste. CI fails on any
+# finding.
+ruff==0.16.1
+
+# Dependency tooling. pip-compile regenerates requirements.lock with hashes;
+# pip-audit checks the pinned set against known advisories.
+pip-tools==7.6.0
+pip-audit==2.9.0

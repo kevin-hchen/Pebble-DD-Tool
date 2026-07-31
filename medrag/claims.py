@@ -64,7 +64,7 @@ import json
 from dataclasses import dataclass, field
 
 from .config import Config, load_config
-from .context import LIT_LABEL, TRIAL_LABEL, Evidence, build_evidence, render_context
+from .context import TRIAL_LABEL, Evidence, build_evidence, render_context
 from .providers import effective_provider, make_client
 from .validation import extract_figures, figure_grounded
 

@@ -16,12 +16,23 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# Direct runs do not load conftest.py, so the no-network guard is installed
+# here too. See tests/netguard.py.
+from tests import netguard  # noqa: E402
+
+netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fixtures.openfda import CLEARANCE_PAGE, EVENT_PAGE, NOT_FOUND, RECALL_PAGE  # noqa: E402
 
 from medrag.config import Config  # noqa: E402
-from medrag.context import FDA_LABEL, LIT_LABEL, TRIAL_LABEL, build_evidence, render_context  # noqa: E402
+from medrag.context import (  # noqa: E402
+    FDA_LABEL,
+    TRIAL_LABEL,
+    build_evidence,
+    render_context,
+)
 from medrag.fda import client as fda_client  # noqa: E402
 from medrag.fda.client import (  # noqa: E402
     count_510k,
@@ -39,7 +50,6 @@ from medrag.negative_evidence import (  # noqa: E402
     run_negative_pass,
 )
 from medrag.router import classify_by_rules, extract_filters  # noqa: E402
-
 
 # ------------------------------------------------------------- mocked transport
 
@@ -303,6 +313,7 @@ def test_fda_records_share_the_single_evidence_numbering():
     """Trials, then FDA, then literature — one continuous numbering so a citation
     [n] resolves the same everywhere."""
     from fixtures.ctgov import PAGE_ONE
+
     from medrag.trials.client import parse_study
 
     trial = parse_study(PAGE_ONE["studies"][1])
@@ -328,6 +339,7 @@ def test_memo_renders_recalls_and_events_on_their_own_lines():
     """A recall and a halted trial are different failure modes and must not be
     merged into one list — the memo gives each its own heading."""
     from fixtures.ctgov import PAGE_ONE
+
     from medrag.diligence import DiligenceQuestion, MemoResult, SectionResult
     from medrag.generator import Answer
     from medrag.memo import render_markdown

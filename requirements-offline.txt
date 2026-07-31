@@ -1,2 +1,20 @@
+# Fully offline install: no API key, no outbound calls at runtime.
+#
+# This used to add sentence-transformers on top of a base that had it commented
+# out, which made local embeddings look optional. They are not — the shipped
+# index was built with them, and vectorstore refuses an index whose embedder name
+# does not match. sentence-transformers and torch now live in requirements.txt,
+# so this file no longer needs to add anything.
+#
+# It is kept because the README references it and because "offline" is a real
+# operating mode worth naming:
+#
+#     pip install -r requirements-offline.txt
+#     export MEDRAG_OFFLINE=1
+#
+# In that mode nothing leaves the machine. Note the cost: retrieval quality drops
+# versus a hosted embedder, generation degrades to listing retrieved passages
+# rather than synthesising them, and no research can be fetched — the stores must
+# already be populated. See docs/RUNBOOK.md.
+
 -r requirements.txt
-sentence-transformers>=2.7

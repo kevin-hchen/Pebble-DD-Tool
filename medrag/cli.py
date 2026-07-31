@@ -9,7 +9,7 @@ from pathlib import Path
 from .config import load_config
 from .crypto import ENV_PASSPHRASE, CryptoError, get_passphrase, is_encrypted
 from .diligence import DiligenceRunner, load_question_set
-from .ingest.store import load_corpus, read_corpus
+from .ingest.store import read_corpus
 from .memo import export
 from .pipeline import CORPUS_FILE, TRIALS_DB, MedRAG, build_index, ingest_pdfs, ingest_pubmed
 from .router import Router
