@@ -13,7 +13,7 @@ from .embeddings import get_embedder
 from .generator import Answer, Generator
 from .ingest.pdf import load_pdf_dir
 from .ingest.pubmed import fetch_pubmed, search_pubmed
-from .ingest.store import load_corpus, save_corpus
+from .ingest.store import load_corpus, save_corpus, stash_pending
 from .retriever import Retriever
 from .validation import ValidationReport, validate_answer
 from .vectorstore import VectorStore
@@ -63,7 +63,25 @@ def ingest_pubmed(query: str, retmax: int = 50, cfg: Config | None = None) -> li
     print(f"[medrag] {len(pmids)} PMIDs matched")
     docs = fetch_pubmed(pmids, cfg=cfg)
     print(f"[medrag] {len(docs)} records with abstracts fetched")
-    save_corpus(docs, cfg.raw_dir / CORPUS_FILE, passphrase=_passphrase_for(cfg, confirm=True))
+
+    corpus = cfg.raw_dir / CORPUS_FILE
+    passphrase = _passphrase_for(cfg, confirm=True)
+    try:
+        save_corpus(docs, corpus, passphrase=passphrase)
+    except Exception as exc:
+        # The fetch already happened. A local write failure must not throw the
+        # abstracts away — park them beside the corpus so the next ingest picks
+        # them up instead of asking PubMed for the same records again.
+        try:
+            stash = stash_pending(docs, corpus, passphrase=passphrase)
+        except Exception:
+            raise exc
+        raise RuntimeError(
+            f"{len(docs)} abstracts were downloaded but could not be saved to "
+            f"{corpus.name} ({exc}). They have been kept in {stash.name} and will be "
+            "added automatically the next time research is downloaded, so nothing "
+            "needs to be fetched again."
+        ) from exc
     return docs
 
 

@@ -9,11 +9,12 @@ the ClinicalTrials.gov fetch itself.
 
 from __future__ import annotations
 
-import html
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+
+import theme
 
 from medrag.biomarker import ELIGIBLE, UNCLEAR
 from medrag.config import load_config
@@ -23,68 +24,28 @@ from medrag.pipeline import TRIALS_DB
 from medrag.trials.client import search_trials
 from medrag.trials.store import TrialStore, TrialStoreSchemaError
 
-st.set_page_config(page_title="MedRAG — Trial landscape", page_icon=None, layout="wide")
+st.set_page_config(
+    page_title="MedRAG — Trial landscape",
+    page_icon=None,
+    layout="wide",
+    # "auto", not "expanded": a forced-open sidebar is an overlay on a narrow
+    # window and covers the form. The nav rail under the wordmark keeps the
+    # three tools reachable from every page when the sidebar is collapsed.
+    initial_sidebar_state="auto",
+)
 OUT_DIR = Path("out")
 
-_STYLE = """
-<style>
-:root {
-  --ink-900: #14181f; --ink-600: #4a5568; --ink-400: #64748b;
-  --rule: #e2e5ea; --surface-2: #f7f8fa; --accent: #1e4f8f;
-  --critical: #d03b3b; --warning: #fab219; --good: #0ca30c;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-[data-testid="stHeader"], [data-testid="stDecoration"], [data-testid="stToolbar"],
-[data-testid="stStatusWidget"], #MainMenu, footer { display: none !important; }
-html, body, [data-testid="stAppViewContainer"] {
-  font-family: var(--font-sans); color: var(--ink-900); background-color: #ffffff;
-}
-h1 { font-size: 1.75rem; margin: 0 0 0.25rem; letter-spacing: -0.005em; }
-[data-testid="stAlert"] svg { display: none !important; }
-[data-testid="stAlert"] {
-  background: var(--surface-2); border-left: 3px solid var(--ink-400); color: var(--ink-900);
-}
-.medrag-wordmark {
-  color: var(--accent); font-size: 0.7rem; letter-spacing: 0.22em;
-  font-weight: 600; text-transform: uppercase; margin-bottom: 0.25rem;
-}
-.medrag-rule { height: 1px; background: var(--rule); margin: 0.75rem 0 1.5rem; border: 0; }
-.medrag-badge {
-  border-left: 3px solid var(--ink-400); background: var(--surface-2);
-  padding: 0.6rem 0.85rem; margin: 0.75rem 0;
-}
-.medrag-badge--critical { border-left-color: var(--critical); }
-.medrag-badge--warning  { border-left-color: var(--warning); }
-.medrag-badge--good     { border-left-color: var(--good); }
-.medrag-badge-label {
-  font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink-600); font-weight: 600; margin-bottom: 0.2rem;
-}
-.medrag-badge-body { color: var(--ink-900); font-size: 0.95rem; line-height: 1.4; }
-</style>
-"""
-st.markdown(_STYLE, unsafe_allow_html=True)
+theme.apply()
 
+_badge = theme.badge
 
-def _badge(kind: str, label: str, body: str) -> None:
-    st.markdown(
-        f'<div class="medrag-badge medrag-badge--{kind}">'
-        f'<div class="medrag-badge-label">{html.escape(label)}</div>'
-        f'<div class="medrag-badge-body">{html.escape(body)}</div></div>',
-        unsafe_allow_html=True,
-    )
-
-
-st.markdown(
-    '<div class="medrag-wordmark">MEDRAG</div><h1>Trial landscape</h1>'
-    '<div class="medrag-rule"></div>',
-    unsafe_allow_html=True,
-)
-st.caption(
+theme.page_header(
+    "Trial landscape",
     "Enter a condition and a biomarker. This lists the trials whose eligibility "
     "references that biomarker — each with the exact criterion that decides it — so "
     "a patient and their clinician can see where they might enrol. It is a research "
-    "aid, not medical advice."
+    "aid, not medical advice.",
+    active="Trial landscape",
 )
 
 cfg = load_config()
@@ -160,28 +121,29 @@ if submitted:
            f"{landscape.n_excluded} require the opposite biomarker and "
            f"{landscape.n_not_mentioned} do not mention it — those are not listed.")
 
-    st.markdown("### Trials a patient could enter")
-    st.dataframe(
+    st.markdown("## Trials a patient could enter")
+    theme.legend(sorted({t.match.status for t in landscape.trials}))
+    theme.data_table(
+        ["NCT ID", "Title", "Phase", "Status", "Biomarker", "Nearest site", "PI",
+         "Contact", "Matched eligibility criterion"],
         [
-            {
-                "NCT ID": t.record.nct_id,
-                "Title": t.record.brief_title,
-                "Phase": t.record.phase or "—",
-                "Status": t.record.overall_status or "—",
-                "Biomarker": t.match.status,
-                "Nearest site": (
-                    f"{(t.nearest_location or {}).get('city', '')}, "
-                    f"{(t.nearest_location or {}).get('state', '')}".strip(", ")
-                    if t.nearest_location else "—"),
-                "PI": (t.record.principal_investigator or {}).get("name", "—"),
-                "Contact": (t.contact or {}).get("email")
-                or (t.contact or {}).get("phone") or "—",
-                "Matched eligibility criterion": t.match.evidence or "—",
-            }
+            [
+                t.record.nct_id,
+                t.record.brief_title,
+                t.record.phase or "—",
+                t.record.overall_status or "—",
+                t.match.status,
+                (f"{(t.nearest_location or {}).get('city', '')}, "
+                 f"{(t.nearest_location or {}).get('state', '')}".strip(", ")
+                 if t.nearest_location else "—"),
+                (t.record.principal_investigator or {}).get("name", "—"),
+                (t.contact or {}).get("email") or (t.contact or {}).get("phone") or "—",
+                t.match.evidence or "—",
+            ]
             for t in landscape.trials
         ],
-        use_container_width=True,
-        hide_index=True,
+        verdict_cols={4},
+        mono_cols={0},
     )
 
     st.caption(

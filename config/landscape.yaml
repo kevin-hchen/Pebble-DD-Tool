@@ -1,0 +1,62 @@
+# Indication-first landscape question set.
+#
+# DRAFT — same status as the drug and device question sets. These questions are a
+# starting shape, not a recommendation; they are being reviewed with someone who
+# underwrites, and nothing here should read as authoritative just because it runs.
+# Edit this file, not code.
+#
+# This set is run against an INDICATION with no asset (--asset optional). It
+# answers: what is running in this disease, who is running it, at what phase, when
+# does it read out, what does it gate on, and who has already stopped.
+#
+# Fields per question (extends the diligence set):
+#   id         stable slug (memo section anchor)
+#   section    heading in the memo, in file order
+#   question   asked verbatim; {indication} is substituted, {asset} degrades to "the asset"
+#   route      structured | semantic | both | auto
+#   k          for an aggregate section: how many trials to LIST as a sample
+#   aggregate  true -> a landscape census: counts are SQL COUNT(*) over the FULL
+#              match set, and the listed trials are labelled a sample of the total
+#   status     overall_status filter, e.g. [RECRUITING, NOT_YET_RECRUITING]
+#   biomarker  gating filter(s) "MARKER:STATUS", e.g. ["MSS:REQUIRED"] — narrows the
+#              denominator; NOT_MENTIONED trials are never folded in
+#   negative   run the deterministic stopped-trial pass against this section
+
+version: 1
+name: "Indication-first trial landscape — reference question set (draft)"
+
+questions:
+  - id: overall-landscape
+    section: "Landscape — everything running in this indication"
+    question: "What trials are running in {indication}, and how do they break down by phase, status, sponsor and expected readout?"
+    aggregate: true
+    k: 30
+
+  - id: recruiting-now
+    section: "Open to enrolment now"
+    question: "Which trials in {indication} are recruiting or not yet recruiting, and who is running them?"
+    aggregate: true
+    status: [RECRUITING, NOT_YET_RECRUITING]
+    k: 30
+
+  - id: biomarker-gating
+    section: "Biomarker gating across the field"
+    question: "How is {indication} stratified by biomarker — how many trials require versus exclude MSS/pMMR, MSI-H/dMMR, RAS, BRAF V600E, HER2 amplification and KRAS G12C/G12D?"
+    aggregate: true
+    k: 30
+
+  - id: mss-required
+    section: "MSS / pMMR trials specifically"
+    question: "Which recruiting trials in {indication} require MSS or proficient mismatch repair?"
+    aggregate: true
+    status: [RECRUITING, NOT_YET_RECRUITING]
+    biomarker: ["MSS:REQUIRED"]
+    k: 30
+
+  - id: already-stopped
+    section: "Trials that already stopped"
+    question: "Which trials in {indication} have been terminated, withdrawn or suspended, and for what stated reason?"
+    aggregate: true
+    status: [TERMINATED, WITHDRAWN, SUSPENDED]
+    k: 30
+    negative: true

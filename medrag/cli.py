@@ -9,7 +9,7 @@ from pathlib import Path
 from .config import load_config
 from .crypto import ENV_PASSPHRASE, CryptoError, get_passphrase, is_encrypted
 from .diligence import DiligenceRunner, load_question_set
-from .ingest.store import load_corpus
+from .ingest.store import load_corpus, read_corpus
 from .memo import export
 from .pipeline import CORPUS_FILE, TRIALS_DB, MedRAG, build_index, ingest_pdfs, ingest_pubmed
 from .router import Router
@@ -151,6 +151,11 @@ def cmd_diligence(args) -> int:
     """Run the fixed question set against an asset and export a memo."""
     cfg = _config_from(args)
     cfg.ensure_dirs()
+
+    if not args.asset.strip() and not args.indication.strip():
+        print("error: pass --asset and/or --indication (an indication-only run is a "
+              "landscape; give at least one)", file=sys.stderr)
+        return 2
 
     qs = load_question_set(args.questions)
     print(f"[medrag] question set: {qs.name} ({len(qs)} questions)")
@@ -377,16 +382,23 @@ def cmd_stats(args) -> int:
     cfg = _config_from(args)
     corpus_path = cfg.raw_dir / CORPUS_FILE
 
+    health = None
     if is_encrypted(corpus_path):
         print(f"corpus: encrypted at rest ({corpus_path})")
         if not (cfg.encrypt or cfg.passphrase):
             print("  (pass --encrypt to unlock and show document counts)")
             docs = []
         else:
-            docs = load_corpus(corpus_path, get_passphrase())
+            docs, health = read_corpus(corpus_path, get_passphrase())
     else:
-        docs = load_corpus(corpus_path)
+        docs, health = read_corpus(corpus_path)
         print(f"corpus: {len(docs)} documents ({corpus_path}, plaintext)")
+
+    # Unreadable records are reported, never absorbed into the document count as
+    # though they had never existed.
+    if health is not None and not health.clean:
+        print(f"  unreadable records set aside: {health.quarantined}")
+        print(f"  {health.message()}")
 
     by_source: dict[str, int] = {}
     for d in docs:
@@ -478,7 +490,9 @@ def main(argv: list[str] | None = None) -> int:
 
     p_dg = sub.add_parser("diligence", parents=[common],
                           help="run the fixed question set and export a memo")
-    p_dg.add_argument("--asset", "-a", required=True, help='asset or drug name, e.g. "Compound X"')
+    p_dg.add_argument("--asset", "-a", default="",
+                      help='asset or drug name, e.g. "Compound X" (optional — omit for an '
+                           'indication-first landscape run)')
     p_dg.add_argument("--indication", "-i", default="", help='indication, e.g. "heart failure"')
     p_dg.add_argument("--questions", "-q", default=None,
                       help="path to a question set YAML (defaults to config/diligence_questions.yaml)")

@@ -18,6 +18,7 @@ or reused, and the salt is per-file so two files never share a key.
 from __future__ import annotations
 
 import os
+import secrets
 import struct
 from pathlib import Path
 
@@ -144,20 +145,43 @@ def write_secure(
 
     # Write via a private temp file then rename, so a crash cannot leave a
     # half-written index and the file is never briefly world-readable.
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    #
+    # The temp name is unique per call. It used to be a fixed `<name>.tmp`, which
+    # two concurrent writers shared: they interleaved into one temp file, and the
+    # `finally` below deleted the other's temp out from under it, so one ingest
+    # silently lost its records and the other died on the rename. A run of the
+    # Streamlit app alongside a CLI ingest is enough to hit that.
+    tmp = path.with_name(f"{path.name}.{os.getpid()}-{secrets.token_hex(4)}.tmp")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
         with os.fdopen(fd, "wb") as fh:
             fh.write(payload)
             fh.flush()
             os.fsync(fh.fileno())
         os.replace(tmp, path)
+        # The rename itself needs the directory flushed, or a power loss can lose
+        # it and leave the old file behind while reporting success.
+        _fsync_dir(path.parent)
     finally:
         if tmp.exists():
             tmp.unlink(missing_ok=True)
 
     os.chmod(path, 0o600)
     return path
+
+
+def _fsync_dir(directory: Path) -> None:
+    """Best-effort directory flush; not available on every platform."""
+    try:
+        fd = os.open(str(directory), os.O_RDONLY)
+    except OSError:  # pragma: no cover - Windows has no directory handle to fsync
+        return
+    try:
+        os.fsync(fd)
+    except OSError:  # pragma: no cover
+        pass
+    finally:
+        os.close(fd)
 
 
 def read_secure(path: str | Path, passphrase: str | None) -> bytes:

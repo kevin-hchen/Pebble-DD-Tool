@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "medrag-app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["/Users/kevin/Desktop/medrag/scripts/run_app.sh"],
+      "port": 8501
+    }
+  ]
+}

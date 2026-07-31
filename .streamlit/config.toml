@@ -17,8 +17,15 @@ headless = false
 showErrorDetails = false
 
 [theme]
+# NOT the source of truth. theme.py is, and it restates every one of these on the
+# widget itself with !important — because a theme that lives only here is one bad
+# launch away from Streamlit resolving its dark widget set (label #FAFAFA, input
+# fill #262730, primary #FF4B4B) against a page whose background is pinned white
+# in CSS. That combination is what made labels invisible and inputs near-black.
+# These values are kept only so the first paint is not a flash of the wrong
+# theme, and they must be edited together with the palette in theme.py.
 base = "light"
-primaryColor = "#1e4f8f"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f7f8fa"
-textColor = "#14181f"
+primaryColor = "#163A5F"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EDE6DA"
+textColor = "#14181F"

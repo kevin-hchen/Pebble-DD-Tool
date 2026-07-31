@@ -46,6 +46,9 @@ class DiligenceQuestion:
     route: str = "auto"
     k: int = 6
     negative: bool = False
+    status: list[str] | None = None      # per-question overall_status filter, e.g. RECRUITING
+    aggregate: bool = False              # a landscape census: SQL counts over the full set
+    biomarker: list[str] | None = None   # gating filters as "MARKER:STATUS" (e.g. "MSS:REQUIRED")
 
 
 @dataclass
@@ -70,6 +73,7 @@ class SectionResult:
     route_method: str
     provenance: dict = field(default_factory=dict)
     negative: NegativeEvidence | None = None
+    aggregate: dict | None = None        # store.landscape() counts, for a census section
 
 
 @dataclass
@@ -128,6 +132,12 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
             # collapses two sections into one.
             raise ValueError(f"duplicate question id '{q['id']}' in {path.name}")
         seen.add(q["id"])
+        status = q.get("status")
+        if isinstance(status, str):
+            status = [status]
+        biomarker = q.get("biomarker")
+        if isinstance(biomarker, str):
+            biomarker = [biomarker]
         questions.append(
             DiligenceQuestion(
                 id=q["id"],
@@ -136,6 +146,9 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
                 route=str(q.get("route", "auto")).lower(),
                 k=int(q.get("k", 6)),
                 negative=bool(q.get("negative", False)),
+                status=[str(s).upper() for s in status] if status else None,
+                aggregate=bool(q.get("aggregate", False)),
+                biomarker=[str(b) for b in biomarker] if biomarker else None,
             )
         )
 
@@ -166,6 +179,12 @@ class DiligenceRunner:
                 self.rag = MedRAG(self.cfg)
             except (FileNotFoundError, RuntimeError) as exc:
                 self.warnings.append(f"literature index unavailable: {exc}")
+
+        # A memo built while part of the corpus is unreadable says so on its face.
+        # The literature answers here were drawn from a smaller body of evidence
+        # than the analyst thinks, and that is exactly the kind of silent
+        # shortfall the warnings block exists to prevent.
+        self.warnings.extend(self._corpus_warnings())
 
         self.trial_store = trial_store
         if self.trial_store is None:
@@ -200,7 +219,7 @@ class DiligenceRunner:
     # ------------------------------------------------------------ retrieval
 
     def _trials_for(self, question: str, asset: str, indication: str, filters: dict,
-                    limit: int) -> list[TrialRecord]:
+                    limit: int, statuses: list[str] | None = None) -> list[TrialRecord]:
         if self.trial_store is None:
             return []
 
@@ -212,6 +231,7 @@ class DiligenceRunner:
             intervention=asset or None,
             condition=indication or None,
             phase=filters.get("phase"),
+            statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
             limit=limit,
         )
@@ -251,9 +271,57 @@ class DiligenceRunner:
 
     # ------------------------------------------------------------ one section
 
+    @staticmethod
+    def _biomarker_filters(tokens: list[str] | None) -> list[tuple[str, str]]:
+        """Parse ['MSS:REQUIRED'] into [('MSS','REQUIRED')]; ignore malformed."""
+        out = []
+        for tok in tokens or []:
+            if ":" in tok:
+                marker, status = tok.split(":", 1)
+                out.append((marker.strip().upper().replace(" ", "_"), status.strip().upper()))
+        return out
+
+    def _landscape_section(self, q: DiligenceQuestion, rendered: str,
+                           indication: str) -> SectionResult:
+        """An aggregate census section: counts come from SQL over the full match
+        set (store.landscape), and the listed trials are labelled a sample of the
+        stated denominator. No model prose — the answer is the table."""
+        agg = None
+        if self.trial_store is not None:
+            agg = self.trial_store.landscape(
+                condition=indication or None,
+                biomarker_filters=self._biomarker_filters(q.biomarker),
+                statuses=q.status,
+                sample_limit=q.k,
+            )
+        sample = agg["sample"] if agg else []
+        evidence = build_evidence(trials=sample, max_chars=self.cfg.max_context_chars)
+
+        answer = Answer(text="", model="aggregate")
+        report = ValidationReport(
+            assessed=False,
+            reason="aggregate section — counts are SQL over the full set, not model prose",
+        )
+        negative = None
+        if q.negative:
+            negative = run_negative_pass(
+                claim=rendered, cfg=self.cfg, evidence=evidence,
+                trial_store=self.trial_store, condition=indication or None,
+                fda_store=None,
+            )
+        return SectionResult(
+            question=q, rendered_question=rendered, answer=answer, evidence=evidence,
+            validation=report, route=Route.STRUCTURED, route_method="aggregate",
+            provenance=provenance_summary(evidence), negative=negative, aggregate=agg,
+        )
+
     def run_question(self, q: DiligenceQuestion, asset: str, indication: str) -> SectionResult:
         rendered = q.question.format(asset=asset or "the asset",
                                      indication=indication or "the indication")
+
+        # A landscape census is deterministic SQL, not a routed model answer.
+        if q.aggregate:
+            return self._landscape_section(q, rendered, indication)
 
         if q.route == "auto":
             decision = self.router.route(rendered)
@@ -268,7 +336,7 @@ class DiligenceRunner:
             needs_regulatory = classify_by_rules(rendered).needs_regulatory
 
         trials = (
-            self._trials_for(rendered, asset, indication, filters, q.k)
+            self._trials_for(rendered, asset, indication, filters, q.k, statuses=q.status)
             if route in (Route.STRUCTURED, Route.BOTH)
             else []
         )
@@ -378,6 +446,22 @@ class DiligenceRunner:
             memo.sections.append(self.run_question(q, asset, indication))
 
         return memo
+
+    def _corpus_warnings(self) -> list[str]:
+        """Plain-language note when part of the stored corpus could not be read.
+
+        Checked here rather than at ingest so it reaches every memo, from the CLI
+        and the app alike, however long ago the damage happened.
+        """
+        try:
+            from .ingest.store import corpus_health
+            from .pipeline import CORPUS_FILE
+
+            health = corpus_health(self.cfg.raw_dir / CORPUS_FILE, self.cfg.passphrase)
+        except Exception:
+            return []  # a status note must never be the thing that fails a memo
+        message = health.message()
+        return [f"Stored research incomplete: {message}"] if message else []
 
     def close(self) -> None:
         if self.trial_store is not None:

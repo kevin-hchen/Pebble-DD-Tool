@@ -18,6 +18,7 @@ import numpy as np
 
 from .crypto import harden_permissions, read_secure, write_secure
 from .documents import Chunk, Retrieved
+from .jsonl import dumps_line, split_lines
 
 try:
     import faiss
@@ -115,7 +116,7 @@ class VectorStore:
             np.save(buf, self._matrix)
             write_secure(directory / "vectors.npy", buf.getvalue(), passphrase)
 
-        chunk_text = "\n".join(json.dumps(c.to_dict(), ensure_ascii=False) for c in self.chunks)
+        chunk_text = "\n".join(dumps_line(c.to_dict()) for c in self.chunks)
         write_secure(directory / "chunks.jsonl", chunk_text.encode("utf-8"), passphrase)
 
         manifest = {
@@ -163,5 +164,5 @@ class VectorStore:
             raise FileNotFoundError(f"no vector data found in {directory}")
 
         text = read_secure(directory / "chunks.jsonl", passphrase).decode("utf-8")
-        store.chunks = [Chunk.from_dict(json.loads(l)) for l in text.splitlines() if l.strip()]
+        store.chunks = [Chunk.from_dict(json.loads(l)) for l in split_lines(text)]
         return store

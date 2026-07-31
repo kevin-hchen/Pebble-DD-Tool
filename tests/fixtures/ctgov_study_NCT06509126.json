@@ -1,0 +1,466 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT06509126",
+      "orgStudyIdInfo": {
+        "id": "IMPROVE-2"
+      },
+      "organization": {
+        "fullName": "National Cancer Institute, Naples",
+        "class": "OTHER"
+      },
+      "briefTitle": "Intermittent or Continuous Panitumumab Plus FOLFIRI for Left Sided RAS/B-RAF Wild-type Metastatic Colorectal Cancer",
+      "officialTitle": "Randomized Phase 3 Study of Intermittent or Continuous Panitumumab Plus FOLFIRI for First-line Treatment of Patients With Unresectable Left Sided RAS/B-RAF Wild-type Metastatic Colorectal Cancer (IMPROVE-2 Trial)",
+      "acronym": "IMPROVE-2"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2024-06",
+      "overallStatus": "RECRUITING",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2024-06-12",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2028-01",
+        "type": "ESTIMATED"
+      },
+      "completionDateStruct": {
+        "date": "2028-06",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2024-06-14",
+      "studyFirstSubmitQcDate": "2024-07-11",
+      "studyFirstPostDateStruct": {
+        "date": "2024-07-19",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2024-07-11",
+      "lastUpdatePostDateStruct": {
+        "date": "2024-07-19",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "National Cancer Institute, Naples",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "isFdaRegulatedDrug": false,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "The investigators hypothesize that intermittent first-line Panitumumab plus FOLFIRI is effective in first line as the same regimen given continuously, resulting in a Time to Treatment Failure (TTF) not inferior to that obtained with standard continuous regimen of Panitumumab plus FOLFIRI, in the treatment of metastatic left sided RAS/B-RAF wild-type colorectal cancer patients.\n\nCorrelative mechanistic studies on tissue and blood samples, liquid biopsies, could identify potential biomarkers of efficacy and help understanding the evolutionary dynamics of tumors in response to therapy thus optimizing the treatment approach with a personalized anti-EGFR treatment strategy.",
+      "detailedDescription": "This study is a multicentric open label academic randomized phase-3 study. The study population will include untreated and unresectable left sided RAS/BRAF wild-type metastatic colorectal cancer (mCRC) patients, eligible for first-line treatment. A total of 500 patients, 250 for arm, will be enrolled.\n\nAll patients will receive an induction treatment with Panitumumab as 60 minutes or 90 minutes for doses over 1000 mg intravenous infusion at the dosage of 6 mg/kg, given every two weeks, plus FOLFIRI chemotherapy as standard guidelines.\n\nBefore starting FOLFIRI plus Panitumumab, at the time of enrollment, patients will be immediately randomized electronically 1:1 to one of the two arms: standard continuous or exploratory intermittent treatment.\n\nInduction treatment with FOLFIRI plus panitumumab will continue until progressive disease, unacceptable toxicity or informed consent withdrawal, or for up to 8 cycles.\n\nAt the end of induction treatment, in presence of complete or partial response, or stable disease, non-progressing patients will be allocated to one of the two pre-assigned arms:\n\nA) Standard CONTINUOUS ARM: Panitumumab plus FOLFIRI until treatment failure as previous defined, unacceptable toxicity or informed consent withdrawal (ARM A). Panitumumab will be administered as 60 minutes, or 90 minutes for doses over 1000 mg, intravenous infusion at the dosage of 6 mg/kg, followed by irinotecan 180 mg/m2 over 60 minutes and folinic acid 200 mg/m2 over 120 minutes before Fluorouracil bolus 400 mg/m2 followed by Fluorouracil 2400 mg/m2 continuous infusion over 46 hours (FOLFIRI regimen). Every cycle will be administered every two weeks +/- 3 days.\n\nB) Experimental INTERMITTENT ARM: treatment free interval until progressive disease when another treatment period of Panitumumab plus FOLFIRI up to 8 cycles will be restarted; non-progressing patients will undergo again a treatment free interval until progressive disease. This intermittent strategy will be continued until progression disease occurred on treatment (ARM B). Panitumumab will be administered at same dose and infusion with FOLFIRI.\n\nAll measurable and non-measurable lesions must be documented at screening (within 28 days prior to randomization) and re-assessed at each subsequent tumor evaluation (every 8 weeks while the patient is on study). Tumor assessment by CT scan (chest, abdomen and pelvis) or MRI (abdomen and pelvis); CEA, CA 19.9; and any other tests resulted positive during baseline staging, will be performed at week 8 and every 8 weeks during treatment until treatment failure in both arms. Patients discontinuing study treatment without progressive disease, will undergo tumor assessments every 8 weeks until progressive disease or study withdrawal. Surgery on metastatic disease can be carried out in case of appropriate tumor shrinkage at response evaluation; resectability will have to be evaluated by a multidisciplinary team. In the standard arm the patients without disease recurrence at first tumor assessment performed 30 days after metastasis surgery will be treated with further 8 or 16 weeks of Panitumumab plus FOLFIRI, to complete six months of treatment, if the response was obtained after 16 or 8 weeks, respectively. If at the end of this further treatment no disease recurrence occurred, the patient will only continue with tumor evaluation every 8 weeks. When the surgery will be obtained after \u2265 24 weeks of treatment, if no disease recurrence will be observed at first tumor assessment performed 30 days after surgery no further treatment will be carried out.\n\nOn the contrary in the experimental arm the patients will have a treatment free interval until progressive disease when another additional treatment period of Panitumumab plus FOLFIRI to 8 cycles will be restarted; non-progressing patients will undergo again a treatment free interval until progressive disease. This intermittent strategy will be continued until progression disease occurred on treatment.\n\nToxicities will be evaluated at each clinical visit throughout the study treatment and up to 4 weeks after last cycle of treatment accordingly to the Common Terminology Criteria for Adverse Events (AEs) of the National Cancer Institute (CTCAE-NCI) version 5.0.\n\nQuality of Life will be assessed by the EORTC QLQ-C30 v.3.0 and QLQ-CR29 questionnaire that will be completed by patients at baseline (prior to induction treatment start, once eligibility is confirmed) and every 8 weeks until disease progression, treatment failure or death. The time toxicity, as the amount of time spent in pursuing cancer therapy can be substantial in cancer patients, by hospital-free days, a pragmatic and patient-centered outcome, will be assessed too.\n\nBiomarkers will be evaluated on tumor tissues from primary tumors or metastases at baseline. When available, on the bases of a separate additional, not mandatory for the inclusion in the study, informed consent, biomarkers will be evaluated on metastases tissue of resected metastasis when the patients will undergo metastasis surgery. Blood samples will be collected at baseline, during treatment, and at progression. Biomarkers will be correlated with clinical response, patient outcome and toxicity.\n\nStudy design is based on a non-inferiority comparison in terms of time to treatment failure (TTF), the primary end-point.\n\nNoninferiority is defined as a \u2264 1.30 upper limit of 95% CI of hazard ratio of TTF for the experimental arm (corresponding to a lower limit of hazard ratio of TTF of 0.77 in favor of the control arm). Based on previous trials, expected median TTF in the control arm is 12 months. The above reported non-inferiority limit means that the worst possible median TTF in the experimental arm will be 9.23 months. With a statistical power of 80%, a 1-sided probability of alpha error of 0.05, a random allocation of patients with a 1:1 ratio, one interim and one final TTF analyses planned a priori, 480 patients will be needed, 240 patients for each arm, and 360 events of treatment failure are required for the final analysis. The interim analysis will be performed after the first 134 events will be observed.\n\nConsidering 5 % of drop-out a total of 500 patients is planned for accrual (250 for each arm).\n\nRandomization will be performed with a stratified procedure that will account for metastatic spread (liver only vs not liver only), previous adjuvant chemotherapy (yes vs no) and synchronous metastases (yes vs no)."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Colorectal Cancer Stage IV"
+      ],
+      "keywords": [
+        "Metastatic colorectal cancer",
+        "Left sided",
+        "RAS and BRAF wild type",
+        "Intermittent therapy",
+        "Liquid biopsy",
+        "Panitumumab"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 500,
+        "type": "ESTIMATED"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "CONTINUOUS ARM",
+          "type": "ACTIVE_COMPARATOR",
+          "description": "Patients will receive Panitumumab plus FOLFIRI until progressive disease, unacceptable toxicity or informed consent withdrawal",
+          "interventionNames": [
+            "Drug: Panitumumab",
+            "Drug: Irinotecan",
+            "Drug: 5-fluorouracil",
+            "Drug: L-folinic acid"
+          ]
+        },
+        {
+          "label": "INTERMITTENT ARM",
+          "type": "EXPERIMENTAL",
+          "description": "Patients will have a treatment free interval until progressive disease (PD), when they will receive up to 8 cycles of Panitumumab plus FOLFIRI. In the presence of complete or partial response, or stable disease, non-progressing patients will undergo again to treatment free interval until PD, when they will restart treatment. Treatment cycling will continue till any PD on treatment.",
+          "interventionNames": [
+            "Drug: Panitumumab",
+            "Drug: Irinotecan",
+            "Drug: 5-fluorouracil",
+            "Drug: L-folinic acid"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Panitumumab",
+          "description": "Administered at the dosage of 6mg/kg as 60 minutes, or 90 minutes for doses over 1000 mg, intravenous infusion",
+          "armGroupLabels": [
+            "CONTINUOUS ARM",
+            "INTERMITTENT ARM"
+          ],
+          "otherNames": [
+            "Vectibix"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Irinotecan",
+          "description": "Administered at the dosage of 180 mg/m2 over 60 minutes intravenous infusion",
+          "armGroupLabels": [
+            "CONTINUOUS ARM",
+            "INTERMITTENT ARM"
+          ],
+          "otherNames": [
+            "Campto"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "5-fluorouracil",
+          "description": "Administered at the dosage of 400 mg/m2 (bolus intravenous infusion) followed by continuous intravenous infusion over 46 hours at the dosage of 2400 mg/m2",
+          "armGroupLabels": [
+            "CONTINUOUS ARM",
+            "INTERMITTENT ARM"
+          ],
+          "otherNames": [
+            "5-FU"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "L-folinic acid",
+          "description": "Administered at the dosage of 200 mg/m2 over 120 minutes as intravenous infusion",
+          "armGroupLabels": [
+            "CONTINUOUS ARM",
+            "INTERMITTENT ARM"
+          ],
+          "otherNames": [
+            "LFA"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Time to Treatment Failure",
+          "description": "Time to treatment failure (TTF) is defined as the time from randomization to the objective disease progression by RECIST 1.1 criteria occurred during the treatment (objective disease progression during treatment free intervals are excluded) or death due to any cause, whichever occurs first, or a treatment delay \\> 28 days for toxicity",
+          "timeFrame": "up to 1 year last patients randomized"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Overall survival",
+          "description": "(OS) is calculated as the time from randomization until the date of death from any cause.",
+          "timeFrame": "up to 1 year last patients randomized"
+        }
+      ],
+      "otherOutcomes": [
+        {
+          "measure": "Objective Tumor Response Rate",
+          "description": "Objective Tumor Response Rate (ORR) is defined as as the proportion of patients achieving complete or partial response relative to total enrolled patients",
+          "timeFrame": "up to 1 year last patients randomized"
+        },
+        {
+          "measure": "Disease Control Rate",
+          "description": "Disease Control Rate (DCR) is defined as the proportion of patients with complete/partial response and stable disease as their best response during randomized phase",
+          "timeFrame": "up to 1 year last patients randomized"
+        },
+        {
+          "measure": "Depth of Response",
+          "description": "Depth of response (DpR) assessed, during randomized phase, as the percentage of tumor shrinkage observed at the lowest point (nadir) compared with baseline. For the evaluation of DpR, the diameter of the RECIST vs 1.1 target lesions will be measured, longest tumor diameter, and summed for each assessment",
+          "timeFrame": "up to 1 year last patients randomized"
+        },
+        {
+          "measure": "Progression free survival on treatment",
+          "description": "Progression-free survival on treatment (PFSot) is measured as the time from randomization to the disease progression occurred during treatment or death due to any cause, whichever occurs first.",
+          "timeFrame": "up to 1 year last patients randomized"
+        },
+        {
+          "measure": "Toxicities",
+          "description": "Overall Toxicity rate is defined as the proportion of patients experiencing any grade AE accordingly to the NCI Common Terminology Criteria of Adverse Events (NCI CTC-AE) Version 5, relative to the total of patients receiving at least one cycle of treatment",
+          "timeFrame": "up to 30 days after last cycle of every patients randomized"
+        },
+        {
+          "measure": "Assessment of patients health related quality of life",
+          "description": "Quality of life (QoL) investigated through the EORTC QOL-C30 questionnaire at baseline (prior to treatment start, once eligibility is confirmed) and every 8 weeks until disease progression, treatment failure or death.",
+          "timeFrame": "up the date of first documented progression, assessed up to 100 months."
+        },
+        {
+          "measure": "Longitudal toxicity over time",
+          "description": "Tolerability evaluated as longitudinal toxicity over time will be expressed by bar charts, that depicts the frequency and proportion of each grade level for a given AE across patients by cycle. It will be evaluated at the end of every cycle (each cycle is 14 days)",
+          "timeFrame": "up to 30 days after last cycle of every patients randomized"
+        },
+        {
+          "measure": "Genetic alterations on tumor samples",
+          "description": "A comprehensive NGS assay (50 cancer related genes) will be employed to carry out molecular profile of actionable genes on fully automatized NGS platform (Genexus System, Thermofisher in accordance with manufacturer procedures). The biomarkers will be correlated to the clinical outcome to define the predictive and/or prognostic role of the alterations detected. A final algorithm including the biomarkers with predictive value will be built in order to generate more robust tool for patient response and outcome and toxicity evaluation. Genetic alteration will be evaluated on tumor tissue before the start of therapy",
+          "timeFrame": "baseline"
+        },
+        {
+          "measure": "Circulating tumor DNA (liquid biopsy)",
+          "description": "To explore the prognostic and predictive value as well as the potential to monitor treatment activity, leading to develop to personalized treatment strategy, will be performed by next generation sequencing (NGS), from blood samples (\"liquid biopsy\") collected at baseline, at week 16 and thereafter every 8 weeks, concomitantly with tumor assessment, and at progression of disease.",
+          "timeFrame": "up the date of first documented progression, assessed up to 100 months"
+        },
+        {
+          "measure": "Metabolomic profiling",
+          "description": "Peripheral blood will be collected, at all the time points previously described (Costantini S, et al. Front Oncol, 2022), in serum tubes through 21G needles aliquoted and stored at -80\u00b0C.\n\nMetabolomic profiling will be evaluated by nuclear magnetic resonance (NMR) Spectrometer (600 MHz). 1H and 2D spectra on sera samples will be acquired by 600-MHz Bruker Avance DRX NMR spectrometer with a TSI probe as previously reported by Sorice et al. \\[41\\]. The metabolite assignments will be based on the comparison of chemical shifts and spin-spin couplings with reference spectra and tables present in the SBASE-1-1-1 database by AMIX package (Bruker, Biospin, Germany), the human metabolome database (HMDB) and the biological magnetic resonance database (BMRB). Metabolic profiling will be evaluated on blood samples collected at baseline, at week 16 and thereafter every 8 weeks until progression disease.",
+          "timeFrame": "up the date until first progression date, assessed up to 100 months"
+        },
+        {
+          "measure": "Health related quality of life",
+          "description": "Quality of life (QoL) investigated through the EORTC QOL-CR29 questionnaire at baseline (prior to treatment start, once eligibility is confirmed) and every 8 weeks until disease progression, treatment failure or death.",
+          "timeFrame": "up the date of first documented progression, assessed up to 100 months."
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. Written informed consent to study procedures and to correlative studies.\n2. Histologically proven left sided mCRC.\n3. RAS/BRAF wild-type and pMMR and/or MSS status assessed at local centers according a validated method defined by EMA\n4. Disease judged unresectable by the local multidisciplinary team\n5. Patient candidate to receive Induction treatment with FOLFIRI plus panitumumab as per standard clinical practice\n6. No prior treatments (chemotherapy, radiation or surgery) for mCRC. Surgery for primary CRC tumor before starting treatment is allowed.\n7. Either sex aged \u2265 18\n8. Eastern Cooperative Oncology Group (ECOG) Performance Status \u2264 1 at study entry.\n9. Imaging-documented measurable disease, according to RECIST 1.1 criteria.\n10. Known dihydropyrimidine dehydrogenase (DPYD) activity is mandatory. Additional analysis of polymorphisms uridine diphosphate-glycosyltransferase 1 (UGT1A1) enzyme is recommended but not mandatory\n11. Adequate bone marrow hematological function: absolute neutrophil count (ANC) \u2265 1.5 x 109/L and platelet count \u2265 100 x 109/L and hemoglobin \u2265 9 g/dL.\n12. Adequate liver function: total bilirubin \u2264 1.5 x upper limit of normal (ULN) or \u2264 2 (in case of biliary stent) and aspartate aminotransferase (AST)/alanine aminotransferase (ALT) \u2264 5 X ULN.\n13. Adequate renal function: serum creatinine \u2264 1.5 mg/dL OR creatinine clearance \u2265 60 mL/min in males and \u226550 mL/min in females (calculated according to Cockroft-Gault formula).\n14. Electrolytes (i.e. magnesium, calcium, sodium and potassium) within laboratory normal range\n\nExclusion Criteria:\n\n1. Prior malignancy within five years. Exceptions include basal cell carcinoma of the skin or squamous cell carcinoma of the skin that has undergone potentially curative therapy or in situ cervical cancer.\n2. Prior chemotherapy or any other medical treatment for mCRC (previous adjuvant chemotherapy is allowed if terminated \\> 6 months previously).\n3. Major surgical intervention within 4 weeks prior to enrollment.\n4. Pregnancy and breast-feeding.\n5. Any brain metastases.\n6. Complete deficiency of activity of dihydropyrimidine dehydrogenase (DPYD) or known UGT1A1 homozygosity.\n7. Required dose reduction of 5-fluorouracil in the past for toxicity.\n8. Evidence of severe or uncontrolled systemic disease or any concurrent condition which in the investigator's opinion makes it undesirable for the patient to participate in the study, or which would jeopardize compliance with the protocol, or would interfere with the results of the study.\n9. History of poor co-operation, non-compliance with medical treatment, unreliability or any condition that may impair the patient's understanding of the Informed consent form.\n10. Participation in any interventional drug or medical device study within 30 days prior to treatment start.\n11. Sexually active males and females (of childbearing potential) unwilling to practice contraception (barrier contraceptive measure or oral contraception) during the study and until 6 months after the last trial treatment.\n12. History of interstitial pneumonitis or pulmonary fibrosis.\n13. History of corneal perforation or ulceration keratitis",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "maximumAge": "100 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "locations": [
+        {
+          "facility": "Istituto Nazionale Tumori di Napoli - IRCCS - Fondazione G. Pascale",
+          "status": "RECRUITING",
+          "city": "Naples",
+          "zip": "80131",
+          "country": "Italy",
+          "contacts": [
+            {
+              "name": "Antonio Avallone, MD",
+              "role": "CONTACT",
+              "phone": "003908117770357",
+              "email": "a.avallone@istitutotumori.na.it"
+            },
+            {
+              "name": "Elena Di Gennaro, MS",
+              "role": "CONTACT",
+              "phone": "003908117770584",
+              "email": "e.digennaro@istitutotumori.na.it"
+            }
+          ],
+          "geoPoint": {
+            "lat": 40.85216,
+            "lon": 14.26811
+          }
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-07-28"
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D015179",
+          "term": "Colorectal Neoplasms"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D007414",
+          "term": "Intestinal Neoplasms"
+        },
+        {
+          "id": "D005770",
+          "term": "Gastrointestinal Neoplasms"
+        },
+        {
+          "id": "D004067",
+          "term": "Digestive System Neoplasms"
+        },
+        {
+          "id": "D009371",
+          "term": "Neoplasms by Site"
+        },
+        {
+          "id": "D009369",
+          "term": "Neoplasms"
+        },
+        {
+          "id": "D004066",
+          "term": "Digestive System Diseases"
+        },
+        {
+          "id": "D005767",
+          "term": "Gastrointestinal Diseases"
+        },
+        {
+          "id": "D003108",
+          "term": "Colonic Diseases"
+        },
+        {
+          "id": "D007410",
+          "term": "Intestinal Diseases"
+        },
+        {
+          "id": "D012002",
+          "term": "Rectal Diseases"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D000077544",
+          "term": "Panitumumab"
+        },
+        {
+          "id": "D000077146",
+          "term": "Irinotecan"
+        },
+        {
+          "id": "D005472",
+          "term": "Fluorouracil"
+        },
+        {
+          "id": "D002955",
+          "term": "Leucovorin"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D061067",
+          "term": "Antibodies, Monoclonal, Humanized"
+        },
+        {
+          "id": "D000911",
+          "term": "Antibodies, Monoclonal"
+        },
+        {
+          "id": "D000906",
+          "term": "Antibodies"
+        },
+        {
+          "id": "D007136",
+          "term": "Immunoglobulins"
+        },
+        {
+          "id": "D007162",
+          "term": "Immunoproteins"
+        },
+        {
+          "id": "D001798",
+          "term": "Blood Proteins"
+        },
+        {
+          "id": "D011506",
+          "term": "Proteins"
+        },
+        {
+          "id": "D000602",
+          "term": "Amino Acids, Peptides, and Proteins"
+        },
+        {
+          "id": "D012712",
+          "term": "Serum Globulins"
+        },
+        {
+          "id": "D005916",
+          "term": "Globulins"
+        },
+        {
+          "id": "D002166",
+          "term": "Camptothecin"
+        },
+        {
+          "id": "D000470",
+          "term": "Alkaloids"
+        },
+        {
+          "id": "D006571",
+          "term": "Heterocyclic Compounds"
+        },
+        {
+          "id": "D014498",
+          "term": "Uracil"
+        },
+        {
+          "id": "D011744",
+          "term": "Pyrimidinones"
+        },
+        {
+          "id": "D011743",
+          "term": "Pyrimidines"
+        },
+        {
+          "id": "D006573",
+          "term": "Heterocyclic Compounds, 1-Ring"
+        },
+        {
+          "id": "D005575",
+          "term": "Formyltetrahydrofolates"
+        },
+        {
+          "id": "D013763",
+          "term": "Tetrahydrofolates"
+        },
+        {
+          "id": "D005492",
+          "term": "Folic Acid"
+        },
+        {
+          "id": "D011622",
+          "term": "Pterins"
+        },
+        {
+          "id": "D011621",
+          "term": "Pteridines"
+        },
+        {
+          "id": "D006574",
+          "term": "Heterocyclic Compounds, 2-Ring"
+        },
+        {
+          "id": "D000072471",
+          "term": "Heterocyclic Compounds, Fused-Ring"
+        },
+        {
+          "id": "D003067",
+          "term": "Coenzymes"
+        },
+        {
+          "id": "D045762",
+          "term": "Enzymes and Coenzymes"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

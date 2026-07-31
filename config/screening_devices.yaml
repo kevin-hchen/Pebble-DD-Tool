@@ -1,0 +1,71 @@
+# Screening question set — medical devices and diagnostics.
+#
+# For early-stage device and diagnostic assets (bilirubin monitors, imaging
+# hardware, point-of-care diagnostics), NOT drugs. The drug set in
+# diligence_questions.yaml asks about mechanism of action, hazard ratios and
+# Phase 3 endpoints; a device has none of those, and running it against one
+# produces empty sections that look like tool failure rather than a mismatch.
+#
+# Sized for screening, not deep diligence: seven questions, 2-3 pages, run
+# identically across every asset so a month's screens are comparable.
+#
+# DRAFT — written from Pebble's stated process but not yet reviewed by anyone
+# who underwrites. The questions are the artifact most worth arguing about.
+#
+# Note on routing: most questions are routed semantic rather than structured.
+# ClinicalTrials.gov is thin for devices, and Greater Bay Area assets often
+# register on ChiCTR, which this tool cannot see at all. Treat an empty trial
+# section as missing coverage, not as an absence of trials.
+
+version: 1
+name: "Pebble device & diagnostic screen (draft)"
+
+questions:
+  - id: what-it-is
+    section: "Technology and claimed use"
+    question: "What is {asset}, what clinical problem is it used for in {indication}, and what performance does the published literature say devices of this type achieve?"
+    route: semantic
+    k: 8
+    negative: false
+
+  - id: prior-art
+    section: "Prior art and incumbents"
+    question: "What existing devices or diagnostics already address {indication}, and what performance do they report? Is {asset} doing something these do not?"
+    route: semantic
+    k: 10
+    negative: false
+
+  - id: independent-evidence
+    section: "Independent evidence for the performance claim"
+    question: "What published studies evaluate the accuracy or performance of {asset} or its measurement approach in {indication}, and who conducted them? Note explicitly where a study's authors or funders are the manufacturer."
+    route: semantic
+    k: 10
+    negative: true
+
+  - id: study-quality
+    section: "Strength of that evidence"
+    question: "For the studies evaluating {asset} in {indication}: were they prospective or retrospective, single-site or multi-site, how many subjects, and what reference standard was the device compared against?"
+    route: semantic
+    k: 10
+    negative: true
+
+  - id: regulatory
+    section: "Regulatory pathway and precedent"
+    question: "What regulatory route do devices of this type in {indication} typically follow, what class are they, and what comparable devices have been cleared or approved?"
+    route: both
+    k: 8
+    negative: false
+
+  - id: failure-modes
+    section: "What has gone wrong for similar devices"
+    question: "What failures, recalls, accuracy problems, or abandoned development have been reported for devices using this approach in {indication}?"
+    route: both
+    k: 10
+    negative: true
+
+  - id: bear-case
+    section: "Most credible argument against"
+    question: "Based only on published evidence, what is the strongest reason {asset} might fail to perform as claimed, or fail to be adopted in {indication}?"
+    route: both
+    k: 10
+    negative: true

@@ -17,7 +17,6 @@ Design rules, because the users are analysts and interns, not engineers:
 
 from __future__ import annotations
 
-import html
 import json
 import traceback
 from datetime import datetime
@@ -25,9 +24,11 @@ from pathlib import Path
 
 import streamlit as st
 
+import theme
 from medrag.autoload import ensure_data
 from medrag.config import load_config
 from medrag.crypto import CryptoError, is_encrypted
+from medrag.ingest.store import corpus_health
 from medrag.diligence import DiligenceRunner, MemoResult, load_question_set
 from medrag.memo import export
 from medrag.pipeline import CORPUS_FILE, TRIALS_DB
@@ -35,198 +36,23 @@ from medrag.providers import FREE_PROVIDERS, PROVIDERS, get_provider
 from medrag.setup_env import key_looks_valid, read_env, write_env
 from medrag.trials.store import TrialStore
 
-st.set_page_config(page_title="MedRAG — Diligence", page_icon=None, layout="centered")
+st.set_page_config(
+    page_title="MedRAG — Diligence",
+    page_icon=None,
+    layout="centered",
+    # "auto", not "expanded": a forced-open sidebar is an overlay on a narrow
+    # window and covers the form. The nav rail under the wordmark keeps the
+    # three tools reachable from every page when the sidebar is collapsed.
+    initial_sidebar_state="auto",
+)
 OUT_DIR = Path("out")
 
 
-# --------------------------------------------------------------- style
-# One tokenised block — every rule references a semantic role, no raw hex. All
-# selectors are [data-testid] where Streamlit ships one; generated class names
-# change between releases, so revisit this block after a Streamlit upgrade.
-_STYLE = """
-<style>
-:root {
-  --ink-900: #14181f;
-  --ink-600: #4a5568;
-  --ink-400: #64748b;
-  --rule: #e2e5ea;
-  --surface-2: #f7f8fa;
-  --accent: #1e4f8f;
-  --accent-weak: #eef3fa;
-  --critical: #d03b3b;
-  --warning: #fab219;
-  --good: #0ca30c;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-    "Liberation Mono", monospace;
-}
+theme.apply()
 
-/* Kill the whole Streamlit top strip: rainbow bar, deploy button, running
-   indicator, kebab menu. Anything we want to show belongs to the app itself. */
-[data-testid="stHeader"],
-[data-testid="stDecoration"],
-[data-testid="stToolbar"],
-[data-testid="stStatusWidget"],
-#MainMenu,
-footer { display: none !important; }
-
-html, body, [data-testid="stAppViewContainer"] {
-  font-family: var(--font-sans);
-  color: var(--ink-900);
-  background-color: #ffffff;
-}
-
-[data-testid="stMainBlockContainer"],
-[data-testid="stAppViewBlockContainer"],
-.block-container {
-  max-width: 720px !important;
-  padding-top: 2rem !important;
-  padding-bottom: 3rem !important;
-}
-
-h1, h2, h3, h4 {
-  color: var(--ink-900);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
-h2 { font-size: 1.15rem; margin-top: 1.5rem; }
-p, li, label { color: var(--ink-900); }
-small, [data-testid="stCaptionContainer"] { color: var(--ink-600); }
-
-code, kbd, samp,
-[data-testid="stMarkdownContainer"] code {
-  font-family: var(--font-mono) !important;
-  font-variant-numeric: tabular-nums;
-  background: var(--accent-weak) !important;
-  padding: 0 0.25rem;
-  border-radius: 2px;
-  color: var(--ink-900) !important;
-}
-
-/* Streamlit alerts carry meaning in a coloured icon; we replace with text
-   badges below. Hide the built-in icon so no emoji leak through. */
-[data-testid="stAlert"] svg { display: none !important; }
-[data-testid="stAlert"] {
-  background: var(--surface-2);
-  border-left: 3px solid var(--ink-400);
-  color: var(--ink-900);
-}
-
-/* Primary buttons need white text against --accent for contrast. Streamlit
-   themes only the background. */
-[data-testid="stBaseButton-primaryFormSubmit"],
-[data-testid="stBaseButton-primary"] {
-  color: #ffffff !important;
-  border-color: var(--accent) !important;
-}
-[data-testid="stBaseButton-primaryFormSubmit"]:hover,
-[data-testid="stBaseButton-primary"]:hover {
-  background: #163e70 !important;
-  border-color: #163e70 !important;
-}
-
-.medrag-wordmark {
-  color: var(--accent);
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
-  letter-spacing: 0.22em;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
-}
-.medrag-rule {
-  height: 1px;
-  background: var(--rule);
-  margin: 0.75rem 0 1.5rem;
-  border: 0;
-}
-
-.medrag-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  margin: 1.25rem 0;
-}
-.medrag-stat {
-  padding: 0.75rem 1rem;
-  border-right: 1px solid var(--rule);
-}
-.medrag-stat:last-child { border-right: 0; }
-.medrag-stat-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-400);
-  margin-bottom: 0.3rem;
-}
-.medrag-stat-value {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  font-size: 1.5rem;
-  color: var(--ink-900);
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.medrag-badge {
-  border-left: 3px solid var(--ink-400);
-  background: var(--surface-2);
-  padding: 0.6rem 0.85rem;
-  margin: 0.75rem 0;
-}
-.medrag-badge--critical { border-left-color: var(--critical); }
-.medrag-badge--warning  { border-left-color: var(--warning); }
-.medrag-badge--good     { border-left-color: var(--good); }
-.medrag-badge-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-600);
-  font-weight: 600;
-  margin-bottom: 0.2rem;
-}
-.medrag-badge-body { color: var(--ink-900); font-size: 0.95rem; line-height: 1.4; }
-</style>
-"""
-
-st.markdown(_STYLE, unsafe_allow_html=True)
-
-
-def _header() -> None:
-    st.markdown(
-        '<div class="medrag-wordmark">MEDRAG</div>'
-        '<h1>Diligence memo</h1>'
-        '<div class="medrag-rule"></div>',
-        unsafe_allow_html=True,
-    )
-
-
-def _stat_row(stats: list[tuple[str, str]]) -> None:
-    parts = ['<div class="medrag-stats">']
-    for label, value in stats:
-        parts.append(
-            '<div class="medrag-stat">'
-            f'<div class="medrag-stat-label">{html.escape(label)}</div>'
-            f'<div class="medrag-stat-value">{html.escape(value)}</div>'
-            '</div>'
-        )
-    parts.append("</div>")
-    st.markdown("".join(parts), unsafe_allow_html=True)
-
-
-def _badge(kind: str, label: str, body: str) -> None:
-    """Text badge with a coloured left rule; text stays --ink-900 so hue is
-    never the only signal. `kind` is one of: critical, warning, good."""
-    st.markdown(
-        f'<div class="medrag-badge medrag-badge--{kind}">'
-        f'<div class="medrag-badge-label">{html.escape(label)}</div>'
-        f'<div class="medrag-badge-body">{html.escape(body)}</div>'
-        "</div>",
-        unsafe_allow_html=True,
-    )
+# Presentation lives in theme.py so all three pages cannot drift apart again.
+_stat_row = theme.stat_row
+_badge = theme.badge
 
 
 # --------------------------------------------------------------- helpers
@@ -260,6 +86,19 @@ def loaded_summary(cfg) -> str:
         except (json.JSONDecodeError, OSError):
             pass
     return " · ".join(bits) if bits else "nothing loaded yet"
+
+
+def corpus_problem(cfg) -> str:
+    """Plain-language note if any stored research could not be read, else "".
+
+    Shown in Settings rather than buried in a log, because the person who needs
+    to know that the memo drew on less evidence than it looks like is the analyst,
+    not whoever reads the terminal.
+    """
+    try:
+        return corpus_health(cfg.raw_dir / CORPUS_FILE, cfg.passphrase).message() or ""
+    except Exception:
+        return ""
 
 
 def render_setup() -> None:
@@ -329,24 +168,26 @@ def render_setup() -> None:
 cfg = load_config()
 cfg.ensure_dirs()
 
-_header()
-
 env = read_env()
 configured = bool(env.get("MEDRAG_PROVIDER"))
 
 if not configured:
-    st.caption(
+    theme.page_header(
+        "Diligence memo",
         "Enter a drug and a disease, and this produces a diligence memo from the "
-        "clinical trial registry and published literature, with a citation on every claim."
+        "clinical trial registry and published literature, with a citation on every claim.",
+        active="Diligence memo",
     )
     render_setup()
     st.stop()
 
 provider = get_provider(cfg.provider)
 
-st.caption(
+theme.page_header(
+    "Diligence memo",
     "Enter a drug and a disease. MedRAG finds the research, reads it, and writes a "
-    "memo where every claim is cited. First run for a new drug takes a few minutes."
+    "memo where every claim is cited. First run for a new drug takes a few minutes.",
+    active="Diligence memo",
 )
 
 passphrase = None
@@ -379,10 +220,16 @@ with st.form("diligence"):
     indication = st.text_input("Disease or indication", placeholder="e.g. heart failure")
     submitted = st.form_submit_button("Generate memo", type="primary", use_container_width=True)
 
+_corpus_problem = corpus_problem(cfg)
+if _corpus_problem:
+    _badge("warning", "SOME STORED RESEARCH UNREADABLE", _corpus_problem)
+
 with st.expander("Settings"):
     st.markdown(f"**Provider:** {provider.label}")
     st.markdown(f"**Model:** `{cfg.chat_model}`")
     st.caption(f"Research loaded: {loaded_summary(cfg)}")
+    if _corpus_problem:
+        st.caption(f"Stored research: {_corpus_problem}")
 
     question_files = sorted(Path("config").glob("*.yaml"))
     labels = [p.name for p in question_files] or ["diligence_questions.yaml"]
@@ -402,8 +249,10 @@ with st.expander("Settings"):
 # --------------------------------------------------------------- run
 
 if submitted:
-    if not asset.strip():
-        st.error("Please enter a drug or asset name.")
+    # An indication-only landscape is first-class (same as the CLI, where --asset
+    # is optional): require an asset OR an indication, not the asset specifically.
+    if not asset.strip() and not indication.strip():
+        st.error("Enter a drug or asset name, or a disease or indication.")
         st.stop()
 
     try:
@@ -433,8 +282,8 @@ if submitted:
         if not report.skipped and not report.literature_added and not report.trials_added:
             bar.empty()
             st.error(
-                f"No research could be found or downloaded for “{asset}”. Check the "
-                "spelling of the drug name, or try a broader indication. If this "
+                f"No research could be found or downloaded for “{asset or indication}”. "
+                "Check the spelling, or try a broader indication. If this "
                 "computer is on a company or campus network, it may be blocking the "
                 "sources — try a different network."
             )
@@ -520,7 +369,12 @@ if submitted:
         )
         something_wrong = True
     if not something_wrong:
-        _badge("good", "COMPLETE", f"Memo ready for {memo.asset}.")
+        _badge("good", "COMPLETE", f"Memo ready for {memo.asset or memo.indication}.")
+
+    # The question set is fixed so that two memos are comparable; the numbering
+    # here is that fact made visible — same numbers, same order, every asset.
+    st.markdown("## Memo sections")
+    theme.section_index([(s.question.section, bool(s.evidence)) for s in memo.sections])
 
     stamp = datetime.now().strftime("%Y-%m-%d")
     left, right = st.columns(2)
@@ -542,7 +396,8 @@ if submitted:
     st.caption(f"Also saved in the `{OUT_DIR}` folder. The PDF is the version to circulate.")
 
     with st.expander("Preview the memo"):
-        st.markdown(paths["markdown"].read_text(encoding="utf-8"))
+        with st.container(key="mr_memo"):
+            st.markdown(paths["markdown"].read_text(encoding="utf-8"))
 
 st.divider()
 st.caption(

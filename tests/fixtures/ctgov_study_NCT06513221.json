@@ -1,0 +1,290 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT06513221",
+      "orgStudyIdInfo": {
+        "id": "FORESIGHT"
+      },
+      "organization": {
+        "fullName": "Fudan University",
+        "class": "OTHER"
+      },
+      "briefTitle": "A Prospective Study of MSS-type Metastatic Colorectal Cancer Receiving Multiple Lines of Standard Chemotherapy, Bevacizumab Combined With Adebrelimab",
+      "officialTitle": "A Prospective, Multi-arm, Phase II Clinical Study of MSS-type Metastatic Colorectal Cancer Receiving Multiple Lines of Standard Chemotherapy, Bevacizumab Combined With Adebrelimab Under the Guidance of Transcriptome Profiling."
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2024-07",
+      "overallStatus": "NOT_YET_RECRUITING",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2024-07-25",
+        "type": "ESTIMATED"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2026-04-01",
+        "type": "ESTIMATED"
+      },
+      "completionDateStruct": {
+        "date": "2027-04-12",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2024-07-03",
+      "studyFirstSubmitQcDate": "2024-07-17",
+      "studyFirstPostDateStruct": {
+        "date": "2024-07-22",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2024-07-17",
+      "lastUpdatePostDateStruct": {
+        "date": "2024-07-22",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "PRINCIPAL_INVESTIGATOR",
+        "investigatorFullName": "Ye Xu",
+        "investigatorTitle": "Professor, Chief of Department of Colorectal Surgery",
+        "investigatorAffiliation": "Fudan University"
+      },
+      "leadSponsor": {
+        "name": "Fudan University",
+        "class": "OTHER"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true,
+      "isFdaRegulatedDrug": false,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "This study is a prospective, multi-arm, phase II clinical trial that uses transcriptome profiling to guide the evaluation of the efficacy of multiple lines of standard chemotherapy and bevacizumab combined with adebrelimab in patients with MSS-type metastatic colorectal cancer, aiming to expand the immunotherapy cohort while accurately narrowing the population of MSS-type colorectal cancer that benefits from immunity. This study includes a screening period, a treatment period, and a follow-up period.",
+      "detailedDescription": "This study plans to include a total of 100 first-line, second-line, and third-line MCRIH (MSS Colorectal Cancer Immuno-Hot) participants. First-line and second-line participants who pass the screening period will receive standard chemotherapy (XELOX/mXELIRI: conventional dose) combined with Bevacizumab (7.5mg/kg, q3w) and Adebrelimab (1200mg, q3w); third-line subjects will receive Fruquintinib (4mg po d1\\~d14, q3w) combined with Adebrelimab (1200mg, q3w). Participants will receive imaging examinations during the treatment period to evaluate efficacy and progression. In addition, any adverse reactions at any time will be recoded to evaluate safety. The EDC system will be used to collect statistics on participants examination data."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Metastatic Colorectal Cancer"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2"
+      ],
+      "designInfo": {
+        "allocation": "NON_RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 100,
+        "type": "ESTIMATED"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "First Line treatment",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will recieve chemotherapy (XELOX: Oxaliplatin injection and capecitabine tablets) combined with Bevacizumab (7.5mg/kg, q3w) as well as Adebrelimab (1200mg, q3w).",
+          "interventionNames": [
+            "Drug: Chemotherapy, Bevacizumab, Adebrelimab"
+          ]
+        },
+        {
+          "label": "Second Line treatment",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will recieve chemotherapy (mXELIRI: capecitabine tablets plus irinotecan injection) combined with Bevacizumab (7.5mg/kg, q3w) as well as Adebrelimab (1200mg, q3w).",
+          "interventionNames": [
+            "Drug: Chemotherapy, Bevacizumab, Adebrelimab"
+          ]
+        },
+        {
+          "label": "Third Line treatment",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will recieve Fruquintinib (4mg po d1\\~d14, q3w) combined with Adebrelimab (1200mg, q3w).",
+          "interventionNames": [
+            "Drug: Chemotherapy, Bevacizumab, Adebrelimab"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Chemotherapy, Bevacizumab, Adebrelimab",
+          "description": "Adebrelimab: 1200mg\uff0cq3w Bevacizumab: 7.5mg/kg\uff0cq3w Fruquintinib: 4mg po d1\\~d14, q3w Chemotherapy: XELOX/mXELIRI: conventional dose",
+          "armGroupLabels": [
+            "First Line treatment",
+            "Second Line treatment",
+            "Third Line treatment"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Objective Response Rate",
+          "description": "The percentage of people in a study or treatment group who have a partial response or complete response to the treatment within a certain period of time according to RECIST 1.1.",
+          "timeFrame": "2 years"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Disease Control Rate",
+          "description": "The percentage of patients with advanced or metastatic cancer who have achieved complete response, partial response and stable disease to a therapeutic intervention in clinical trials of anticancer agents according to RECIST 1.1.",
+          "timeFrame": "2 years"
+        },
+        {
+          "measure": "Progression Free Survival",
+          "description": "The length of time during and after the treatment of a disease, such as cancer, that a patient lives with the disease but it does not get worse. In a clinical trial, measuring the progression-free survival is one way to see how well a new treatment works according to the results of RECIST 1.1.",
+          "timeFrame": "2 years"
+        },
+        {
+          "measure": "Overall Survical",
+          "description": "The length of time from either the date of diagnosis or the start of treatment for a disease, such as cancer, that patients diagnosed with the disease are still alive. In a clinical trial, measuring the overall survival is one way to see how well a new treatment works.",
+          "timeFrame": "2 years"
+        },
+        {
+          "measure": "QoL",
+          "description": "QoL will be eveluated based on EORTC QLQ-C30",
+          "timeFrame": "2 years"
+        },
+        {
+          "measure": "Incidence of Treatment-related Adverse Events (Safety )",
+          "description": "This will be evaluated based on NCI CTCAE, including the number of participants with Abnormal Laboratory Values and/or Adverse Events That Are Related to Treatment.",
+          "timeFrame": "2 years"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. Voluntary participation and written informed consent\n2. Aged 18 years and above, regardless of gender;\n3. Histologically confirmed, resectable primary lesions, unresectable metastatic lesions, MSS-type mCRC\n4. MCRIH by transcriptome typing;\n5. At least one measurable lesion diagnosed by imaging, according to the solid tumor response evaluation criteria (RECIST1.1);\n6. Estimated survival \u2265 3 months;\n7. ECOG score 0-1 points;\n8. Adequate organ and bone marrow function:\n\n   Neutrophil count: \u22651.5\\*10\\^9/L Platelet count: \u226510.0\\*10\\^9/L Hemoglobin: \u2265 9.0 g/dL Total bilirubin: \u2264 1.5 ULN AST, ALT: \u2264 2.5 \\*ULN (or \\<5\\*ULN in case of liver metastasis) Serum creatinine: 1.25 \\*ULN\n9. Male subjects and women of childbearing age must take contraceptive measures from the first dose to 3 months after the last dose;\n10. It is expected that the patient will have good compliance and can cooperate with the study as required by the protocol;\n\nExclusion Criteria:\n\n1. Known allergy to the study drug or any of its excipients;\n2. Previous treatment with immune checkpoint inhibitors;\n3. Received the following treatments or drugs before the first study treatment:\n\n   * Major surgery within 28 days before treatment (tissue biopsy for diagnostic purposes is allowed).\n   * Use of immunosuppressive drugs within 7 days before treatment, excluding nasal spray and inhaled corticosteroids or physiological doses of systemic steroid hormones (i.e. no more than 10 mg/d of prednisone or other corticosteroids of equivalent physiological dose);\n   * Received immunomodulatory drugs (such as thymosin, interferon, interleukin) within 3 weeks before medication;\n   * Received live attenuated vaccines within 28 days before treatment;\n   * Received other anti-tumor systemic treatment within 28 days before treatment;\n4. Presence of any active autoimmune disease or history of autoimmune disease and expected recurrence;\n5. Known history of allogeneic organ transplantation or allogeneic hematopoietic stem cell transplantation;\n6. Human immunodeficiency virus (HIV) infection or known AIDS, untreated active hepatitis, HBV-DNA \u2265 2500 IU/ml and abnormal liver function; hepatitis C or co-infection with hepatitis B and hepatitis C;\n7. Within 6 months before entering the study, the following conditions occurred: myocardial infarction, severe/unstable angina, NYHA Patients with grade 2 or above heart failure and clinically significant supraventricular or ventricular arrhythmias requiring clinical intervention; hypertension that is poorly controlled by drugs;\n8. History of abdominal fistula, gastrointestinal perforation, intra-abdominal abscess or active gastrointestinal bleeding within 6 months before the first study treatment;\n9. Urine protein \u2265++ or 24-hour urine protein \\> 1.0g;\n10. Unable to swallow the study drug, with multiple factors that affect drug administration and absorption, such as chronic diarrhea (including but not limited to irritable bowel syndrome, Crohn's disease, ulcerative colitis) and intestinal obstruction;\n11. Pregnant or lactating women, and subjects with reproductive capacity who are unwilling to take effective contraceptive measures;\n12. Patients with other serious physical or laboratory abnormalities that may increase the risk of participating in the study or interfere with the study results, and patients who are considered unsuitable for participation in this study by the investigator;",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-07-28"
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D015179",
+          "term": "Colorectal Neoplasms"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D007414",
+          "term": "Intestinal Neoplasms"
+        },
+        {
+          "id": "D005770",
+          "term": "Gastrointestinal Neoplasms"
+        },
+        {
+          "id": "D004067",
+          "term": "Digestive System Neoplasms"
+        },
+        {
+          "id": "D009371",
+          "term": "Neoplasms by Site"
+        },
+        {
+          "id": "D009369",
+          "term": "Neoplasms"
+        },
+        {
+          "id": "D004066",
+          "term": "Digestive System Diseases"
+        },
+        {
+          "id": "D005767",
+          "term": "Gastrointestinal Diseases"
+        },
+        {
+          "id": "D003108",
+          "term": "Colonic Diseases"
+        },
+        {
+          "id": "D007410",
+          "term": "Intestinal Diseases"
+        },
+        {
+          "id": "D012002",
+          "term": "Rectal Diseases"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D004358",
+          "term": "Drug Therapy"
+        },
+        {
+          "id": "D000068258",
+          "term": "Bevacizumab"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D013812",
+          "term": "Therapeutics"
+        },
+        {
+          "id": "D061067",
+          "term": "Antibodies, Monoclonal, Humanized"
+        },
+        {
+          "id": "D000911",
+          "term": "Antibodies, Monoclonal"
+        },
+        {
+          "id": "D000906",
+          "term": "Antibodies"
+        },
+        {
+          "id": "D007136",
+          "term": "Immunoglobulins"
+        },
+        {
+          "id": "D007162",
+          "term": "Immunoproteins"
+        },
+        {
+          "id": "D001798",
+          "term": "Blood Proteins"
+        },
+        {
+          "id": "D011506",
+          "term": "Proteins"
+        },
+        {
+          "id": "D000602",
+          "term": "Amino Acids, Peptides, and Proteins"
+        },
+        {
+          "id": "D012712",
+          "term": "Serum Globulins"
+        },
+        {
+          "id": "D005916",
+          "term": "Globulins"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

@@ -19,14 +19,17 @@ import os
 import sqlite3
 from pathlib import Path
 
+from ..biomarker_gating import MARKER_KEYS, gate_markers, gating_token, gating_tokens
 from .client import STOPPED_STATUSES, TrialRecord
 
 # Bumped when the columns change. Written to PRAGMA user_version so a database
-# built before the eligibility/location columns existed is refused on open
-# rather than read with columns silently missing — the same fail-closed choice
-# the vector index makes on an embedder or schema mismatch. v1 was the original
-# diligence schema; v2 adds the patient-perspective fields.
-STORE_VERSION = 2
+# built before the current columns existed is refused on open rather than read
+# with columns silently missing — the same fail-closed choice the vector index
+# makes on an embedder or schema mismatch. v1 was the original diligence schema;
+# v2 added the patient-perspective fields; v3 adds the precomputed biomarker
+# gating census, so a landscape count is real SQL over the full match set rather
+# than a parse of the retrieved sample.
+STORE_VERSION = 3
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trials (
@@ -55,6 +58,8 @@ CREATE TABLE IF NOT EXISTS trials (
     overall_officials       TEXT,   -- JSON array of {name, role, affiliation}
     central_contacts        TEXT,   -- JSON array of {name, email, phone}
     locations               TEXT,   -- JSON array of {facility, city, state, country, status}
+    biomarker_gating        TEXT,   -- space-padded ' MARKER:STATUS ' tokens for LIKE filtering
+    biomarker_flags         TEXT,   -- JSON {marker: {status, span}}, computed at ingest
     ingested_at             TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_status     ON trials(overall_status);
@@ -135,6 +140,14 @@ class TrialStore:
             d = r.to_dict()
             for f in _ARRAY_FIELDS:
                 d[f] = json.dumps(d[f])
+            # The gating census is deterministic (regex only) and computed once
+            # here, so a landscape COUNT is real SQL over the stored flags — not a
+            # parse of the retrieved sample.
+            flags = gate_markers(r.eligibility_criteria)
+            d["biomarker_gating"] = gating_tokens(flags)
+            d["biomarker_flags"] = json.dumps(
+                {k: {"status": f.status, "span": f.span} for k, f in flags.items()}
+            )
             rows.append(d)
 
         cols = list(rows[0].keys())
@@ -171,9 +184,12 @@ class TrialStore:
 
     # ------------------------------------------------------------ reads
 
+    # Columns computed by the store, not part of TrialRecord.
+    _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_flags")
+
     @staticmethod
     def _to_record(row: sqlite3.Row) -> TrialRecord:
-        d = {k: row[k] for k in row.keys() if k != "ingested_at"}
+        d = {k: row[k] for k in row.keys() if k not in TrialStore._NON_RECORD_COLS}
         for f in _ARRAY_FIELDS:
             d[f] = json.loads(d[f] or "[]")
         # SQLite has no bool; restore it, keeping NULL ("not stated") distinct
@@ -291,6 +307,94 @@ class TrialStore:
             "stopped_with_reason": with_reason,
             "why_stopped_fill_rate": round(with_reason / stopped, 3) if stopped else None,
             "by_status": by_status,
+        }
+
+    def landscape(
+        self,
+        condition: str | None = None,
+        biomarker_filters: list[tuple[str, str]] | None = None,
+        statuses: list[str] | None = None,
+        phase: str | None = None,
+        sample_limit: int = 25,
+    ) -> dict:
+        """Aggregates over the FULL match set, computed in SQL — never from a
+        retrieved sample. This is the fix for the counting problem: a memo section
+        can state the denominator and label its listed trials as a sample of it.
+
+        `biomarker_filters` is a list of (marker_key, status) narrowing the set,
+        e.g. [("MSS", "REQUIRED")]. NOT_MENTIONED trials are only included if a
+        caller explicitly asks for ("MARKER", "NOT_MENTIONED") — they are never
+        folded into a REQUIRED or EXCLUDED count.
+        """
+        where, params = [], []
+        if condition:
+            where.append("LOWER(conditions) LIKE ?")
+            params.append(f"%{condition.lower()}%")
+        if phase:
+            where.append("LOWER(phase) LIKE ?")
+            params.append(f"%{phase.lower()}%")
+        if statuses:
+            where.append(f"UPPER(overall_status) IN ({', '.join('?' * len(statuses))})")
+            params.extend(s.upper() for s in statuses)
+        for marker, status in (biomarker_filters or []):
+            where.append("biomarker_gating LIKE ?")
+            params.append(f"%{gating_token(marker, status)}%")
+        clause = (" WHERE " + " AND ".join(where)) if where else ""
+
+        def scalar(extra_sql="", extra_params=()):
+            return self.conn.execute(
+                f"SELECT COUNT(*) FROM trials{clause}{extra_sql}", (*params, *extra_params)
+            ).fetchone()[0]
+
+        def group(expr):
+            rows = self.conn.execute(
+                f"SELECT {expr} AS k, COUNT(*) AS n FROM trials{clause} "
+                f"GROUP BY {expr} ORDER BY n DESC", params
+            )
+            return {(r["k"] if r["k"] not in (None, "") else "not stated"): r["n"] for r in rows}
+
+        total = scalar()
+        readable = scalar(" AND TRIM(COALESCE(eligibility_criteria,'')) != ''"
+                          if clause else " WHERE TRIM(COALESCE(eligibility_criteria,'')) != ''")
+
+        # Per-marker census over the match set: how many trials require / exclude
+        # / do not mention each gating marker. Counts of NOT_MENTIONED are reported
+        # explicitly so the gap is visible.
+        by_biomarker: dict[str, dict[str, int]] = {}
+        for mkey in MARKER_KEYS:
+            row = {}
+            for st in ("REQUIRED", "EXCLUDED", "NOT_MENTIONED"):
+                row[st] = scalar(" AND biomarker_gating LIKE ?", (f"%{gating_token(mkey, st)}%",))
+            by_biomarker[mkey] = row
+
+        # A capped sample to list, with its stored gating flags for the table.
+        sample_sql = (
+            f"SELECT * FROM trials{clause} ORDER BY "
+            "CASE WHEN UPPER(overall_status) IN ('RECRUITING','NOT_YET_RECRUITING') THEN 0 ELSE 1 END, "
+            "primary_completion_date DESC LIMIT ?"
+        )
+        sample_rows = self.conn.execute(sample_sql, (*params, sample_limit)).fetchall()
+        sample = [self._to_record(r) for r in sample_rows]
+        sample_flags = [json.loads(r["biomarker_flags"] or "{}") for r in sample_rows]
+
+        return {
+            "total": total,
+            "eligibility_readable": readable,
+            "shown": len(sample),
+            "dropped": max(0, total - len(sample)),
+            "by_phase": group("phase"),
+            "by_status": group("overall_status"),
+            "by_sponsor_class": group("sponsor_class"),
+            "by_completion_year": group("substr(primary_completion_date,1,4)"),
+            "by_biomarker": by_biomarker,
+            "filters": {
+                "condition": condition or "",
+                "phase": phase or "",
+                "statuses": list(statuses or []),
+                "biomarker": list(biomarker_filters or []),
+            },
+            "sample": sample,
+            "sample_flags": sample_flags,
         }
 
     def close(self) -> None:
