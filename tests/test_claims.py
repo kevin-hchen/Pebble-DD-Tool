@@ -370,9 +370,13 @@ def test_citations_use_the_assembled_evidence_numbering():
     assert v.citations == [2]
     assert v.cited_evidence[0].identifier == "PMID 30000000"
 
-    prompt = client.chat.completions.create.call_args[1]["messages"][0]["content"]
-    assert prompt.index("[1]") < prompt.index("[2]")
-    assert "NCT01234567" in prompt and "PMID 30000000" in prompt
+    # Joined across roles on purpose: the property is what the model SAW, which
+    # must hold however instructions and data are split between system and user.
+    sent = "\n".join(
+        m["content"] for m in client.chat.completions.create.call_args[1]["messages"]
+    )
+    assert sent.index("[1]") < sent.index("[2]")
+    assert "NCT01234567" in sent and "PMID 30000000" in sent
 
 
 def test_malformed_model_output_is_unverified_not_a_guess():

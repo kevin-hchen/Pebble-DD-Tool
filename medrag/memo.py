@@ -18,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .biomarker_gating import MARKER_LABELS
+from .crypto import harden_outputs, write_secure
 from .context import LIT_LABEL, TRIAL_LABEL
 from .diligence import MemoResult, SectionResult
 from .table_render import markdown_table, pdf_table
@@ -582,13 +583,33 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
     return path
 
 
-def export(memo: MemoResult, out_dir: str | Path, stem: str | None = None) -> dict[str, Path]:
-    """Write both formats and return their paths."""
+def export(
+    memo: MemoResult,
+    out_dir: str | Path,
+    stem: str | None = None,
+    passphrase: str | None = None,
+) -> dict[str, Path]:
+    """Write both formats and return their paths.
+
+    The two formats get different treatment on purpose. The Markdown is the
+    machine-readable copy that sits in `out/` between sessions, so it goes
+    through `write_secure` and is encrypted whenever a passphrase is configured —
+    the same protection the corpus has always had. The PDF is the artifact people
+    circulate; encrypting it would produce a file no reader can open, so it stays
+    plaintext at 0600 and the boundary is documented in SECURITY.md rather than
+    pretended away.
+
+    Passing no passphrase while MEDRAG_ENCRYPT is set raises from `write_secure`
+    rather than silently writing cleartext. That is the existing fail-closed
+    guard and it is deliberate: a memo that quietly loses its encryption is worse
+    than a run that stops and says so.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = stem or re.sub(r"[^a-z0-9]+", "-", (memo.asset or memo.indication).lower()).strip("-") or "memo"
 
     md_path = out_dir / f"{stem}-diligence.md"
-    md_path.write_text(render_markdown(memo), encoding="utf-8")
+    write_secure(md_path, render_markdown(memo).encode("utf-8"), passphrase)
     pdf_path = render_pdf(memo, out_dir / f"{stem}-diligence.pdf")
+    harden_outputs(out_dir, md_path, pdf_path)
     return {"markdown": md_path, "pdf": pdf_path}

@@ -14,6 +14,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from .crypto import harden_outputs, write_secure
 from .claims import (
     COMPANY_LINKED,
     CONTRADICTED,
@@ -316,13 +317,25 @@ def render_pdf(report: ClaimReport, path: str | Path, generated: datetime | None
     return path
 
 
-def export(report: ClaimReport, out_dir: str | Path, stem: str | None = None) -> dict[str, Path]:
+def export(
+    report: ClaimReport,
+    out_dir: str | Path,
+    stem: str | None = None,
+    passphrase: str | None = None,
+) -> dict[str, Path]:
+    """Markdown encrypted when a passphrase is configured, PDF plaintext at 0600.
+
+    This is the export that carries deck-derived claims, so it is the one the
+    split matters most for. See `memo.export` for why the PDF is treated
+    differently.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = report.company or report.asset or "claims"
     stem = stem or re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "claims"
 
     md_path = out_dir / f"{stem}-claims.md"
-    md_path.write_text(render_markdown(report), encoding="utf-8")
+    write_secure(md_path, render_markdown(report).encode("utf-8"), passphrase)
     pdf_path = render_pdf(report, out_dir / f"{stem}-claims.pdf")
+    harden_outputs(out_dir, md_path, pdf_path)
     return {"markdown": md_path, "pdf": pdf_path}

@@ -18,6 +18,7 @@ import theme
 
 from medrag.biomarker import ELIGIBLE, UNCLEAR
 from medrag.config import load_config
+from medrag.crypto import read_secure
 from medrag.landscape import build_landscape
 from medrag.landscape_memo import export as export_landscape
 from medrag.pipeline import TRIALS_DB
@@ -152,13 +153,15 @@ if submitted:
         "flagged, rather than dropped."
     )
 
-    paths = export_landscape(landscape, OUT_DIR)
+    paths = export_landscape(landscape, OUT_DIR, passphrase=cfg.passphrase)
+    # Decrypted on the way out: readable bytes for the browser.
+    _ls_md = read_secure(paths["markdown"], cfg.passphrase)
     stamp = datetime.now().strftime("%Y-%m-%d")
     left, right = st.columns(2)
     left.download_button("Download landscape (PDF)", data=paths["pdf"].read_bytes(),
                          file_name=f"{paths['pdf'].stem}-{stamp}.pdf",
                          mime="application/pdf", type="primary", use_container_width=True)
-    right.download_button("Download landscape (Markdown)", data=paths["markdown"].read_bytes(),
+    right.download_button("Download landscape (Markdown)", data=_ls_md,
                           file_name=f"{paths['markdown'].stem}-{stamp}.md",
                           mime="text/markdown", use_container_width=True)
 

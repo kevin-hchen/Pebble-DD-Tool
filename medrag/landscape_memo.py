@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .biomarker import ELIGIBLE, UNCLEAR
+from .crypto import harden_outputs, write_secure
 from .landscape import LandscapeTrial, TrialLandscape, _format_location
 from .memo import _fmt_date, _inline_to_rl
 from .table_render import markdown_table, pdf_table
@@ -242,13 +243,25 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
     return path
 
 
-def export(ls: TrialLandscape, out_dir: str | Path, stem: str | None = None) -> dict[str, Path]:
+def export(
+    ls: TrialLandscape,
+    out_dir: str | Path,
+    stem: str | None = None,
+    passphrase: str | None = None,
+) -> dict[str, Path]:
+    """Markdown encrypted when a passphrase is configured, PDF plaintext at 0600.
+
+    Landscape output is public registry data, so the encryption buys least here.
+    It follows the same rule as the other two anyway: one export path that behaves
+    differently per module is how the memo renderers drifted before.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = f"{ls.condition}-{ls.biomarker}" if ls.condition else "landscape"
     stem = stem or re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "landscape"
 
     md_path = out_dir / f"{stem}-landscape.md"
-    md_path.write_text(render_markdown(ls), encoding="utf-8")
+    write_secure(md_path, render_markdown(ls).encode("utf-8"), passphrase)
     pdf_path = render_pdf(ls, out_dir / f"{stem}-landscape.pdf")
+    harden_outputs(out_dir, md_path, pdf_path)
     return {"markdown": md_path, "pdf": pdf_path}

@@ -27,7 +27,7 @@ import streamlit as st
 import theme
 from medrag.autoload import ensure_data
 from medrag.config import load_config
-from medrag.crypto import CryptoError, is_encrypted
+from medrag.crypto import CryptoError, is_encrypted, read_secure
 from medrag.ingest.store import corpus_health
 from medrag.diligence import DiligenceRunner, MemoResult, load_question_set
 from medrag.memo import export
@@ -309,7 +309,7 @@ if submitted:
         )
 
         bar.progress(0.97, text="Writing the memo…")
-        paths = export(memo, OUT_DIR)
+        paths = export(memo, OUT_DIR, passphrase=cfg.passphrase)
         bar.empty()
         note.empty()
 
@@ -376,6 +376,10 @@ if submitted:
     st.markdown("## Memo sections")
     theme.section_index([(s.question.section, bool(s.evidence)) for s in memo.sections])
 
+    # Decrypted on the way out: the copy in out/ is encrypted when a passphrase
+    # is set, but the browser needs readable bytes.
+    _memo_md = read_secure(paths["markdown"], cfg.passphrase)
+
     stamp = datetime.now().strftime("%Y-%m-%d")
     left, right = st.columns(2)
     left.download_button(
@@ -388,7 +392,7 @@ if submitted:
     )
     right.download_button(
         "Download memo (Markdown)",
-        data=paths["markdown"].read_bytes(),
+        data=_memo_md,
         file_name=f"{paths['markdown'].stem}-{stamp}.md",
         mime="text/markdown",
         use_container_width=True,
@@ -397,7 +401,7 @@ if submitted:
 
     with st.expander("Preview the memo"):
         with st.container(key="mr_memo"):
-            st.markdown(paths["markdown"].read_text(encoding="utf-8"))
+            st.markdown(_memo_md.decode("utf-8"))
 
 st.divider()
 st.caption(

@@ -27,12 +27,14 @@ from medrag.claims import (
     ClaimVerifier,
     ConfirmationRequired,
     ExtractedClaim,
+    consent_key,
     extract_claims,
     parse_claims_text,
     transmission_notice,
 )
 from medrag.claims_memo import export as export_claims
 from medrag.config import load_config
+from medrag.crypto import read_secure
 from medrag.setup_env import read_env
 
 st.set_page_config(
@@ -106,7 +108,13 @@ if mode.startswith("Paste deck"):
             f"Extracting will send the deck text to {notice.provider_label}. "
             "Confirm below before extracting."
         )
-        extract_ok = st.checkbox("I confirm sending this deck text for extraction", key="extract_ok")
+        # Keyed to this deck and this provider. A fixed key="extract_ok" made one
+        # tick consent to every later deck for the rest of the session.
+        deck_notice = transmission_notice(cfg, [deck], kind="deck text")
+        extract_ok = st.checkbox(
+            "I confirm sending this deck text for extraction",
+            key=consent_key(deck_notice, "extract"),
+        )
     else:
         st.caption(notice.render())
         extract_ok = True
@@ -179,8 +187,13 @@ else:
     if claims:
         with st.expander("Show exactly what will be sent"):
             st.code("\n".join(f"{i}. {c}" for i, c in enumerate(claims, 1)))
+    # Keyed to the exact claims and the exact destination. Without a key Streamlit
+    # derives widget identity from the label, and this label only varied by claim
+    # COUNT — so replacing every claim with different text kept the tick, and the
+    # run transmitted content the analyst never confirmed.
     confirmed = st.checkbox(
-        f"I confirm sending these {len(claims)} claim(s) to {live.provider_key} for this run"
+        f"I confirm sending these {len(claims)} claim(s) to {live.provider_key} for this run",
+        key=consent_key(live, "verify"),
     )
 
 run = st.button("Verify claims", type="primary", use_container_width=True,
@@ -223,7 +236,7 @@ if run:
             confirmed=True,
         )
         bar.progress(0.95, text="Writing the results…")
-        paths = export_claims(result, OUT_DIR)
+        paths = export_claims(result, OUT_DIR, passphrase=cfg.passphrase)
         bar.empty()
     except ConfirmationRequired as exc:
         bar.empty()
@@ -275,18 +288,22 @@ if run:
         mono_cols={3},
     )
 
+    # Decrypted on the way out: the copy in out/ is encrypted when a passphrase
+    # is set, but the browser needs readable bytes.
+    _claims_md = read_secure(paths["markdown"], cfg.passphrase)
+
     stamp = datetime.now().strftime("%Y-%m-%d")
     left, right = st.columns(2)
     left.download_button("Download results (PDF)", data=paths["pdf"].read_bytes(),
                          file_name=f"{paths['pdf'].stem}-{stamp}.pdf",
                          mime="application/pdf", type="primary", use_container_width=True)
-    right.download_button("Download results (Markdown)", data=paths["markdown"].read_bytes(),
+    right.download_button("Download results (Markdown)", data=_claims_md,
                           file_name=f"{paths['markdown'].stem}-{stamp}.md",
                           mime="text/markdown", use_container_width=True)
 
     with st.expander("Preview the full results"):
         with st.container(key="mr_memo"):
-            st.markdown(paths["markdown"].read_text(encoding="utf-8"))
+            st.markdown(_claims_md.decode("utf-8"))
 
 st.divider()
 st.caption(

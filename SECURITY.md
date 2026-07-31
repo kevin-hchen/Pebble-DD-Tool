@@ -14,6 +14,10 @@ Three categories of data move through the system.
 
 What leaves your machine by default: your PubMed search string (to NCBI), the text of every chunk (to OpenAI, for embedding), and your question plus the retrieved passages (to OpenAI, for generation). Nothing else. There is no telemetry, no analytics, and no third-party service beyond those two.
 
+**The query string is itself a disclosure, and choosing a local model does not stop it.** Searching for a compound tells NCBI and ClinicalTrials.gov what you are researching. For a stealth-mode company that is often the confidential part, and it travels whatever provider you pick — Ollama and `none` keep the *claims* local, not the *asset name*. There is a test asserting this (`test_asset_name_reaches_the_registry_even_when_fully_local`) and the confirmation notice on the claims page states it.
+
+The only mitigation is not to make the query. In practice that means pre-loading broadly (fetch the whole indication rather than the compound) and then working with `MEDRAG_OFFLINE=1` against the local stores.
+
 ## Encryption at rest
 
 Enable with `--encrypt` or `MEDRAG_ENCRYPT=1`. The passphrase comes from `MEDRAG_PASSPHRASE` or an interactive no-echo prompt.
@@ -21,6 +25,20 @@ Enable with `--encrypt` or `MEDRAG_ENCRYPT=1`. The passphrase comes from `MEDRAG
 The construction is AES-256-GCM with a key derived by scrypt (n=2^15, r=8, p=1) from your passphrase. Every file gets a fresh random 16-byte salt and 12-byte nonce, so identical plaintext never produces identical ciphertext and no two files share a key. GCM is authenticated and the header is bound in as associated data, so a modified index fails loudly on read rather than being silently deserialized. Files are written to a private temp file and atomically renamed, then chmod 0600; data directories are 0700.
 
 The index manifest (`manifest.json`) stays in the clear on purpose. It holds only the vector dimension, embedder name, chunk count, and an `encrypted` flag — reading it is how the tool knows whether to ask for a passphrase at all. If a chunk count is itself sensitive in your setting, this is the wrong tool.
+
+### Generated memos: Markdown encrypted, PDF not
+
+`out/` holds two copies of every memo and they are treated differently.
+
+The **Markdown** is the machine-readable copy that sits on disk between sessions. It goes through the same `write_secure` path as the corpus, so it is encrypted whenever a passphrase is configured. This matters most for the claim-verification memo, which carries deck-derived claims, the company name, and the asset under diligence — strictly more sensitive than the published abstracts in the corpus.
+
+The **PDF is deliberately left unencrypted, at mode 0600.** A memo exists to be forwarded into a partner meeting; an encrypted PDF opens in nothing, so encrypting it would convert the deliverable into a second backup and leave you with no artifact. The protection there is filesystem permissions, and that is a weaker control than encryption. If a plaintext PDF of a claims memo is unacceptable in your setting, do not generate one — take the Markdown and render it yourself inside whatever boundary you need.
+
+Both files are 0600 and `out/` is 0700. Before this was fixed they were written at 0644, world-readable on a shared machine, while the less sensitive corpus beside them was 0600.
+
+Downloads and the in-app preview decrypt on the way out, so the browser always receives readable bytes. Encryption at rest protects the file on disk, not the copy in your Downloads folder.
+
+If `MEDRAG_ENCRYPT` is set and no passphrase reaches the exporter, the write **fails** rather than silently producing cleartext. A memo that quietly loses its encryption is worse than a run that stops and says so.
 
 ### What this protects against
 

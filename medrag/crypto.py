@@ -204,3 +204,23 @@ def harden_permissions(path: str | Path) -> None:
         os.chmod(path, 0o700 if path.is_dir() else 0o600)
     except (OSError, NotImplementedError):  # pragma: no cover
         pass
+
+
+def harden_outputs(directory: str | Path, *files: str | Path) -> None:
+    """Lock down a generated memo and the directory holding it.
+
+    `out/` was the hole in an otherwise careful story. The corpus is 0600 and
+    optionally AES-encrypted, but every exporter wrote its Markdown and PDF with
+    a plain `write_text`, landing at 0644 — world-readable on a shared machine.
+    The memo is the *more* sensitive artifact of the two: a claims memo carries
+    the deck-derived claims, the company name and the asset under diligence,
+    where the corpus carries published abstracts.
+
+    This is the floor, not the ceiling. These files are still plaintext even when
+    MEDRAG_ENCRYPT is set, because they are meant to be opened by a PDF reader and
+    circulated. Bringing them inside the encryption boundary is a separate design
+    question, not a chmod.
+    """
+    harden_permissions(directory)
+    for f in files:
+        harden_permissions(f)
