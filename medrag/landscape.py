@@ -64,7 +64,10 @@ class TrialLandscape:
     biomarker: str
     location: str = ""
     trials: list[LandscapeTrial] = field(default_factory=list)   # ELIGIBLE + UNCLEAR
-    n_condition: int = 0           # trials matched on condition, before biomarker screen
+    query_set: str = ""            # the fetch that defined this population
+    population_total: int = 0      # trials the ingest holds for that set
+    coverage: dict | None = None   # what was searched; None means never ingested
+    n_condition: int = 0           # trials screened, before the biomarker screen
     n_eligible: int = 0
     n_unclear: int = 0
     n_excluded: int = 0            # require the opposite biomarker
@@ -113,21 +116,51 @@ def build_landscape(
     condition: str,
     biomarker: str,
     location: str = "",
-    limit: int = 300,
+    limit: int | None = None,
+    query_set: str | None = None,
 ) -> TrialLandscape:
-    """Screen the condition's trials for the biomarker and assemble the landscape."""
+    """Screen the fetched population for the biomarker and assemble the landscape.
+
+    The population is whatever the INGEST went and got for this indication,
+    selected by its recorded query set — a structured fact stamped on each record
+    at fetch time. It is deliberately not re-derived here: the previous version
+    re-ran `LOWER(conditions) LIKE '%colorectal cancer%'`, which used different
+    logic from the fetch and discarded trials the ingest had deliberately
+    retrieved (MOUNTAINEER-03 registers "Colorectal Neoplasms" and does not
+    contain the substring). Narrowing belongs to the fetch; the local layer
+    filters on structured facts only.
+
+    `limit=None` means screen the whole population. A cap is honoured but always
+    reported, because a silently truncated landscape is indistinguishable from a
+    complete one.
+    """
     landscape = TrialLandscape(condition=condition, biomarker=biomarker, location=location)
 
     if store is None:
         landscape.warnings.append("trial store not found — run `medrag trials` first")
         return landscape
 
-    records = store.query(condition=condition, limit=limit)
-    # A structured condition filter can miss free-text phrasings; fall back to
-    # the FTS search so a real trial is not lost to an exact-match gap.
+    if query_set is None:
+        from .trials.queries import resolve_query_set
+        query_set = resolve_query_set(condition).key
+
+    landscape.query_set = query_set
+    landscape.population_total = store.count(query_set=query_set)
+    landscape.coverage = store.coverage(query_set)
+    records = store.query(query_set=query_set, limit=limit or landscape.population_total or 1)
+
     if not records:
-        records = store.search(f"{condition} {biomarker}".strip(), limit=limit)
+        landscape.warnings.append(
+            f"nothing has been ingested for “{condition}” yet (query set "
+            f"“{query_set}”). Run `medrag trials --condition \"{condition}\"` first."
+        )
     landscape.n_condition = len(records)
+    if landscape.population_total > len(records):
+        landscape.warnings.append(
+            f"only {len(records)} of {landscape.population_total} ingested trials were "
+            "screened because a row limit was set — the counts below are of the "
+            "screened subset, not the whole population."
+        )
 
     candidates: list[LandscapeTrial] = []
     for record in records:
@@ -167,5 +200,28 @@ def build_landscape(
             f"{landscape.n_no_eligibility_text} condition trial(s) had no eligibility "
             "text on file and could not be screened for the biomarker — they are not "
             "shown. Check them directly on ClinicalTrials.gov."
+        )
+
+    cov = landscape.coverage
+    if cov:
+        # A known-partial coverage has to be stated. An absent basket trial and a
+        # non-existent one look identical in the output otherwise.
+        if cov.get("basket_caveat"):
+            landscape.warnings.append(cov["basket_caveat"])
+        if cov.get("errors"):
+            landscape.warnings.append(
+                "This ingest did not complete every planned query, so the list below "
+                "may be missing trials: " + "; ".join(cov["errors"])
+            )
+        if not cov.get("curated", True):
+            landscape.warnings.append(
+                f"No reviewed synonym set exists for “{condition}”, so only that exact "
+                "phrase was searched. Trials registering the indication differently may "
+                "be missing. Add a set to config/trial_queries.yaml to fix this."
+            )
+    elif landscape.n_condition:
+        landscape.warnings.append(
+            "These trials were ingested before coverage was recorded, so what was "
+            "searched for them is unknown. Re-run the ingest to establish it."
         )
     return landscape

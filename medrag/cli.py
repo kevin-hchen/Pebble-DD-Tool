@@ -14,7 +14,8 @@ from .ingest.store import read_corpus
 from .memo import export
 from .pipeline import CORPUS_FILE, TRIALS_DB, MedRAG, build_index, ingest_pdfs, ingest_pubmed
 from .router import Router
-from .trials.client import search_trials
+from .trials.client import run_query
+from .trials.queries import fetch_query_set, resolve_query_set
 from .trials.store import TrialStore
 
 
@@ -63,23 +64,66 @@ def cmd_ask(args) -> int:
 
 
 def cmd_trials(args) -> int:
-    """Ingest clinicaltrials.gov records into the structured store."""
+    """Ingest clinicaltrials.gov records into the structured store.
+
+    A condition runs the whole reviewed query set for that indication and unions
+    the results; anything else (intervention, sponsor) is a single query. Either
+    way the fetch runs to exhaustion unless --max-records overrides it.
+    """
     cfg = _config_from(args)
     cfg.ensure_dirs()
+    db = cfg.raw_dir / TRIALS_DB
 
-    records = search_trials(
-        condition=args.condition,
-        intervention=args.intervention,
-        sponsor=args.sponsor,
-        status=args.status,
-        max_records=args.max_records,
-        offline=cfg.offline,
-    )
-    print(f"[medrag] {len(records)} trial records fetched")
+    if args.condition:
+        qset = resolve_query_set(args.condition)
+        if not qset.curated:
+            print(f"[medrag] no reviewed query set matches “{args.condition}” — searching "
+                  f"that one phrase only. Add a set to config/trial_queries.yaml to widen it.")
+        else:
+            print(f"[medrag] query set “{qset.key}” ({len(qset.queries)} queries)")
 
-    with TrialStore(cfg.raw_dir / TRIALS_DB) as store:
-        store.upsert(records)
-        stats = store.stats()
+        records, provenance, coverage = fetch_query_set(
+            qset, status=args.status, max_records=args.max_records, offline=cfg.offline,
+            progress=lambda _f, msg: print(f"[medrag]   {msg}"),
+        )
+
+        print("[medrag] marginal yield per query (fetched / new / registry total):")
+        for label, fetched, new, reported in coverage.marginal_yield_table():
+            print(f"[medrag]   {label:46} {fetched:6} {new:6}  of {reported}")
+        print(f"[medrag] {coverage.summary()}")
+        for err in coverage.errors:
+            print(f"[medrag] WARNING: {err}", file=sys.stderr)
+
+        with TrialStore(db) as store:
+            store.upsert(records, provenance=provenance, set_key=qset.key)
+            store.record_coverage(coverage)
+            held = store.count(query_set=qset.key)
+            stats = store.stats()
+
+        # The population the fetch defined must equal the population the store
+        # holds. A gap here means records were dropped between the two, which is
+        # exactly the silent narrowing this ingest exists to stop.
+        if held != coverage.total_unique:
+            print(f"[medrag] ERROR: fetched {coverage.total_unique} unique trials for "
+                  f"“{qset.key}” but the store holds {held}. Records were lost on write.",
+                  file=sys.stderr)
+            return 1
+        print(f"[medrag] store holds {held} trials for “{qset.key}”")
+    else:
+        result = run_query(
+            intervention=args.intervention,
+            sponsor=args.sponsor,
+            status=args.status,
+            max_records=args.max_records,
+            offline=cfg.offline,
+        )
+        records = result.records
+        cap = " (capped by --max-records)" if result.truncated else ""
+        print(f"[medrag] {len(records)} of {result.reported_total} reported trial records "
+              f"fetched{cap}")
+        with TrialStore(db) as store:
+            store.upsert(records)
+            stats = store.stats()
 
     print(f"[medrag] trial store now holds {stats['total']} records")
     print(f"[medrag] stopped early: {stats['stopped']}, with a stated reason: "
@@ -482,7 +526,13 @@ def main(argv: list[str] | None = None) -> int:
         nargs="+",
         help="filter by overall status, e.g. --status TERMINATED WITHDRAWN SUSPENDED",
     )
-    p_tr.add_argument("--max-records", "-n", type=int, default=200)
+    # No default: the fetch runs to exhaustion. A cap is a testing override, not
+    # a normal setting — a default cap silently redefined the population as
+    # "whatever the API returned first", which is how five of six known trials
+    # went missing from a 500-record store of a 10,193-study query.
+    p_tr.add_argument("--max-records", "-n", type=int, default=None,
+                      help="TESTING ONLY: stop after N records per query. Omit to fetch "
+                           "everything the query matches, which is the point.")
     p_tr.set_defaults(func=cmd_trials)
 
     p_fda = sub.add_parser("fda", parents=[common],

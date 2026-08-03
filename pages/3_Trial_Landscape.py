@@ -20,7 +20,7 @@ from medrag.crypto import read_secure
 from medrag.landscape import build_landscape
 from medrag.landscape_memo import export as export_landscape
 from medrag.pipeline import TRIALS_DB
-from medrag.trials.client import search_trials
+from medrag.trials.queries import fetch_query_set, resolve_query_set
 from medrag.trials.store import TrialStore, TrialStoreSchemaError
 
 st.set_page_config(
@@ -52,24 +52,35 @@ cfg.ensure_dirs()
 db = cfg.raw_dir / TRIALS_DB
 
 
-def _ensure_trials(condition: str, force: bool) -> None:
-    """Make sure the registry has been pulled for this condition. Trial fetches
-    are public — no deck text — so there is nothing to confirm before this."""
+def _ensure_trials(condition: str, force: bool, progress=None) -> str:
+    """Make sure the registry has been pulled for this condition, and return the
+    query set that defines the population. Trial fetches are public — no deck
+    text — so there is nothing to confirm before this.
+
+    "Have we already got this?" is asked of the query set, not of a condition
+    substring: the fetch defines the population, so the same handle has to decide
+    whether it exists and later select it.
+    """
+    qset = resolve_query_set(condition)
     have = 0
     if db.exists():
         with TrialStore(db) as store:           # may raise TrialStoreSchemaError
-            have = len(store.query(condition=condition, limit=1))
+            have = store.count(query_set=qset.key)
     if cfg.offline:
         if not db.exists():
             raise RuntimeError(
                 "Offline mode is on and no trials are stored yet. Turn off offline "
                 "mode, or ingest trials first with `medrag trials`.")
-        return
+        return qset.key
     if have and not force:
-        return
-    records = search_trials(condition=condition, max_records=300, offline=cfg.offline)
+        return qset.key
+
+    records, provenance, coverage = fetch_query_set(
+        qset, offline=cfg.offline, progress=progress)
     with TrialStore(db) as store:
-        store.upsert(records)
+        store.upsert(records, provenance=provenance, set_key=qset.key)
+        store.record_coverage(coverage)
+    return qset.key
 
 
 with st.form("landscape"):
@@ -88,12 +99,16 @@ if submitted:
         st.stop()
 
     try:
-        with st.spinner("Fetching trials from the registry…"):
-            _ensure_trials(condition.strip(), force=refresh)
+        status = st.status("Fetching trials from the registry…", expanded=False)
+        qset_key = _ensure_trials(
+            condition.strip(), force=refresh,
+            progress=lambda _f, msg: status.update(label=msg),
+        )
+        status.update(label="Registry fetch complete.", state="complete")
         with TrialStore(db) as store:
             landscape = build_landscape(
                 store, condition=condition.strip(), biomarker=biomarker.strip(),
-                location=location.strip(),
+                location=location.strip(), query_set=qset_key,
             )
     except TrialStoreSchemaError as exc:
         _badge("critical", "TRIAL DATABASE OUT OF DATE",

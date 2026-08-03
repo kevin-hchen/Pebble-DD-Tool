@@ -42,7 +42,11 @@ def _records():
 
 def _store() -> TrialStore:
     store = TrialStore(Path(tempfile.mkdtemp()) / "trials.db")
-    store.upsert(_records())
+    # Stamped with the query set the way a real ingest does: the landscape
+    # selects the population the fetch defined, not a condition substring.
+    recs = _records()
+    store.upsert(recs, provenance={r.nct_id: ["cond:colorectal cancer"] for r in recs},
+                 set_key="colorectal")
     return store
 
 
