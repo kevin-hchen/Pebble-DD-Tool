@@ -28,8 +28,10 @@ from .client import STOPPED_STATUSES, TrialRecord
 # makes on an embedder or schema mismatch. v1 was the original diligence schema;
 # v2 added the patient-perspective fields; v3 adds the precomputed biomarker
 # gating census, so a landscape count is real SQL over the full match set rather
-# than a parse of the retrieved sample.
-STORE_VERSION = 3
+# than a parse of the retrieved sample; v4 adds fetch provenance (which queries
+# found each trial) and the coverage catalog, so the population a local query
+# selects is the one the fetch defined rather than one re-derived from a string.
+STORE_VERSION = 4
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trials (
@@ -60,6 +62,8 @@ CREATE TABLE IF NOT EXISTS trials (
     locations               TEXT,   -- JSON array of {facility, city, state, country, status}
     biomarker_gating        TEXT,   -- space-padded ' MARKER:STATUS ' tokens for LIKE filtering
     biomarker_flags         TEXT,   -- JSON {marker: {status, span}}, computed at ingest
+    found_by                TEXT,   -- JSON array of query labels that returned this trial
+    query_sets              TEXT,   -- space-padded ' setkey ' tokens for LIKE filtering
     ingested_at             TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_status     ON trials(overall_status);
@@ -75,6 +79,20 @@ CREATE INDEX IF NOT EXISTS idx_start_date ON trials(start_date);
 -- to resolve - a matching row with no way to identify what matched.
 CREATE VIRTUAL TABLE IF NOT EXISTS trials_fts USING fts5(
     nct_id UNINDEXED, brief_title, conditions, interventions, lead_sponsor, why_stopped
+);
+
+-- What was searched, and what is known to be missing from it. Mirrors the FDA
+-- store's `catalog`: a count means nothing without the denominator it was
+-- measured against, and a coverage gap nobody recorded reads as no gap at all.
+CREATE TABLE IF NOT EXISTS query_coverage (
+    set_key        TEXT PRIMARY KEY,
+    set_label      TEXT,
+    curated        INTEGER,   -- 0 when the set was an ad-hoc single string
+    yields         TEXT,      -- JSON [{query, fetched, new, reported_total, error}]
+    total_unique   INTEGER,
+    basket_caveat  TEXT,
+    errors         TEXT,      -- JSON array; non-empty means coverage is incomplete
+    updated_at     TEXT DEFAULT CURRENT_TIMESTAMP
 );
 """
 
@@ -128,18 +146,59 @@ class TrialStore:
 
     # ------------------------------------------------------------ writes
 
-    def upsert(self, records: list[TrialRecord]) -> int:
+    def _existing_provenance(self, nct_ids: list[str]) -> dict[str, tuple[list, list]]:
+        """Read back what earlier ingests recorded, so a re-ingest UNIONs rather
+        than overwrites. Dropping a prior query label would erase the answer to
+        'did we ever search for colon cancer?' — which is the point of storing it."""
+        out: dict[str, tuple[list, list]] = {}
+        batch = 500
+        for i in range(0, len(nct_ids), batch):
+            chunk = nct_ids[i : i + batch]
+            rows = self.conn.execute(
+                f"SELECT nct_id, found_by, query_sets FROM trials WHERE nct_id IN "
+                f"({', '.join('?' * len(chunk))})", chunk
+            ).fetchall()
+            for row in rows:
+                labels = json.loads(row["found_by"] or "[]")
+                sets = [s for s in (row["query_sets"] or "").split() if s]
+                out[row["nct_id"]] = (labels, sets)
+        return out
+
+    def upsert(
+        self,
+        records: list[TrialRecord],
+        provenance: dict[str, list[str]] | None = None,
+        set_key: str | None = None,
+    ) -> int:
         """Insert or refresh records. Re-ingesting updates status in place -
         a trial that was RECRUITING last month may be TERMINATED today, and
-        that transition is the entire point of tracking it."""
+        that transition is the entire point of tracking it.
+
+        `provenance` maps NCT ID to the query labels that found it and `set_key`
+        names the query set; both are merged with whatever earlier ingests
+        recorded, never replaced.
+        """
         if not records:
             return 0
+
+        prior = self._existing_provenance([r.nct_id for r in records])
 
         rows = []
         for r in records:
             d = r.to_dict()
             for f in _ARRAY_FIELDS:
                 d[f] = json.dumps(d[f])
+
+            old_labels, old_sets = prior.get(r.nct_id, ([], []))
+            labels = list(old_labels)
+            for lab in (provenance or {}).get(r.nct_id, []):
+                if lab not in labels:
+                    labels.append(lab)
+            sets = list(old_sets)
+            if set_key and set_key not in sets:
+                sets.append(set_key)
+            d["found_by"] = json.dumps(labels)
+            d["query_sets"] = (" " + " ".join(sets) + " ") if sets else ""
             # The gating census is deterministic (regex only) and computed once
             # here, so a landscape COUNT is real SQL over the stored flags — not a
             # parse of the retrieved sample.
@@ -185,7 +244,8 @@ class TrialStore:
     # ------------------------------------------------------------ reads
 
     # Columns computed by the store, not part of TrialRecord.
-    _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_flags")
+    _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_flags",
+                        "found_by", "query_sets")
 
     @staticmethod
     def _to_record(row: sqlite3.Row) -> TrialRecord:
@@ -213,9 +273,20 @@ class TrialStore:
         phase: str | None = None,
         statuses: list[str] | None = None,
         stopped_only: bool = False,
+        query_set: str | None = None,
         limit: int = 50,
     ) -> list[TrialRecord]:
-        """Structured filter query. This is the precision the registry exists for."""
+        """Structured filter query. This is the precision the registry exists for.
+
+        `query_set` selects the population the FETCH defined — every trial any
+        query in that set returned — and is what an indication-first caller should
+        use. `condition` re-runs a substring match over the free-text condition
+        array with different logic from the fetch, so it DISCARDS trials the
+        ingest deliberately went and got: "Colorectal Neoplasms" does not contain
+        "colorectal cancer". It is kept only for `stopped_trials`, where it is
+        ORed with intervention to WIDEN a negative-evidence sweep rather than
+        narrow a population. Do not reach for it to scope a landscape.
+        """
         where, params = [], []
 
         if intervention:
@@ -224,6 +295,9 @@ class TrialStore:
         if condition:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
+        if query_set:
+            where.append("query_sets LIKE ?")
+            params.append(f"% {query_set} %")
         if sponsor:
             where.append("LOWER(lead_sponsor) LIKE ?")
             params.append(f"%{sponsor.lower()}%")
@@ -274,6 +348,55 @@ class TrialStore:
                 out.append(rec)
         return out
 
+    def count(self, query_set: str | None = None) -> int:
+        """How many trials the store holds, optionally for one query set. This is
+        the denominator a landscape must state — a listed count means nothing
+        without the population it was drawn from."""
+        if not query_set:
+            return len(self)
+        return self.conn.execute(
+            "SELECT COUNT(*) FROM trials WHERE query_sets LIKE ?", (f"% {query_set} %",)
+        ).fetchone()[0]
+
+    def found_by(self, nct_id: str) -> list[str]:
+        """The query labels that returned this trial — the audit trail for
+        'did we search for colon cancer?'."""
+        row = self.conn.execute(
+            "SELECT found_by FROM trials WHERE nct_id = ?", (nct_id,)).fetchone()
+        return json.loads(row["found_by"] or "[]") if row else []
+
+    def record_coverage(self, report) -> None:
+        """Persist one ingest's CoverageReport beside the records it produced."""
+        self.conn.execute("DELETE FROM query_coverage WHERE set_key = ?", (report.set_key,))
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO query_coverage (set_key, set_label, curated, yields, "
+                "total_unique, basket_caveat, errors) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    report.set_key, report.set_label, int(report.curated),
+                    json.dumps([
+                        {"query": y.query.label, "fetched": y.fetched, "new": y.new,
+                         "reported_total": y.reported_total, "error": y.error}
+                        for y in report.yields
+                    ]),
+                    report.total_unique, report.basket_caveat,
+                    json.dumps(report.errors),
+                ),
+            )
+
+    def coverage(self, set_key: str) -> dict | None:
+        """What was searched for this set, or None if it was never ingested —
+        which is NOT the same as 'searched and found nothing'."""
+        row = self.conn.execute(
+            "SELECT * FROM query_coverage WHERE set_key = ?", (set_key,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["yields"] = json.loads(d["yields"] or "[]")
+        d["errors"] = json.loads(d["errors"] or "[]")
+        d["curated"] = bool(d["curated"])
+        return d
+
     def stopped_trials(
         self, intervention: str | None = None, condition: str | None = None, limit: int = 50
     ) -> list[TrialRecord]:
@@ -315,6 +438,7 @@ class TrialStore:
         biomarker_filters: list[tuple[str, str]] | None = None,
         statuses: list[str] | None = None,
         phase: str | None = None,
+        query_set: str | None = None,
         sample_limit: int = 25,
     ) -> dict:
         """Aggregates over the FULL match set, computed in SQL — never from a
@@ -330,6 +454,9 @@ class TrialStore:
         if condition:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
+        if query_set:
+            where.append("query_sets LIKE ?")
+            params.append(f"% {query_set} %")
         if phase:
             where.append("LOWER(phase) LIKE ?")
             params.append(f"%{phase.lower()}%")
@@ -387,8 +514,15 @@ class TrialStore:
             "by_sponsor_class": group("sponsor_class"),
             "by_completion_year": group("substr(primary_completion_date,1,4)"),
             "by_biomarker": by_biomarker,
+            # What was searched to build this population, or None if this set was
+            # never ingested. A census of 0 because nothing was fetched and a
+            # census of 0 because nothing matched are different facts, and the
+            # memo has to be able to tell the reader which one it is.
+            "coverage": self.coverage(query_set) if query_set else None,
+            "population_total": self.count(query_set=query_set) if query_set else len(self),
             "filters": {
                 "condition": condition or "",
+                "query_set": query_set or "",
                 "phase": phase or "",
                 "statuses": list(statuses or []),
                 "biomarker": list(biomarker_filters or []),

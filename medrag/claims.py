@@ -834,10 +834,19 @@ class ClaimVerifier:
         return transmission_notice(self.cfg, [_claim_text(c) for c in claims], kind="claims")
 
     def _retrieve(self, claim: str, asset: str, indication: str, k: int) -> list[Evidence]:
+        from .trials.queries import resolve_query_set
+
         trials = []
         if self.trial_store is not None:
             trials = self.trial_store.query(
-                intervention=asset or None, condition=indication or None, limit=k
+                intervention=asset or None,
+                # The population the fetch defined, not a substring re-match over
+                # the free-text condition array — the indication a deck writes
+                # ("microsatellite stable metastatic colorectal cancer") is almost
+                # never a substring of what a sponsor registered. Same rule as the
+                # landscape and the census; see CLAUDE.md.
+                query_set=resolve_query_set(indication).key if indication else None,
+                limit=k,
             )
             # Structured filters can legitimately return nothing; fall back to
             # free text so a checkable claim is not silently starved of registry

@@ -61,6 +61,32 @@ def _pct(n: int, d: int) -> str:
     return f"{100 * n / d:.0f}%" if d else "n/a"
 
 
+def _scope_label(filt: dict) -> str:
+    """Name the population honestly. It is the query set the ingest fetched, not
+    the words the reader typed — those differ, and saying the wrong one invites
+    the reader to assume a substring match they would not endorse."""
+    if filt.get("query_set"):
+        return f"the “{filt['query_set']}” query set"
+    return filt.get("condition") or "the indication"
+
+
+def _empty_census_note(agg: dict) -> str:
+    """Zero because nothing was fetched, and zero because nothing matched, are
+    different findings. Reporting the first as the second is the same class of
+    error as a section nobody checked reporting a clean pass."""
+    filt = agg.get("filters") or {}
+    qs = filt.get("query_set")
+    narrowed = filt.get("statuses") or filt.get("biomarker") or filt.get("phase")
+    if qs and not agg.get("coverage") and not agg.get("population_total"):
+        return (f"_Nothing has been ingested for the “{qs}” query set, so this census "
+                f"has no population to count — this is NOT a finding that no such "
+                f"trials exist. Run `medrag trials --condition \"...\"` first._")
+    if narrowed and agg.get("population_total"):
+        return (f"_None of the {agg['population_total']} trials ingested for "
+                f"“{qs}” match these filters._")
+    return "_No matching trials in the store. Ingest more with `medrag trials`._"
+
+
 def _aggregate_md(agg: dict | None) -> list[str]:
     """A landscape census, rendered as tables. Every count is over the full match
     set (SQL COUNT); the listed trials are explicitly a sample of the total, and
@@ -71,7 +97,7 @@ def _aggregate_md(agg: dict | None) -> list[str]:
 
     total, readable = agg["total"], agg["eligibility_readable"]
     filt = agg["filters"]
-    scope = filt["condition"] or "the indication"
+    scope = _scope_label(filt)
     bm = ", ".join(f"{m} {st}" for m, st in filt["biomarker"]) if filt["biomarker"] else ""
     stat = ", ".join(filt["statuses"]) if filt["statuses"] else "all statuses"
 
@@ -89,7 +115,7 @@ def _aggregate_md(agg: dict | None) -> list[str]:
         "",
     ]
     if total == 0:
-        out.append("_No matching trials in the store. Ingest more with `medrag trials`._")
+        out.append(_empty_census_note(agg))
         out.append("")
         return out
 
@@ -328,10 +354,11 @@ def _aggregate_pdf(agg, story, styles, Paragraph, Spacer, inch) -> None:
     bm = ", ".join(f"{m} {st}" for m, st in filt["biomarker"]) if filt["biomarker"] else ""
     stat = ", ".join(filt["statuses"]) if filt["statuses"] else "all statuses"
     story.append(Paragraph(_inline_to_rl(
-        f"<b>{total} trials</b> match {filt['condition'] or 'the indication'}"
+        f"<b>{total} trials</b> match {_scope_label(filt)}"
         + (f", gated to {bm}" if bm else "") + f" ({stat}). Counts are over all {total}, "
         "not the sample below."), styles["body"]))
     if total == 0:
+        story.append(Paragraph(_inline_to_rl(_empty_census_note(agg)), styles["small"]))
         return
     story.append(Paragraph(_inline_to_rl(
         f"Eligibility text screenable on {readable}/{total} ({_pct(readable, total)}); "

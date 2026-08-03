@@ -120,6 +120,31 @@ def _cfg_remote() -> Config:
     return Config(openai_api_key="sk-test")
 
 
+def test_claim_retrieval_selects_the_fetched_population_not_a_condition_substring():
+    """A deck writes "microsatellite stable metastatic colorectal cancer"; a
+    sponsor registers "Colorectal Neoplasms". The old `condition=indication`
+    substring match ANDed those and returned nothing, so every claim fell through
+    to the free-text fallback. The population is the query set the ingest
+    recorded. Third copy of the same rule — see CLAUDE.md."""
+    store = TrialStore(Path(tempfile.mkdtemp()) / "t.db")
+    rec = parse_study(PAGE_ONE["studies"][0])
+    store.upsert([rec], provenance={rec.nct_id: ["cond:colorectal cancer"]},
+                 set_key="colorectal")
+
+    verifier = ClaimVerifier(_cfg_remote(), rag=None, trial_store=store)
+    try:
+        evidence = verifier._retrieve(
+            "some claim", asset="", indication="colorectal cancer", k=6)
+    finally:
+        verifier.close()
+
+    idents = {e.identifier for e in evidence}
+    assert rec.nct_id in idents, (
+        "the trial the ingest fetched for this indication must reach the verifier; "
+        "a condition-substring re-match drops it and silently falls back to FTS"
+    )
+
+
 # --------------------------------------------------------------- the support axis
 
 

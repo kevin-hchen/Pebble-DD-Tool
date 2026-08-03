@@ -18,6 +18,24 @@ import requests
 
 API_URL = "https://clinicaltrials.gov/api/v2/studies"
 
+
+class IncompleteFetch(RuntimeError):
+    """Pagination ended before the registry's own reported total was reached.
+
+    Carries both numbers because "we have 500" is indistinguishable from "we have
+    all of them" unless the denominator is stated. Silently keeping a truncated
+    result set is the failure this whole module exists to prevent.
+    """
+
+    def __init__(self, query_label: str, fetched: int, reported_total: int):
+        self.query_label, self.fetched, self.reported_total = (
+            query_label, fetched, reported_total)
+        super().__init__(
+            f"the registry reported {reported_total} studies for {query_label} but "
+            f"pagination yielded {fetched}. The store would silently hold a subset. "
+            "Re-run the ingest; if it repeats, the registry changed under us mid-fetch."
+        )
+
 # Statuses that mean the trial stopped early. These drive the deterministic half
 # of the negative-evidence pass: no model judgement, just a database query.
 STOPPED_STATUSES = {"TERMINATED", "WITHDRAWN", "SUSPENDED"}
@@ -227,25 +245,58 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
     )
 
 
+@dataclass
+class QueryResult:
+    """One registry query's full result, with the denominator it was measured
+    against. `reported_total` is the registry's own countTotal for the query, so
+    a caller can assert it got everything instead of assuming it did."""
+    records: list[TrialRecord] = field(default_factory=list)
+    reported_total: int | None = None
+    pages: int = 0
+    truncated: bool = False       # a max_records override stopped us early
+    skipped_no_id: int = 0        # studies the API returned with no NCT ID
+
+    @property
+    def complete(self) -> bool:
+        """Did we get every study the registry said it had?"""
+        if self.truncated or self.reported_total is None:
+            return False
+        return len(self.records) + self.skipped_no_id >= self.reported_total
+
+
 def iter_studies(
     condition: str | None = None,
     intervention: str | None = None,
     sponsor: str | None = None,
     status: list[str] | None = None,
     term: str | None = None,
-    max_records: int = 200,
-    page_size: int = 100,
-    timeout: int = 45,
+    max_records: int | None = None,
+    page_size: int = 1000,
+    timeout: int = 90,
     offline: bool = False,
+    _result: QueryResult | None = None,
 ) -> Iterator[TrialRecord]:
-    """Yield TrialRecords for a registry query, following pageToken pagination."""
+    """Yield TrialRecords for a registry query, following pageToken pagination.
+
+    `max_records=None` — the default — means fetch everything the query matches.
+    A cap is an explicit testing override, never the default: the store's job is
+    to hold the population, and a default cap silently redefined the population
+    as "whatever the API happened to return first". A full colorectal fetch is
+    10k studies in ~20s, so exhaustion is affordable.
+
+    `_result` is an out-parameter carrying the registry's reported total back to
+    the caller; a generator cannot return one. Use `run_query` rather than
+    threading it by hand.
+    """
     if offline:
         raise RuntimeError(
             "offline mode is enabled: refusing to contact clinicaltrials.gov"
         )
 
+    out = _result if _result is not None else QueryResult()
+
     params: dict[str, Any] = {
-        "pageSize": min(page_size, max_records, 1000),
+        "pageSize": min(page_size, max_records or page_size, 1000),
         "fields": "|".join(DEFAULT_FIELDS),
         "countTotal": "true",
     }
@@ -263,7 +314,7 @@ def iter_studies(
     seen = 0
     page_token: str | None = None
 
-    while seen < max_records:
+    while max_records is None or seen < max_records:
         if page_token:
             params["pageToken"] = page_token
         _throttle()
@@ -271,22 +322,51 @@ def iter_studies(
         resp.raise_for_status()
         payload = resp.json()
 
+        if out.reported_total is None:
+            out.reported_total = payload.get("totalCount")
+
         studies = payload.get("studies") or []
         if not studies:
             return
+        out.pages += 1
 
         for study in studies:
             record = parse_study(study)
             if record is None:
+                out.skipped_no_id += 1
                 continue
             yield record
             seen += 1
-            if seen >= max_records:
+            if max_records is not None and seen >= max_records:
+                out.truncated = True
                 return
 
         page_token = payload.get("nextPageToken")
         if not page_token:
             return
+
+
+def run_query(check_complete: bool = True, **kwargs) -> QueryResult:
+    """Run one registry query to exhaustion and verify nothing was lost.
+
+    Raises IncompleteFetch when pagination yielded fewer studies than the
+    registry's own countTotal — the loud failure that stops a truncated store
+    from being mistaken for a complete one. An explicit max_records override
+    suppresses the check, since truncation is then the caller's intent.
+    """
+    result = QueryResult()
+    result.records = list(iter_studies(_result=result, **kwargs))
+    if check_complete and not result.truncated and result.reported_total is not None:
+        if len(result.records) + result.skipped_no_id < result.reported_total:
+            raise IncompleteFetch(
+                _query_label(kwargs), len(result.records), result.reported_total)
+    return result
+
+
+def _query_label(kwargs: dict) -> str:
+    bits = [f"{k}={v!r}" for k, v in kwargs.items()
+            if k in ("condition", "intervention", "sponsor", "term") and v]
+    return ", ".join(bits) or "an unfiltered query"
 
 
 def search_trials(**kwargs) -> list[TrialRecord]:

@@ -47,7 +47,10 @@ def _trial(nct, elig, *, status="RECRUITING", phase="Phase 2", sponsor="Uni",
 
 def _store(records):
     st = TrialStore(Path(tempfile.mkdtemp()) / "t.db")
-    st.upsert(records)
+    # Stamped with the query set a real ingest records: the census selects the
+    # population the fetch defined, not a condition substring.
+    st.upsert(records, provenance={r.nct_id: ["cond:colorectal cancer"] for r in records},
+              set_key="colorectal")
     return st
 
 
@@ -196,6 +199,90 @@ def test_indication_only_run_needs_no_asset():
     md = render_markdown(memo)
     assert md.startswith("# Landscape — colorectal cancer")
     assert "{asset}" not in md, "an unfilled {asset} placeholder must degrade, not leak"
+
+
+def test_census_counts_a_trial_whose_condition_string_lacks_the_indication_words():
+    """The diligence consumer's copy of the retrieval bug. store.landscape() used
+    to take condition=indication and re-run LOWER(conditions) LIKE, which on the
+    real store counted 5,201 of a 12,092-trial fetched population — it discarded
+    every trial registered as "Colorectal Neoplasms". Two callers with different
+    population logic is the shape this repo has already been bitten by twice."""
+    store = _store([
+        _trial("NCT_LIT", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Cancer",)),
+        _trial("NCT_NEO", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Neoplasms",)),
+    ])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="Landscape", question="What runs in {indication}?",
+                          aggregate=True, k=10)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    assert result.aggregate["total"] == 2, (
+        "the census must count the fetched population; a trial registered as "
+        "'Colorectal Neoplasms' was dropped by a substring re-match"
+    )
+    assert "NCT_NEO" in {r.nct_id for r in result.aggregate["sample"]}
+    runner.close()
+
+
+def test_section_retrieval_selects_the_fetched_population_not_a_condition_substring():
+    """`_trials_for`'s copy of the same rule. It ANDs intervention with the
+    population, so a trial registered as "Colorectal Neoplasms" was dropped from
+    an asset's evidence and the section fell through to free-text search.
+
+    The store deliberately holds one trial the substring DOES match, so the
+    structured result is non-empty and the free-text fallback never fires. That
+    is the partial-drop case: with the fallback masked, the dropped trial is
+    invisible. A fixture with only the unmatched trial passes either way, because
+    FTS rescues it — which is exactly why the fallback hides this defect."""
+    store = _store([
+        _trial("NCT_LIT", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Cancer",)),
+        _trial("NCT_NEO", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Neoplasms",)),
+    ])
+    runner = _runner(store)
+    try:
+        records = runner._trials_for(
+            "what runs here?", asset="", indication="colorectal cancer", filters={}, limit=6)
+    finally:
+        runner.close()
+    assert {"NCT_LIT", "NCT_NEO"} <= {r.nct_id for r in records}, (
+        "a fetched trial must reach the section; the substring re-match dropped it "
+        "and the fallback could not fire because the result was not empty"
+    )
+
+
+def test_census_names_the_query_set_it_counted_not_the_typed_words():
+    store = _mixed_store()
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="L", question="What runs in {indication}?",
+                          aggregate=True, k=5)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="colorectal cancer", question_set="landscape",
+            sections=[result]))
+    assert "colorectal" in md and "query set" in md, (
+        "the memo must say which population it counted, since it is no longer the "
+        "reader's own phrasing"
+    )
+    runner.close()
+
+
+def test_never_ingested_census_does_not_read_as_no_such_trials_exist():
+    """A zero because nothing was fetched and a zero because nothing matched are
+    different findings — the same rule as ValidationReport.assessed."""
+    store = _store([_trial("NCT_A", "Inclusion Criteria:\n* MSS")])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="L", question="What runs in {indication}?",
+                          aggregate=True, k=5)
+    result = runner.run_question(q, asset="", indication="pancreatic cancer")
+    assert result.aggregate["total"] == 0
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="pancreatic cancer", question_set="landscape",
+            sections=[result]))
+    assert "NOT a finding that no such trials exist" in md, (
+        "an uningested indication must not report as an empty field"
+    )
+    runner.close()
 
 
 def test_aggregate_section_states_denominator_and_labels_the_sample():

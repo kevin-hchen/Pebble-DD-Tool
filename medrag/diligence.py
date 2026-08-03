@@ -20,6 +20,7 @@ from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
 from .router import Route, Router
 from .trials.client import TrialRecord
+from .trials.queries import resolve_query_set
 from .trials.store import TrialStore
 from .validation import ValidationReport, validate_answer
 
@@ -229,7 +230,7 @@ class DiligenceRunner:
 
         records = self.trial_store.query(
             intervention=asset or None,
-            condition=indication or None,
+            query_set=resolve_query_set(indication).key if indication else None,
             phase=filters.get("phase"),
             statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
@@ -288,8 +289,13 @@ class DiligenceRunner:
         stated denominator. No model prose — the answer is the table."""
         agg = None
         if self.trial_store is not None:
+            # Select the population the FETCH defined, by its recorded query set —
+            # not a substring re-match over the free-text condition array. That
+            # match ran different logic from the ingest and discarded 6,891 of
+            # 12,092 colorectal trials (57%), including every trial registered as
+            # "Colorectal Neoplasms". Same rule as build_landscape; see CLAUDE.md.
             agg = self.trial_store.landscape(
-                condition=indication or None,
+                query_set=resolve_query_set(indication).key if indication else None,
                 biomarker_filters=self._biomarker_filters(q.biomarker),
                 statuses=q.status,
                 sample_limit=q.k,
