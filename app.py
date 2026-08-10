@@ -75,7 +75,7 @@ def loaded_summary(cfg) -> str:
     trials_path = cfg.raw_dir / TRIALS_DB
     if trials_path.exists():
         try:
-            with TrialStore(trials_path) as store:
+            with TrialStore(trials_path, read_only=True) as store:
                 s = store.stats()
             bits.append(f"{s['total']} trial records")
         except Exception:

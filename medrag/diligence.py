@@ -233,7 +233,7 @@ class DiligenceRunner:
                 # A stale trials.db must not crash the memo: degrade to a
                 # literature-only run with the rebuild instruction surfaced.
                 try:
-                    self.trial_store = TrialStore(db)
+                    self.trial_store = TrialStore(db, read_only=self.cfg.read_only)
                 except TrialStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
             else:
@@ -249,7 +249,7 @@ class DiligenceRunner:
             db = self.cfg.raw_dir / FDA_DB
             if db.exists():
                 try:
-                    self.fda_store = FDAStore(db)
+                    self.fda_store = FDAStore(db, read_only=self.cfg.read_only)
                 except FDAStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
 
@@ -264,7 +264,7 @@ class DiligenceRunner:
             db = self.cfg.raw_dir / DRUGS_DB
             if db.exists():
                 try:
-                    self.drug_store = DrugStore(db)
+                    self.drug_store = DrugStore(db, read_only=self.cfg.read_only)
                 except DrugStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
 

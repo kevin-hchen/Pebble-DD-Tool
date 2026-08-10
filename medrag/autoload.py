@@ -31,6 +31,13 @@ class LoadReport:
     already_had_literature: bool = False
     already_had_trials: bool = False
     skipped: bool = False
+    # True when read-only mode declined to fetch. Kept DISTINCT from `skipped`
+    # (which means "already had it") because they are different answers to
+    # "why is there no new data": one says the snapshot already covers this,
+    # the other says nobody looked and nobody will. Collapsing them would let a
+    # miss read as a hit — the not-assessed-vs-nothing-found rule, at the
+    # loader.
+    read_only: bool = False
     errors: list[str] = None
 
     def __post_init__(self):
@@ -38,6 +45,10 @@ class LoadReport:
             self.errors = []
 
     def summary(self) -> str:
+        if self.read_only:
+            return ("Answering from the stored snapshot — this deployment does not "
+                    "fetch. Anything not already stored is absent from this answer, "
+                    "which is NOT a finding that it does not exist.")
         if self.skipped:
             return "Research for this asset was already loaded."
         bits = []
@@ -66,7 +77,7 @@ def has_data_for(cfg: Config, asset: str, indication: str, passphrase: str | Non
     trials_path = cfg.raw_dir / TRIALS_DB
     if trials_path.exists():
         try:
-            with TrialStore(trials_path) as store:
+            with TrialStore(trials_path, read_only=True) as store:
                 for term in terms:
                     if store.query(intervention=term, limit=1) or store.search(term, limit=1):
                         return True
@@ -106,6 +117,18 @@ def ensure_data(
             progress(fraction, message)
 
     report = LoadReport()
+
+    # The first thing checked, ahead of `force`, and before any store is even
+    # probed. A read-only deployment serves what it has; a miss returns "not in
+    # this snapshot" and never a network call, so a stranger's search cannot
+    # make the server fetch from PubMed or the registry on their behalf. Note
+    # this deliberately outranks `force=True` — a caller asking to refresh is
+    # asking for something this deployment does not do.
+    if cfg.read_only:
+        report.read_only = True
+        report.skipped = False
+        step(1.0, report.summary())
+        return report
 
     if not force and has_data_for(cfg, asset, indication):
         report.skipped = True

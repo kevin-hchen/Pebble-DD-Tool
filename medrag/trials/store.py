@@ -30,6 +30,7 @@ from ..biomarker_gating import (
     gating_token,
     gating_tokens,
 )
+from ..dbopen import connect_read_only, prepare_writable, refuse_write
 from .client import STOPPED_STATUSES, TrialRecord
 
 # Bumped when the columns change. Written to PRAGMA user_version so a database
@@ -340,40 +341,49 @@ class TrialStoreSchemaError(RuntimeError):
 
 
 class TrialStore:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, read_only: bool = False,
+                 immutable: bool = False):
+        """Open the trial store.
+
+        `read_only=True` opens a connection that CANNOT write and performs no
+        schema execution, no `PRAGMA user_version` write and no commit — the
+        constructor's writes are the reason a reader used to take a write lock
+        and die with "database is locked" whenever an ingest was running, and
+        the reason the app could not start at all on a read-only filesystem.
+
+        `immutable=True` additionally tells SQLite the file is a frozen
+        snapshot, which is what a genuinely read-only mount needs (no lock file,
+        no -wal, no -shm to create) and which is WRONG while an ingest may be
+        writing. See `dbopen` for the measurement behind that split.
+        """
         self.path = Path(path)
+        self.read_only = read_only
+
+        if read_only:
+            # Nothing here creates, changes or locks the file: no mkdir (the
+            # directory may itself be read-only), no schema, no version write,
+            # no chmod. A missing file raises rather than being created empty,
+            # because an empty store answers every question "nothing found".
+            self.conn = connect_read_only(self.path, immutable=immutable)
+            self._check_version(self.conn.execute(
+                "PRAGMA user_version").fetchone()[0])
+            return
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
         new_file = not self.path.exists()
 
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
+        # WAL + a busy timeout, so a reader serving the previous snapshot and an
+        # ingest writing the next one do not block each other. See dbopen.
+        prepare_writable(self.conn)
 
         # Refuse a stale database before touching it. Running the new SCHEMA over
         # an old file would leave the table missing columns (CREATE TABLE IF NOT
         # EXISTS does not add them), so every landscape query would then fail on a
         # column that isn't there. Fail closed instead, with a rebuild step.
         if not new_file:
-            version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if version != STORE_VERSION:
-                self.conn.close()
-                # Two different remedies, and telling them apart matters: some
-                # gaps need a re-fetch, and some are a pure recomputation of
-                # data already in the file. Sending an operator to re-download
-                # 12,000 records for a column that can be derived locally is its
-                # own kind of wrong answer.
-                if version in _BACKFILLABLE_FROM:
-                    remedy = ("every column it lacks can be recomputed from what it "
-                              "already holds — no re-download:\n"
-                              "    python -m medrag trials --migrate")
-                else:
-                    remedy = ("the columns it lacks need data only a re-fetch can "
-                              "supply. Delete it and re-ingest:\n"
-                              f"    rm {self.path}\n"
-                              '    python -m medrag trials --condition "..."')
-                raise TrialStoreSchemaError(
-                    f"the trial database at {self.path} was built by an older version "
-                    f"(schema v{version or 1}, current is v{STORE_VERSION}). " + remedy
-                )
+            self._check_version(self.conn.execute("PRAGMA user_version").fetchone()[0])
 
         self.conn.executescript(SCHEMA)
         self.conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
@@ -384,6 +394,31 @@ class TrialStore:
                 os.chmod(self.path, 0o600)
             except OSError:  # pragma: no cover
                 pass
+
+    def _check_version(self, version: int) -> None:
+        """Fail closed on a stale schema. Shared by both open paths, so a
+        read-only reader gets the same refusal (and the same remedy) as an
+        ingest rather than quietly querying columns that are not there."""
+        if version == STORE_VERSION:
+            return
+        self.conn.close()
+        # Two different remedies, and telling them apart matters: some gaps need
+        # a re-fetch, and some are a pure recomputation of data already in the
+        # file. Sending an operator to re-download 12,000 records for a column
+        # that can be derived locally is its own kind of wrong answer.
+        if version in _BACKFILLABLE_FROM:
+            remedy = ("every column it lacks can be recomputed from what it "
+                      "already holds — no re-download:\n"
+                      "    python -m medrag trials --migrate")
+        else:
+            remedy = ("the columns it lacks need data only a re-fetch can "
+                      "supply. Delete it and re-ingest:\n"
+                      f"    rm {self.path}\n"
+                      '    python -m medrag trials --condition "..."')
+        raise TrialStoreSchemaError(
+            f"the trial database at {self.path} was built by an older version "
+            f"(schema v{version or 1}, current is v{STORE_VERSION}). " + remedy
+        )
 
     # ------------------------------------------------------------ writes
 
@@ -419,6 +454,7 @@ class TrialStore:
         names the query set; both are merged with whatever earlier ingests
         recorded, never replaced.
         """
+        refuse_write(self, "upsert")
         if not records:
             return 0
 
@@ -700,6 +736,7 @@ class TrialStore:
         row, so the coverage line can still say "N of M" while it says the
         ingest did not finish.
         """
+        refuse_write(self, "begin_ingest")
         with self.conn:
             self.conn.execute(
                 "INSERT INTO query_coverage (set_key, set_label, curated, status, "
@@ -723,6 +760,7 @@ class TrialStore:
         therefore be called after `upsert`, which is the order `cmd_trials`
         uses.
         """
+        refuse_write(self, "record_coverage")
         held = self.count(query_set=report.set_key)
         yields = [
             {"query": y.query.label, "fetched": y.fetched, "new": y.new,

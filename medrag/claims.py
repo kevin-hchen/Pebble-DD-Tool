@@ -824,7 +824,7 @@ class ClaimVerifier:
                 # A stale trials.db degrades to literature-only rather than
                 # crashing the verification run.
                 try:
-                    self.trial_store = TrialStore(db)
+                    self.trial_store = TrialStore(db, read_only=self.cfg.read_only)
                 except TrialStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
             else:

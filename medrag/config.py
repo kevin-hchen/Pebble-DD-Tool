@@ -64,6 +64,16 @@ class Config:
     # --- privacy / security ---
     encrypt: bool = False       # encrypt corpus and index at rest
     offline: bool = False       # hard-block every outbound call
+    # The public-deployment switch. STRICTLY STRONGER than offline: offline
+    # blocks outbound calls but still lets the process write its own database,
+    # corpus, index and .env. read_only additionally forbids all of that, so the
+    # app can serve a snapshot from a filesystem it has no permission to change.
+    #
+    # It is a separate flag rather than a mode inferred from a read-only mount,
+    # because a mount that happens to be writable must not silently re-enable
+    # fetching and writing — a deployment's guarantees should not depend on how
+    # the volume was mounted that day.
+    read_only: bool = False
     passphrase: str | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:
@@ -72,6 +82,7 @@ class Config:
             f"Config(embed_model={self.embed_model!r}, chat_model={self.chat_model!r}, "
             f"embed_backend={self.embed_backend!r}, data_dir={str(self.data_dir)!r}, "
             f"encrypt={self.encrypt}, offline={self.offline}, "
+            f"read_only={self.read_only}, "
             f"openai_api_key={'set' if self.openai_api_key else 'unset'}, "
             f"passphrase={'set' if self.passphrase else 'unset'})"
         )
@@ -85,6 +96,17 @@ class Config:
         return self.data_dir / "index"
 
     def ensure_dirs(self) -> None:
+        """Create the data directories — a no-op in read-only mode.
+
+        Every Streamlit page called this unconditionally at module scope, and
+        the `mkdir` was not wrapped, so on a read-only filesystem the page died
+        at import before rendering a single element. In read-only mode the
+        directories either already exist (they hold the snapshot being served)
+        or the store open will fail with a message naming the missing file,
+        which is a better error than an OSError out of an import.
+        """
+        if self.read_only:
+            return
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.index_dir.mkdir(parents=True, exist_ok=True)
         for d in (self.data_dir, self.raw_dir, self.index_dir):
@@ -120,6 +142,14 @@ def load_config() -> Config:
 
     cfg.encrypt = _truthy(os.getenv("MEDRAG_ENCRYPT"))
     cfg.offline = _truthy(os.getenv("MEDRAG_OFFLINE"))
+    # Read-only IMPLIES offline, and the implication is one-directional and
+    # enforced here rather than remembered at each call site. A public reader
+    # that could still fetch would let a stranger's search trigger a registry
+    # pull from the server — the counts would move under other visitors, the
+    # server would carry the traffic, and the fetch would try to write.
+    cfg.read_only = _truthy(os.getenv("MEDRAG_READ_ONLY"))
+    if cfg.read_only:
+        cfg.offline = True
     if cfg.offline:
         # Offline means offline: drop the key so no code path can transmit.
         cfg.openai_api_key = None

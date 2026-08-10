@@ -28,6 +28,7 @@ import sqlite3
 from pathlib import Path
 
 from .. import agents
+from ..dbopen import connect_read_only, prepare_writable, refuse_write
 from .client import AdverseEvent, Clearance510k, Recall
 from .pma import PMARecord, is_de_novo
 
@@ -183,25 +184,31 @@ class FDAStoreSchemaError(RuntimeError):
 
 
 class FDAStore:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, read_only: bool = False,
+                 immutable: bool = False):
+        """Open the store. `read_only=True` performs no schema execution, no
+        `PRAGMA user_version` write and no commit, so a reader never takes a
+        write lock and never needs a writable filesystem — see `dbopen`."""
         self.path = Path(path)
+        self.read_only = read_only
+
+        if read_only:
+            self.conn = connect_read_only(self.path, immutable=immutable)
+            self._check_version(self.conn.execute(
+                "PRAGMA user_version").fetchone()[0])
+            return
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
         new_file = not self.path.exists()
 
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
+        # WAL + a busy timeout, so a reader serving the previous snapshot and an
+        # ingest writing the next one do not block each other. See dbopen.
+        prepare_writable(self.conn)
 
         if not new_file:
-            version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if version != STORE_VERSION:
-                self.conn.close()
-                raise FDAStoreSchemaError(
-                    f"the openFDA database at {self.path} was built by an older version "
-                    f"(schema v{version or 1}, current is v{STORE_VERSION}). Delete it and "
-                    "re-ingest:\n"
-                    f"    rm {self.path}\n"
-                    '    python -m medrag fda --product-code "..."'
-                )
+            self._check_version(self.conn.execute("PRAGMA user_version").fetchone()[0])
 
         self.conn.executescript(SCHEMA)
         self.conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
@@ -212,6 +219,21 @@ class FDAStore:
                 os.chmod(self.path, 0o600)
             except OSError:  # pragma: no cover
                 pass
+
+    def _check_version(self, version: int) -> None:
+        """Fail closed on a stale schema. Shared by both open paths, so a
+        read-only reader gets the same refusal as an ingest rather than quietly
+        querying columns that are not there."""
+        if version == STORE_VERSION:
+            return
+        self.conn.close()
+        raise FDAStoreSchemaError(
+            f"the openFDA database at {self.path} was built by an older version "
+            f"(schema v{version or 1}, current is v{STORE_VERSION}). Delete it and "
+            "re-ingest:\n"
+            f"    rm {self.path}\n"
+            '    python -m medrag fda --product-code "..."'
+        )
 
     # ------------------------------------------------------------ writes
 
@@ -249,6 +271,7 @@ class FDAStore:
         return [r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})")]
 
     def upsert_clearances(self, records: list[Clearance510k]) -> int:
+        refuse_write(self, "upsert_clearances")
         n = self._upsert(
             "clearances", "k_number", records, (),
             "clearances_fts", ("k_number", "device_name", "applicant", "statement_or_summary"),
@@ -266,6 +289,7 @@ class FDAStore:
 
     def upsert_pma(self, records: list[PMARecord]) -> int:
         """Insert PMA rows keyed on (pma_number, supplement_number)."""
+        refuse_write(self, "upsert_pma")
         if not records:
             return 0
         cols = self._columns("pma")
@@ -293,6 +317,7 @@ class FDAStore:
 
     def record_bulk_freshness(self, freshness) -> None:
         """Persist which published export this copy is, and when it was taken."""
+        refuse_write(self, "record_bulk_freshness")
         if freshness is None:
             return
         with self.conn:
@@ -323,6 +348,7 @@ class FDAStore:
         )
 
     def upsert_recalls(self, records: list[Recall]) -> int:
+        refuse_write(self, "upsert_recalls")
         return self._upsert(
             "recalls", "recall_number", records, ("k_numbers",),
             "recalls_fts", ("recall_number", "product_description", "reason_for_recall", "recalling_firm"),
@@ -330,6 +356,7 @@ class FDAStore:
         )
 
     def upsert_events(self, records: list[AdverseEvent]) -> int:
+        refuse_write(self, "upsert_events")
         # Events have no FTS table — they are queried by product_code exact only.
         if not records:
             return 0
@@ -404,6 +431,7 @@ class FDAStore:
 
     def set_category_total(self, product_code: str, total: int | None) -> None:
         """Record the openFDA-reported total for a product code, captured at ingest."""
+        refuse_write(self, "set_category_total")
         if not product_code or total is None:
             return
         with self.conn:

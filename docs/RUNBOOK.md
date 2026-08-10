@@ -47,6 +47,63 @@ on the old snapshot.
 
 ---
 
+## Deploying read-only (a public site)
+
+Set one environment variable:
+
+```bash
+MEDRAG_READ_ONLY=1 streamlit run app.py
+```
+
+That does three things, and each closes a hole a public deployment would
+otherwise have:
+
+- **Every store opens read-only** (`mode=ro`), with no schema execution, no
+  `PRAGMA user_version` write and no commit. A write attempted anywhere on the
+  read path raises `ReadOnlyStoreError` by name rather than corrupting the
+  snapshot.
+- **Nothing fetches.** `read_only` implies `offline` and drops the API key. A
+  visitor's search answers from the stored snapshot or says it is not in the
+  snapshot; it never makes the server pull from ClinicalTrials.gov or PubMed on
+  their behalf. This deliberately outranks the "re-download" checkbox.
+- **No directories are created.** `ensure_dirs()` is a no-op, so the pages start
+  on a volume they cannot write.
+
+**Preparing the snapshot.** The writable path uses WAL, so a database an ingest
+just wrote has `-wal` and `-shm` files beside it. Checkpoint them away before
+shipping, or the deployed `.db` is not self-contained:
+
+```bash
+sqlite3 data/raw/trials.db "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
+ls data/raw/trials.db*          # expect only trials.db
+chmod 444 data/raw/*.db
+```
+
+Then mount the data directory read-only. Do **not** make it writable to get the
+app to start — if it will not start read-only, that is a bug to report, not a
+permission to grant. A public app with write access to its own database is the
+thing this mode exists to prevent.
+
+**Two read modes, and the difference matters.** `mode=ro` alone lets a reader
+pick up a concurrent ingest's commits; `immutable=1` (pass `immutable=True`)
+additionally promises SQLite the file cannot change, which removes any need for
+lock files but makes the connection blind to writes. Use `immutable=True` only
+for a genuinely frozen artefact. Measured on this database, a connection held
+open across a writer's commit: `mode=ro` sees 501 → 2501 rows, `immutable=1`
+stays at 501.
+
+**What is still NOT safe on a public site** — read-only mode does not fix these,
+and they are tracked separately:
+
+- The Settings expander on `app.py` has a "Change provider or key" button that
+  rewrites `.env` and mutates the server process environment for every visitor.
+- Memo and PDF exports write to `out/` under a filename derived from user input,
+  so two visitors searching the same asset can collide.
+- `app.py` sends question text to the configured LLM provider with no consent
+  gate (the claims page has one; the memo page does not).
+
+---
+
 ## When an ingest is interrupted
 
 A trial ingest killed partway — a crash, a closed laptop, Ctrl-C — leaves the

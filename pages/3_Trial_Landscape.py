@@ -63,6 +63,17 @@ def _ensure_trials(condition: str, force: bool, progress=None) -> str:
     whether it exists and later select it.
     """
     qset = resolve_query_set(condition)
+    # A read-only deployment answers from the snapshot it was given. Checked
+    # BEFORE the store is opened and before `force`, so neither a miss nor the
+    # re-download checkbox can reach the registry — otherwise a stranger typing
+    # a condition would make this server pull tens of thousands of studies.
+    if cfg.read_only:
+        if not db.exists():
+            raise RuntimeError(
+                "This deployment serves a stored snapshot and no trial database is "
+                "present. Nothing has been searched — this is not a finding that no "
+                "trials exist.")
+        return qset.key
     have = 0
     if db.exists():
         with TrialStore(db) as store:           # may raise TrialStoreSchemaError
@@ -109,7 +120,7 @@ if submitted:
             progress=lambda _f, msg: status.update(label=msg),
         )
         status.update(label="Registry fetch complete.", state="complete")
-        with TrialStore(db) as store:
+        with TrialStore(db, read_only=cfg.read_only) as store:
             landscape = build_landscape(
                 store, condition=condition.strip(), biomarker=biomarker.strip(),
                 location=location.strip(), query_set=qset_key,

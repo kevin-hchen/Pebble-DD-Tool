@@ -43,6 +43,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .. import agents
+from ..dbopen import connect_read_only, prepare_writable, refuse_write
 from .drugs import (
     ABSENCE_MEANINGS,
     APPROVED,
@@ -467,25 +468,31 @@ def _human_date(compact: str) -> str:
 
 
 class DrugStore:
-    def __init__(self, path: str | Path):
+    def __init__(self, path: str | Path, read_only: bool = False,
+                 immutable: bool = False):
+        """Open the store. `read_only=True` performs no schema execution, no
+        `PRAGMA user_version` write and no commit, so a reader never takes a
+        write lock and never needs a writable filesystem — see `dbopen`."""
         self.path = Path(path)
+        self.read_only = read_only
+
+        if read_only:
+            self.conn = connect_read_only(self.path, immutable=immutable)
+            self._check_version(self.conn.execute(
+                "PRAGMA user_version").fetchone()[0])
+            return
+
         self.path.parent.mkdir(parents=True, exist_ok=True)
         new_file = not self.path.exists()
 
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
+        # WAL + a busy timeout, so a reader serving the previous snapshot and an
+        # ingest writing the next one do not block each other. See dbopen.
+        prepare_writable(self.conn)
 
         if not new_file:
-            version = self.conn.execute("PRAGMA user_version").fetchone()[0]
-            if version != STORE_VERSION:
-                self.conn.close()
-                raise DrugStoreSchemaError(
-                    f"the openFDA drug database at {self.path} was built by an older "
-                    f"version (schema v{version or 1}, current is v{STORE_VERSION}). "
-                    "Delete it and re-ingest:\n"
-                    f"    rm {self.path}\n"
-                    '    python -m medrag drugs --asset "..."'
-                )
+            self._check_version(self.conn.execute("PRAGMA user_version").fetchone()[0])
 
         self.conn.executescript(SCHEMA)
         self.conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
@@ -497,9 +504,25 @@ class DrugStore:
             except OSError:  # pragma: no cover
                 pass
 
+    def _check_version(self, version: int) -> None:
+        """Fail closed on a stale schema. Shared by both open paths, so a
+        read-only reader gets the same refusal as an ingest rather than quietly
+        querying columns that are not there."""
+        if version == STORE_VERSION:
+            return
+        self.conn.close()
+        raise DrugStoreSchemaError(
+            f"the openFDA drug database at {self.path} was built by an older version "
+            f"(schema v{version or 1}, current is v{STORE_VERSION}). Delete it and "
+            "re-ingest:\n"
+            f"    rm {self.path}\n"
+            '    python -m medrag drugs --asset "..."'
+        )
+
     # ------------------------------------------------------------ writes
 
     def upsert_applications(self, records: list[DrugApplication]) -> int:
+        refuse_write(self, "upsert_applications")
         if not records:
             return 0
         rows = []
@@ -519,6 +542,7 @@ class DrugStore:
         return self._insert("applications", "application_number", rows)
 
     def upsert_labels(self, records: list[DrugLabel]) -> int:
+        refuse_write(self, "upsert_labels")
         if not records:
             return 0
         rows = []
@@ -534,6 +558,7 @@ class DrugStore:
         return self._insert("labels", "set_id", rows)
 
     def upsert_recalls(self, records: list[DrugRecall]) -> int:
+        refuse_write(self, "upsert_recalls")
         if not records:
             return 0
         rows = []
@@ -565,6 +590,7 @@ class DrugStore:
         Without this row, "we looked and found nothing" and "we never looked"
         are indistinguishable — and `approval_answer` would have to guess which
         one an empty result was."""
+        refuse_write(self, "record_search")
         with self.conn:
             self.conn.execute(
                 "INSERT INTO drug_catalog (asset, n_applications, reported_total, "
@@ -680,6 +706,7 @@ class DrugStore:
     # ------------------------------------------------------------ Orange Book
 
     def upsert_orange_book(self, entries) -> int:
+        refuse_write(self, "upsert_orange_book")
         if not entries:
             return 0
         cols = [c["name"] for c in self.conn.execute("PRAGMA table_info(orange_book)")]
@@ -774,6 +801,7 @@ class DrugStore:
     # ------------------------------------------------------------ Purple Book
 
     def upsert_purple_book(self, products) -> int:
+        refuse_write(self, "upsert_purple_book")
         if not products:
             return 0
         cols = [c["name"] for c in self.conn.execute("PRAGMA table_info(purple_book)")]
@@ -881,6 +909,7 @@ class DrugStore:
         nothing is queried live during a memo run; this row is what makes a memo
         reproducible and what `--offline` reads.
         """
+        refuse_write(self, "cache_faers")
         from dataclasses import asdict
 
         key = answer.asset.strip().lower()
