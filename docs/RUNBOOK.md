@@ -93,6 +93,58 @@ without naming it in the terms breaks the build. That is deliberate.
 
 ---
 
+## Deployment checklist: every layer that can log a URL
+
+**The application cannot keep this promise alone.** Silencing `uvicorn.access`
+closes the layer we own. Every other layer in a normal deployment logs request
+URLs *by default*, and each one is a separate place a search term can land. Work
+through all of them before the site takes traffic.
+
+The search itself is now a **POST**, so the terms are in a request body rather
+than a URL — which is what makes this checklist survivable, because bodies are
+not logged by default anywhere below. The checklist still matters: a body is
+only unlogged until someone turns body logging on, and any *other* route that
+takes a query string reopens the hole.
+
+| Layer | Default | What to do |
+|---|---|---|
+| **This app** | safe | `log_request` writes method, route template, status, ms. Nothing to do. |
+| **uvicorn / gunicorn** | **logs full URL** | Silenced at import by `public/main`. Do not re-enable; `--access-log` will not defeat it, but a custom `logging.config` might. |
+| **nginx / Apache** | **logs full URL** | The default `combined` format includes `$request` (method + full URI) *and* `$http_referer`. Use a format with neither, or `access_log off;`. |
+| **Cloudflare / CDN** | **logs full URL** | Logpush and the HTTP Requests analytics both capture the URI. Disable Logpush for this hostname, or restrict fields to method/status/timing. Check WAF sampling too — blocked requests are logged with their URI. |
+| **PaaS router** (Heroku, Fly, Render, Railway, App Runner) | **logs full URL** | The platform router log is usually not configurable. Assume the path is recorded; this is the strongest argument for POST. |
+| **Load balancer** (ALB, GCLB) | **logs full URL** | S3/Cloud Logging access logs include the full request URL. Turn access logging off for this target group, or accept it and rely on POST. |
+| **Browser history** | records URLs | POST results are not in history. Do not add a "share this search" link. |
+| **`Referer` header** | sent to any external host | `Referrer-Policy: no-referrer` is set on every response, and the page loads nothing external. Both are tested. |
+| **Error tracking** (Sentry etc.) | **captures URL, body, headers** | Not installed. If one is ever added, configure `send_default_pii=False` and scrub request bodies *before* deploying it. |
+| **Process listing** | `ps` shows argv | Never pass a search or a key on a command line. |
+
+**Then re-run the sentinel test against the real deployed URL.** Passing locally
+proves the application layer only — it says nothing about the nginx in front of
+it or the PaaS router above that.
+
+```bash
+SENTINEL="ZZQX-$(date +%s)-deployment-check-ZZQX"
+
+# Through the REAL hostname, so every intermediary sees it.
+curl -s -X POST https://YOUR-REAL-HOST/landscape \
+     -d "condition=$SENTINEL&biomarker=$SENTINEL" -o /dev/null
+
+# Then search every log you can reach. Not only the app's.
+grep -r "$SENTINEL" /var/log/nginx/ /var/log/ 2>/dev/null
+journalctl -u YOUR-SERVICE --since "10 minutes ago" | grep "$SENTINEL"
+# Cloudflare: Logpush destination, and the Security Events UI
+# PaaS: `heroku logs --tail`, `fly logs`, `render logs`, etc.
+```
+
+A hit anywhere is a leak, and the fix belongs at that layer — not in the app,
+which has already done what it can.
+
+**Do this again after any infrastructure change.** Adding a CDN, moving hosts, or
+turning on a WAF each reintroduce a layer that logs URLs by default.
+
+---
+
 ## Deploying read-only (a public site)
 
 Set one environment variable:

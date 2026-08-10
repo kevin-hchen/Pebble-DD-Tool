@@ -16,7 +16,13 @@
   to tick a box that does not matter, which makes the box that does matter worth
   less.
 #}
-<form method="get" action="/landscape" class="search">
+{#
+  A POST, not a GET. The search terms must not appear in a URL: a URL is
+  recorded by browser history, by the Referer header on any external request,
+  and by nginx / Cloudflare / PaaS access logs — layers this application cannot
+  silence. Results are therefore not bookmarkable, which is the accepted cost.
+#}
+<form method="post" action="/landscape" class="search">
   <label>Condition
     <input type="text" name="condition" value="{{ condition }}" placeholder="e.g. colorectal cancer" required>
   </label>
@@ -95,7 +101,14 @@
         Showing at most {{ result.capped_at }} rows. Eligibility is indicative; the trial
         team decides. Confirm every detail against the registry record linked above.
       </p>
-      <p><a class="pdf-link" href="/landscape.pdf?condition={{ condition|urlencode }}&amp;biomarker={{ biomarker|urlencode }}&amp;location={{ location|urlencode }}">Download as PDF</a></p>
+      {# A form, not a link: a download URL carrying the search would put it
+         straight back into history and every intermediary's logs. #}
+      <form method="post" action="/landscape.pdf" class="pdf-form">
+        <input type="hidden" name="condition" value="{{ condition }}">
+        <input type="hidden" name="biomarker" value="{{ biomarker }}">
+        <input type="hidden" name="location" value="{{ location }}">
+        <button type="submit" class="pdf-button">Download as PDF</button>
+      </form>
     </section>
   {% else %}
     <section class="results">

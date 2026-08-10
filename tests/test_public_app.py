@@ -147,9 +147,10 @@ def test_a_submitted_sentinel_reaches_neither_disk_nor_logs():
 
     try:
         sys.stdout, sys.stderr = out_buf, err_buf
-        client.get("/landscape", params={"condition": SENTINEL, "biomarker": SENTINEL})
-        client.get("/landscape", params={"condition": "colorectal cancer",
-                                         "biomarker": "MSS", "location": SENTINEL})
+        client.post("/landscape", data={"condition": SENTINEL, "biomarker": SENTINEL})
+        client.get(f"/landscape?condition={SENTINEL}")   # a stale bookmarked URL
+        client.post("/landscape", data={"condition": "colorectal cancer",
+                                        "biomarker": "MSS", "location": SENTINEL})
         client.post("/memo", data={"asset": SENTINEL, "indication": SENTINEL,
                                    "consent": "yes"})
         client.post("/claims", data={"claims_text": SENTINEL, "consent": "yes"})
@@ -364,8 +365,8 @@ def test_the_default_configuration_ships_memo_and_claims_off_and_landscape_on():
 
 def test_the_shipped_routes_reflect_the_shipped_flags():
     client, _ = _client(_snapshot_dir())
-    assert client.get("/landscape", params={"condition": "colorectal cancer",
-                                            "biomarker": "MSS"}).status_code == 200
+    assert client.post("/landscape", data={"condition": "colorectal cancer",
+                                           "biomarker": "MSS"}).status_code == 200
     assert client.post("/memo", data={"asset": "x", "consent": "yes"}).status_code == 404
     assert client.post("/claims", data={"claims_text": "x", "consent": "yes"}).status_code == 404
 
@@ -511,8 +512,8 @@ def test_the_public_app_advertises_no_api_docs():
 
 def test_every_result_carries_the_coverage_statement_and_the_snapshot_date():
     client, _ = _client(_snapshot_dir())
-    html = client.get("/landscape", params={"condition": "colorectal cancer",
-                                            "biomarker": "MSS"}).text
+    html = client.post("/landscape", data={"condition": "colorectal cancer",
+                                           "biomarker": "MSS"}).text
     assert "What was searched" in html
     assert "Data snapshot" in html
     # Not collapsible: no disclosure element wrapping either block.
@@ -521,8 +522,8 @@ def test_every_result_carries_the_coverage_statement_and_the_snapshot_date():
 
 def test_the_page_states_it_is_not_medical_advice_and_that_eligibility_is_indicative():
     client, _ = _client(_snapshot_dir())
-    html = client.get("/landscape", params={"condition": "colorectal cancer",
-                                            "biomarker": "MSS"}).text
+    html = client.post("/landscape", data={"condition": "colorectal cancer",
+                                           "biomarker": "MSS"}).text
     assert "not medical advice" in html.lower()
     assert "indicative" in html.lower()
     assert "trial team" in html.lower()
@@ -530,8 +531,8 @@ def test_the_page_states_it_is_not_medical_advice_and_that_eligibility_is_indica
 
 def test_each_row_shows_the_criterion_sentence_behind_its_call():
     client, _ = _client(_snapshot_dir())
-    html = client.get("/landscape", params={"condition": "colorectal cancer",
-                                            "biomarker": "MSS"}).text
+    html = client.post("/landscape", data={"condition": "colorectal cancer",
+                                           "biomarker": "MSS"}).text
     assert "The criterion this is based on" in html
     assert "microsatellite stable" in html.lower(), \
         "the matched criterion text is not on the page"
@@ -556,8 +557,8 @@ def test_results_are_hard_capped_regardless_of_what_is_asked_for():
     assert len(result.landscape.trials) <= 30
 
     client, _ = _client(root)
-    html = client.get("/landscape", params={"condition": "colorectal cancer",
-                                            "biomarker": "MSS"}).text
+    html = client.post("/landscape", data={"condition": "colorectal cancer",
+                                           "biomarker": "MSS"}).text
     assert html.count("clinicaltrials.gov/study/") <= 30
 
 
@@ -565,12 +566,160 @@ def test_a_missing_snapshot_reads_as_not_searched_never_as_no_trials_exist():
     empty = Path(tempfile.mkdtemp())
     (empty / "raw").mkdir()
     client, _ = _client(empty)
-    response = client.get("/landscape", params={"condition": "colorectal cancer",
-                                                "biomarker": "MSS"})
+    response = client.post("/landscape", data={"condition": "colorectal cancer",
+                                               "biomarker": "MSS"})
     assert response.status_code == 503
     body = response.text.lower()
     assert "nothing has been searched" in body
     assert "not a finding that no trials exist" in body
+
+
+# ------------------------------------------- the search never enters a URL
+
+
+def test_the_search_is_a_post_so_the_terms_never_reach_a_url():
+    """Silencing our logger and uvicorn's closes two layers. Browser history,
+    the Referer header, nginx, Cloudflare and every PaaS request log are layers
+    this application cannot silence — so the search must not be in the part of
+    the request all of them record by default."""
+    client, main = _client(_snapshot_dir())
+
+    methods = {}
+    for route in main.app.routes:
+        if getattr(route, "path", "") in ("/landscape", "/landscape.pdf"):
+            methods.setdefault(route.path, set()).update(route.methods - {"HEAD"})
+
+    assert "POST" in methods["/landscape"], "the search must accept POST"
+    assert methods["/landscape.pdf"] == {"POST"}, \
+        "the PDF download must not be a GET; a download URL carrying the search " \
+        "is if anything more likely to be logged and shared than a page one"
+
+    # The GET form route must not accept the search as parameters, or a stale
+    # bookmark would reopen the hole.
+    response = client.get(f"/landscape?condition={SENTINEL}&biomarker={SENTINEL}")
+    assert response.status_code == 200
+    assert SENTINEL not in response.text, \
+        "a query-string search was echoed back, so the GET route still honours it"
+
+
+def test_the_form_markup_posts_rather_than_gets():
+    markup = (REPO / "public" / "templates" / "landscape.html").read_text()
+    import re as _re
+
+    for form in _re.findall(r"<form[^>]*>", markup):
+        assert 'method="post"' in form, f"a form on the search page uses GET: {form}"
+    assert "landscape.pdf?" not in markup, "the PDF is still linked with a query string"
+
+
+def test_the_page_loads_nothing_from_a_third_party_domain():
+    """A single external font or analytics tag would send the page URL — and on
+    a GET page, the search itself — to someone else, and would tell that third
+    party every visitor's IP regardless. Checked on the rendered HTML of a real
+    result, not on the templates, so an absolute URL introduced by any layer is
+    caught."""
+    import re as _re
+
+    client, _ = _client(_snapshot_dir())
+    pages = [client.get("/").text,
+             client.get("/landscape").text,
+             client.post("/landscape", data={"condition": "colorectal cancer",
+                                             "biomarker": "MSS"}).text,
+             client.get("/terms").text]
+
+    for html in pages:
+        # Every src/href/action that loads or submits must be same-origin.
+        for attr, url in _re.findall(r'(src|href|action)="([^"]+)"', html):
+            if url.startswith(("/", "#", "mailto:")):
+                continue
+            # The only permitted absolute URLs are the citations themselves, and
+            # they are user-followed links, not resources the page fetches.
+            assert attr == "href", f"the page loads {url!r} from a third party"
+            assert url.startswith("https://clinicaltrials.gov/"), \
+                f"unexpected external {attr}: {url}"
+
+        for banned in ("fonts.googleapis", "fonts.gstatic", "cdn.", "unpkg",
+                       "jsdelivr", "googletagmanager", "google-analytics",
+                       "@import url(http"):
+            assert banned not in html, f"the page references {banned}"
+
+        # No script at all on the public pages: nothing to exfiltrate with.
+        assert "<script" not in html.lower()
+
+
+def test_the_stylesheet_fetches_nothing_external():
+    css = (REPO / "public" / "static" / "style.css").read_text()
+    for banned in ("http://", "https://", "@import", "url("):
+        assert banned not in css, f"the stylesheet references {banned!r}"
+
+
+def test_a_referrer_policy_is_sent_so_outbound_links_leak_no_url():
+    client, _ = _client(_snapshot_dir())
+    response = client.post("/landscape", data={"condition": "colorectal cancer",
+                                               "biomarker": "MSS"})
+    assert response.headers.get("referrer-policy") == "no-referrer"
+    assert response.headers.get("cache-control") == "no-store"
+
+
+# ----------------------------------------------- the protective clauses
+
+
+def _prose(text: str) -> str:
+    """Collapse a document to comparable prose.
+
+    Both the terms and the templates are hard-wrapped source, and phrases carry
+    markdown emphasis or HTML tags mid-sentence — "does **not** restrict Pebble",
+    "<strong>does not create a confidential\n relationship</strong>". Matching
+    raw text finds neither, and loosening the assertions to short fragments
+    would let a clause be deleted while a test still passed. Normalising is the
+    honest fix: strip tags and emphasis, collapse whitespace, lowercase.
+    """
+    import re as _re
+
+    text = _re.sub(r"<[^>]+>", " ", text)          # HTML tags
+    text = _re.sub(r"[*_`]+", "", text)            # markdown emphasis
+    text = _re.sub(r"\s+", " ", text)              # hard wrapping
+    return text.lower()
+
+
+def test_the_terms_state_what_a_submission_does_not_create():
+    """Section 5 protects Pebble and is the reason unsolicited third-party
+    material can be accepted at all. Each clause is pinned by a phrase, so
+    deleting one fails the suite rather than passing quietly."""
+    text = _prose(load_terms().markdown)
+    required = {
+        "no confidential relationship": "confidential relationship",
+        "no non-disclosure obligation": "non-disclosure obligation",
+        "no fiduciary duty": "fiduciary duty",
+        "not a pitch / no investment relationship": "not a pitch",
+        "no offer or solicitation": "solicitation of an offer",
+        "no expectation of review or response": "no expectation",
+        "no restriction on Pebble": "does not restrict pebble",
+        "competitors explicitly covered": "compete directly with you",
+        "others' submissions covered": "submitted through this service by someone",
+        "submitter keeps rights": "claims no ownership",
+        "no policing of submissions": "does not screen",
+        "cannot verify right to submit": "right to submit",
+    }
+    for label, phrase in required.items():
+        assert phrase in text, f"the terms no longer state: {label}"
+
+
+def test_the_consent_control_names_the_protective_clauses_not_only_retention():
+    """A submitter ticking the box must be agreeing to the clauses that matter
+    at the moment of submission, not only to the retention promises."""
+    markup = _prose((REPO / "public" / "templates" / "_consent.html").read_text())
+    assert "does not create a confidential relationship" in markup
+    assert "right to submit" in markup
+    assert "received in confidence" in markup
+
+
+def test_the_retention_claims_and_the_protective_clauses_are_kept_apart():
+    """"We do not keep it" must not be readable as "so it is confidential" —
+    the wrong inference, and the reason 5.1 says so in terms."""
+    raw = load_terms().markdown
+    assert "## 2. What we do with what you type" in raw
+    assert "## 5. What submitting material does NOT create" in raw
+    assert "nothing in section 2 limits this section" in _prose(raw)
 
 
 # ---------------------------------------------------------------- rate limit

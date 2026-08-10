@@ -152,10 +152,46 @@ async def healthz():
 
 
 @app.get("/landscape", response_class=HTMLResponse)
-async def landscape(request: Request, condition: str = "", biomarker: str = "",
-                    location: str = ""):
-    """Trial landscape. No consent gate — nothing is submitted, the query is a
-    structured lookup against a public registry snapshot."""
+async def landscape_form(request: Request):
+    """The empty search form. Takes NO parameters, deliberately.
+
+    See `landscape` below for why the search itself is a POST. Accepting
+    `?condition=` here as a convenience would reopen the hole for anyone who
+    linked or bookmarked such a URL.
+    """
+    ctx = _base_context(request)
+    ctx.update(condition="", biomarker="", location="")
+    if not CFG.landscape.enabled:
+        ctx["error"] = "This feature is not enabled on this deployment."
+        return templates.TemplateResponse("landscape.html", ctx, status_code=404)
+    return templates.TemplateResponse("landscape.html", ctx)
+
+
+@app.post("/landscape", response_class=HTMLResponse)
+async def landscape(request: Request, condition: str = Form(""),
+                    biomarker: str = Form(""), location: str = Form("")):
+    """Trial landscape. A POST, and that is a privacy decision, not a REST one.
+
+    A GET puts the search terms in the URL, and a URL is the most-copied string
+    in the stack: it lands in browser history, in the Referer header of every
+    external resource the page loads, in nginx and Cloudflare access logs, in a
+    PaaS request log, in bookmarks, and in whatever a visitor pastes into chat.
+    Silencing this application's logger and uvicorn's closes two layers of that;
+    it cannot close the rest, because most of them are not ours.
+
+    "We do not log searches" is a promise about a system, so the search must not
+    be in the part of the request that every layer of that system records by
+    default. A form body is not logged by nginx, Cloudflare or any ordinary PaaS
+    unless someone deliberately turns body logging on.
+
+    No consent gate: nothing is submitted in the terms' sense — a condition and a
+    biomarker are a structured lookup against a public registry snapshot. The
+    POST is about where the words travel, not about what they are.
+
+    The cost, stated: results are not linkable or bookmarkable, and a refresh
+    re-submits. That is the right trade for a service whose claim is that the
+    search is not recorded anywhere.
+    """
     ctx = _base_context(request)
     ctx.update(condition=condition, biomarker=biomarker, location=location)
 
@@ -225,9 +261,16 @@ async def claims(request: Request, claims_text: str = Form(""), consent: str = F
     return templates.TemplateResponse("disabled.html", ctx, status_code=503)
 
 
-@app.get("/landscape.pdf")
-async def landscape_pdf(condition: str = "", biomarker: str = "", location: str = ""):
+@app.post("/landscape.pdf")
+async def landscape_pdf(condition: str = Form(""), biomarker: str = Form(""),
+                        location: str = Form("")):
     """The same result as a PDF, rendered to a BytesIO and streamed.
+
+    A POST for the same reason as the HTML route: a `GET /landscape.pdf?condition=…`
+    download link would put the search back in a URL, and a download URL is if
+    anything MORE likely to be logged and shared than a page one. The page
+    therefore offers the PDF as a form button carrying the same fields, not as an
+    anchor.
 
     Never written to disk: there is no path here that names a file. The internal
     app's exporter writes to `out/` under a user-derived filename, which is
