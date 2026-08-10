@@ -445,11 +445,17 @@ def test_pdf_export_produces_a_real_pdf():
     assert out.read_bytes().startswith(b"%PDF")
 
 
-def test_export_writes_both_formats():
+def test_export_writes_both_formats_under_an_unguessable_name():
     memo = _runner().run(asset="Compound X", indication="", progress=False)
-    paths = export(memo, Path(tempfile.mkdtemp()))
+    out = Path(tempfile.mkdtemp())
+    paths = export(memo, out)
     assert paths["markdown"].exists() and paths["pdf"].exists()
-    assert paths["markdown"].stem == "compound-x-diligence"
+
+    stem = paths["markdown"].stem
+    assert stem.startswith("compound-x-") and stem.endswith("-diligence")
+    assert stem != "compound-x-diligence", "the asset name alone is guessable"
+    assert export(memo, out)["markdown"] != paths["markdown"]
+    assert oct(paths["pdf"].stat().st_mode)[-3:] == "600"
 
 
 def test_pdf_survives_xml_hostile_titles():

@@ -262,9 +262,21 @@ with st.expander("Settings"):
         "Re-download research even if some is already stored",
         help="Use this when the stored research is out of date.",
     )
-    if st.button("Change provider or key"):
-        write_env({"MEDRAG_PROVIDER": ""})
-        st.rerun()
+    # The "Change provider or key" button was REMOVED, not hidden. It called
+    # write_env(), which truncates and rewrites `.env` AND mutates os.environ
+    # for the whole process — so one click reconfigured the tool for every
+    # concurrent user of that server and dropped the app into its setup screen,
+    # where the next person could write an arbitrary provider and key.
+    #
+    # Provider configuration is a DEPLOYMENT concern. A runtime button that
+    # rewrites a 0600 secrets file is the same class of defect as a read path
+    # that writes its own database: a surface a visitor can reach should not be
+    # able to change what the server is.
+    st.caption(
+        f"Provider: **{cfg.provider or 'none'}**. Set `MEDRAG_PROVIDER` and the "
+        "matching key in `.env`, then restart — provider configuration is a "
+        "deployment setting, not a runtime control."
+    )
 
 # --------------------------------------------------------------- run
 

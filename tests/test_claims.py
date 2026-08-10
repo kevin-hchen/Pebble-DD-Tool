@@ -529,10 +529,19 @@ def test_pdf_export_produces_a_real_pdf():
     assert out.stat().st_size > 1500
 
 
-def test_export_writes_both_formats():
-    paths = export(_report(), Path(tempfile.mkdtemp()))
+def test_export_writes_both_formats_under_an_unguessable_name():
+    """Sharpest here of the three: the stem used to be the COMPANY NAME, so
+    deck-derived claims landed at a path anyone knowing the company could
+    guess."""
+    out = Path(tempfile.mkdtemp())
+    paths = export(_report(), out)
     assert paths["markdown"].exists() and paths["pdf"].exists()
-    assert paths["markdown"].stem == "example-therapeutics-claims"
+
+    stem = paths["markdown"].stem
+    assert stem.endswith("-claims")
+    assert stem != "example-therapeutics-claims", "the company name alone is guessable"
+    assert export(_report(), out)["markdown"] != paths["markdown"]
+    assert oct(paths["pdf"].stat().st_mode)[-3:] == "600"
 
 
 if __name__ == "__main__":

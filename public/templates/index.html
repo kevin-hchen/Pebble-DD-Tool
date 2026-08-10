@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Trial finder{% endblock %}
+
+{% block content %}
+<h1>Search public trial and regulatory records</h1>
+<p class="lede">
+  Every result cites the record it came from and states what was searched, what was
+  not, and how much of it. Nothing you type is stored.
+</p>
+
+<div class="tools">
+  <article class="tool">
+    <h2>Trial landscape</h2>
+    <p>Trials whose eligibility criteria reference a biomarker, each with the exact
+       criterion sentence behind the call.</p>
+    {% if flags.landscape.enabled %}
+      <a class="cta" href="/landscape">Search trials</a>
+      <p class="muted">No document to submit; nothing is sent anywhere.</p>
+    {% else %}
+      <p class="muted">Not enabled on this deployment.</p>
+    {% endif %}
+  </article>
+
+  <article class="tool">
+    <h2>Diligence memo</h2>
+    <p>A fixed question set run against the stored evidence, producing a cited memo.</p>
+    {% if flags.memo.enabled %}
+      <form method="post" action="/memo" class="consent-form">
+        <label>Asset <input type="text" name="asset" required></label>
+        <label>Indication <input type="text" name="indication" required></label>
+        {% include "_consent.html" %}
+        <button type="submit">Generate memo</button>
+      </form>
+    {% else %}
+      <p class="muted">Not enabled on this deployment.</p>
+    {% endif %}
+  </article>
+
+  <article class="tool">
+    <h2>Claim check</h2>
+    <p>Checks written claims against the stored evidence and reports what supports
+       each one.</p>
+    {% if flags.claims.enabled %}
+      <form method="post" action="/claims" class="consent-form">
+        <label>Claims, one per line
+          <textarea name="claims_text" rows="5" required></textarea></label>
+        {% include "_consent.html" %}
+        <button type="submit">Check claims</button>
+      </form>
+    {% else %}
+      <p class="muted">Not enabled on this deployment.</p>
+    {% endif %}
+  </article>
+</div>
+
+<section class="handling">
+  <h2>What happens to what you type</h2>
+  <ul>
+    <li>Not written to disk — no upload folder, no cache, no temporary file.</li>
+    <li>Not logged — the access log records the method, route, status and timing only.</li>
+    <li>Not used to train anything, and never read by staff.</li>
+    <li>Nothing is kept between requests.</li>
+  </ul>
+  <p>{{ provider.sentence }}</p>
+  <p><a href="/terms">Read the full terms</a> (version {{ terms_version }}).</p>
+</section>
+{% endblock %}

@@ -47,6 +47,52 @@ on the old snapshot.
 
 ---
 
+## Running the public site
+
+The public service is a **separate application** (`public/`), not the Streamlit
+app with pages hidden. Nothing in `app.py` or `pages/` is imported by it, so the
+internal tool is unreachable from the internet by construction rather than by a
+route check.
+
+```bash
+MEDRAG_READ_ONLY=1 MEDRAG_DATA_DIR=/srv/snapshot \
+  uvicorn public.main:app --host 127.0.0.1 --port 8000
+```
+
+Routes, and what each may touch:
+
+| Route | Consent | Touches |
+|---|---|---|
+| `GET /` | — | one template |
+| `GET /terms` | — | the terms markdown |
+| `GET /landscape` | not required | read-only snapshot |
+| `GET /landscape.pdf` | not required | read-only snapshot; PDF built in memory |
+| `POST /memo` | **required** | flagged OFF |
+| `POST /claims` | **required** | flagged OFF |
+| `GET /healthz` | — | nothing |
+
+**Feature flags fail closed.** `PUBLIC_FEATURE_MEMO` and `PUBLIC_FEATURE_CLAIMS`
+ship off; absent, empty or mistyped means off. A mistyped value is reported at
+startup (`startup_report()`), because otherwise it looks identical to a flag
+deliberately left off. Landscape is on.
+
+**Do not pass `--access-log`, and do not expect it to matter.** The server's own
+access logger writes the full request line *including the query string*, which
+would put visitors' search terms into the log. `public/main` disables
+`uvicorn.access` (and the gunicorn/hypercorn equivalents) at import, so the
+guarantee does not depend on a command-line flag. The application's own log line
+is method, route template, status, milliseconds — nothing else.
+
+This was found by running a real server and grepping its log for a sentinel; the
+unit tests could not see it, because `TestClient` never starts uvicorn's logger.
+
+**Changing the model provider is a terms change.** `public/terms.py` compares the
+configured provider against the disclosure block in `docs/TERMS-DRAFT.md`, and
+`tests/test_public_app.py` fails if they disagree. Configuring a hosted provider
+without naming it in the terms breaks the build. That is deliberate.
+
+---
+
 ## Deploying read-only (a public site)
 
 Set one environment variable:
@@ -92,15 +138,20 @@ for a genuinely frozen artefact. Measured on this database, a connection held
 open across a writer's commit: `mode=ro` sees 501 → 2501 rows, `immutable=1`
 stays at 501.
 
-**What is still NOT safe on a public site** — read-only mode does not fix these,
-and they are tracked separately:
+**The internal Streamlit app is for internal use only** — it is not the public
+surface and must not be exposed. Two of the three items previously listed here
+are now FIXED:
 
-- The Settings expander on `app.py` has a "Change provider or key" button that
-  rewrites `.env` and mutates the server process environment for every visitor.
-- Memo and PDF exports write to `out/` under a filename derived from user input,
-  so two visitors searching the same asset can collide.
+- ~~The Settings "Change provider or key" button~~ — **removed**. It rewrote
+  `.env` and mutated the process environment for every concurrent user. Provider
+  configuration is a deployment setting; set `MEDRAG_PROVIDER` and restart.
+- ~~Exports collide on a user-derived filename~~ — **fixed**. `crypto.unguessable_stem`
+  keeps the human label and appends 8 bytes of `secrets.token_hex`, so two people
+  exporting the same asset no longer share a path. Still 0600.
 - `app.py` sends question text to the configured LLM provider with no consent
-  gate (the claims page has one; the memo page does not).
+  gate (the claims page has one; the memo page does not). **Still open** — it is
+  an internal-tool concern, and the public service does not share this code
+  path.
 
 ---
 

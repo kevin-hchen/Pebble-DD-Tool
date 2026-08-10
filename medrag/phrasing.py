@@ -64,6 +64,16 @@ CLAIM_PHRASES: dict[str, tuple[str, ...]] = {
         "unprotected", "no exclusivity", "patent-free", "off patent",
         "generics enter", "generic entry on",
     ),
+    "retention": (
+        # The public service's zero-retention claims. Same trap, fifth instance:
+        # a first draft of the no-model sentence read "Nothing you type is sent
+        # to any third party", which CONTAINS "is sent to any third party" —
+        # caught by a test rather than by inspection, exactly like the four
+        # before it. A denial must not share a substring with the claim.
+        "is sent to any third party", "sent to a third party", "is logged",
+        "is stored", "is retained", "we keep your", "used for training",
+        "read by staff", "written to disk",
+    ),
 }
 
 

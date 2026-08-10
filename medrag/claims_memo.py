@@ -10,7 +10,6 @@ expanding anything.
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -31,7 +30,7 @@ from .claims import (
     ClaimVerdict,
 )
 from .context import TRIAL_LABEL
-from .crypto import harden_outputs, write_secure
+from .crypto import harden_outputs, unguessable_stem, write_secure
 from .memo import DISCLAIMER, _fmt_date, _inline_to_rl
 from .table_render import markdown_table, pdf_table
 
@@ -339,7 +338,9 @@ def export(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = report.company or report.asset or "claims"
-    stem = stem or re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "claims"
+    # The old stem was the COMPANY NAME, so deck-derived claims landed at a
+    # guessable path. See crypto.unguessable_stem.
+    stem = stem or unguessable_stem(base, "claims")
 
     md_path = out_dir / f"{stem}-claims.md"
     write_secure(md_path, render_markdown(report).encode("utf-8"), passphrase)

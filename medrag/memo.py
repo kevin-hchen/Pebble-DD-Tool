@@ -20,7 +20,7 @@ from pathlib import Path
 from . import coverage
 from .biomarker_gating import MARKER_LABELS
 from .context import TRIAL_LABEL
-from .crypto import harden_outputs, write_secure
+from .crypto import harden_outputs, unguessable_stem, write_secure
 from .diligence import MemoResult, SectionResult
 from .table_render import markdown_table, pdf_table
 
@@ -751,7 +751,11 @@ def export(
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    stem = stem or re.sub(r"[^a-z0-9]+", "-", (memo.asset or memo.indication).lower()).strip("-") or "memo"
+    # Unguessable by default: the old stem was pure user input, so two people
+    # diligencing the same asset wrote to the same path and could read each
+    # other's memo. An explicit `stem=` still wins, for a caller that wants a
+    # predictable name on their own machine.
+    stem = stem or unguessable_stem(memo.asset or memo.indication, "memo")
 
     md_path = out_dir / f"{stem}-diligence.md"
     write_secure(md_path, render_markdown(memo).encode("utf-8"), passphrase)

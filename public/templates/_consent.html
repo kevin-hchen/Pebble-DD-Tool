@@ -1,0 +1,33 @@
+{#
+  The consent control. Included by every form that submits material, and by no
+  form that does not.
+
+  Three properties, all in the markup rather than in a handler:
+
+    * `type="checkbox"` with NO `checked` attribute. An unticked checkbox is
+      absent from the POST body entirely, so "not consented" is the default by
+      construction — there is no default value in Python that someone could
+      flip.
+    * `required` so the browser refuses to submit without it, and the server
+      refuses too (`require_consent`). The client-side check is a courtesy; the
+      server-side one is the guarantee.
+    * It states what is being agreed to inline, and links the full terms. A
+      checkbox reading "I agree to the terms" with the terms one click away is a
+      checkbox nobody reads; the sentence has to carry the substance.
+
+  There is no "remember me". Consent is asked per submission because what is
+  being consented to is the transmission of THIS material — see public/consent.py.
+#}
+<div class="consent">
+  <label class="consent-label">
+    <input type="checkbox" name="consent" value="yes" required>
+    <span>
+      I understand this text is processed to produce a result and is
+      <strong>not stored, not logged and not used for training</strong>.
+      {{ provider.sentence }}
+      <a href="/terms" target="_blank" rel="noopener">Full terms</a>
+      (version {{ terms_version }}).
+    </span>
+  </label>
+  <p class="muted consent-note">Asked every time — a previous visit does not count.</p>
+</div>

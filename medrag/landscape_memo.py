@@ -17,13 +17,12 @@ rather than by three surfaces agreeing to apply the same cap.
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from pathlib import Path
 
 from . import coverage
 from .biomarker import ELIGIBLE, ELIGIBLE_BY_EXCLUSION, UNCLEAR
-from .crypto import harden_outputs, write_secure
+from .crypto import harden_outputs, unguessable_stem, write_secure
 from .landscape import LandscapeTrial, TrialLandscape, _format_location
 from .memo import _fmt_date, _inline_to_rl
 from .table_render import markdown_table, pdf_table
@@ -210,14 +209,27 @@ def render_markdown(ls: TrialLandscape, generated: datetime | None = None) -> st
 # ------------------------------------------------------------------ PDF
 
 
-def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None = None) -> Path:
+def render_pdf(ls: TrialLandscape, target, generated: datetime | None = None):
+    """Render to a path, or to any binary stream.
+
+    A stream target exists for the public service, which must not write to the
+    filesystem on a request path: it hands in a BytesIO and streams the bytes to
+    the browser. reportlab accepts a file-like object for its filename argument,
+    so this costs one branch — and the branch is the `mkdir`, which is precisely
+    the part that would fail on a read-only volume.
+
+    Returns the Path when given one (unchanged for every existing caller), and
+    the stream when given a stream.
+    """
     from reportlab.lib.pagesizes import LETTER, landscape
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
     from reportlab.platypus import HRFlowable, Paragraph, SimpleDocTemplate, Spacer
 
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    to_stream = hasattr(target, "write")
+    path = target if to_stream else Path(target)
+    if not to_stream:
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     base = getSampleStyleSheet()
     styles = {
@@ -286,7 +298,7 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
     story.append(Paragraph(_inline_to_rl(LANDSCAPE_DISCLAIMER), styles["small"]))
 
     SimpleDocTemplate(
-        str(path),
+        path if to_stream else str(path),
         pagesize=landscape(LETTER),
         leftMargin=SIDE_MARGIN_IN * inch, rightMargin=SIDE_MARGIN_IN * inch,
         topMargin=0.6 * inch, bottomMargin=0.6 * inch,
@@ -311,7 +323,7 @@ def export(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = f"{ls.condition}-{ls.biomarker}" if ls.condition else "landscape"
-    stem = stem or re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "landscape"
+    stem = stem or unguessable_stem(base, "landscape")
 
     md_path = out_dir / f"{stem}-landscape.md"
     write_secure(md_path, render_markdown(ls).encode("utf-8"), passphrase)

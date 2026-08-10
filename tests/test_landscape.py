@@ -429,11 +429,31 @@ def test_pdf_export_produces_a_real_pdf():
     assert out.stat().st_size > 1500
 
 
-def test_export_writes_both_formats():
+def test_export_writes_both_formats_under_an_unguessable_name():
+    """The filename keeps its human label and gains an unguessable suffix.
+
+    It used to be derived purely from user input, so two people exporting the
+    same search wrote to the same path and could read each other's file. This
+    test previously asserted that exact predictable stem — it was pinning the
+    defect, and was rewritten when the defect was fixed.
+    """
     ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
-    paths = export(ls, Path(tempfile.mkdtemp()))
+    out = Path(tempfile.mkdtemp())
+    paths = export(ls, out)
     assert paths["markdown"].exists() and paths["pdf"].exists()
-    assert paths["markdown"].stem == "colorectal-cancer-mss-landscape"
+
+    stem = paths["markdown"].stem
+    assert stem.startswith("colorectal-cancer-mss-"), "the human label should survive"
+    assert stem.endswith("-landscape")
+    assert stem != "colorectal-cancer-mss-landscape", "the name is still guessable"
+
+    # Two exports of the SAME input must not collide.
+    again = export(ls, out)
+    assert again["markdown"] != paths["markdown"]
+    assert again["pdf"] != paths["pdf"]
+
+    # And still 0600 — unguessable is not a substitute for permissions.
+    assert oct(paths["pdf"].stat().st_mode)[-3:] == "600"
 
 
 if __name__ == "__main__":
