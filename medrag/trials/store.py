@@ -17,9 +17,19 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
-from ..biomarker_gating import MARKER_KEYS, gate_markers, gating_token, gating_tokens
+from .. import agents, coverage, ranking
+from ..biomarker_gating import (
+    MARKER_KEYS,
+    gate_markers,
+    gating_basis_token,
+    gating_basis_tokens,
+    gating_token,
+    gating_tokens,
+)
 from .client import STOPPED_STATUSES, TrialRecord
 
 # Bumped when the columns change. Written to PRAGMA user_version so a database
@@ -30,8 +40,54 @@ from .client import STOPPED_STATUSES, TrialRecord
 # gating census, so a landscape count is real SQL over the full match set rather
 # than a parse of the retrieved sample; v4 adds fetch provenance (which queries
 # found each trial) and the coverage catalog, so the population a local query
-# selects is the one the fetch defined rather than one re-derived from a string.
-STORE_VERSION = 4
+# selects is the one the fetch defined rather than one re-derived from a string;
+# v5 adds detailed_description and keywords — both already fetched (whole
+# modules requested) but never parsed — because the biomarker matchers now
+# consult them when eligibility_criteria itself is silent on a marker (see
+# markers.py's collect_signals): ADG126-P001 states MSS only in its detailed
+# description, and C-800-25 carries "MSS" verbatim as a registry keyword;
+# v6 adds allocation (RANDOMIZED/NON_RANDOMIZED) — same class of gap,
+# designModule.designInfo already fetched whole and never parsed — for
+# ranking.py's deterministic relevance score (config/ranking.yaml);
+# v7 adds biomarker_basis — for a REQUIRED marker, whether the winning
+# sentence named it EXPLICITLY or by SYNONYM — so the coverage statement
+# (coverage.py) can report "16 explicit, 23 by synonym" as a stored SQL COUNT,
+# never a live re-scan of eligibility text;
+# v8 adds intervention_tokens — the parsed, normalised agent names from the
+# interventions ARRAY (agents.py) — so a drug filter matches a structured fact
+# instead of running LIKE '%<asset>%' over the JSON array rendered as one
+# string, which could never match a combination ("botensilimab and
+# balstilimab" is not a substring of '["Botensilimab", "Balstilimab"]').
+# v9 adds the ingest lifecycle to query_coverage (status, started_at, held) —
+# see INGEST_STATES below. Every guard in this codebase against a truncated
+# population fires on a RESPONSE that came back short; none of them can fire
+# when the PROCESS dies, because a killed ingest raises nothing. The marker is
+# written before the fetch and only cleared by a verified count, so an
+# interrupted run leaves a family visibly in progress instead of a plausible
+# lie.
+STORE_VERSION = 9
+
+#: The three states a query set can be in, and why there are three rather than
+#: a boolean. A family with no row at all was never searched — the
+#: not-assessed-vs-nothing-found rule that `ValidationReport.assessed` and
+#: `NegativeEvidence.searched` already apply, here at the population level.
+#:
+#:   IN_PROGRESS  a fetch was started and never verified. Either it is running
+#:                now, or the process died. Both mean the same thing to a
+#:                reader: what the store holds for this family is not known to
+#:                be what the registry has.
+#:   COMPLETE     the stored count was verified against the fetch, and every
+#:                query in the set reached its own registry-reported total.
+#:   PARTIAL      the fetch finished but did not verify — a query errored, a
+#:                query came back short, --max-records capped it, or the store
+#:                holds a different number than the fetch produced.
+#:
+#: PARTIAL and IN_PROGRESS are kept apart because they need different actions:
+#: PARTIAL records a known shortfall with numbers behind it, IN_PROGRESS
+#: records that nobody knows. Neither may ever render as a complete census.
+INGEST_IN_PROGRESS = "IN_PROGRESS"
+INGEST_COMPLETE = "COMPLETE"
+INGEST_PARTIAL = "PARTIAL"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trials (
@@ -42,6 +98,7 @@ CREATE TABLE IF NOT EXISTS trials (
     why_stopped             TEXT,
     enrollment_count        INTEGER,
     enrollment_type         TEXT,
+    allocation              TEXT,   -- RANDOMIZED | NON_RANDOMIZED | '' not stated
     lead_sponsor            TEXT,
     sponsor_class           TEXT,
     start_date              TEXT,
@@ -50,8 +107,11 @@ CREATE TABLE IF NOT EXISTS trials (
     study_type              TEXT,
     conditions              TEXT,   -- JSON array
     interventions           TEXT,   -- JSON array
+    intervention_tokens     TEXT,   -- space-padded ' agent ' tokens for LIKE filtering
     collaborators           TEXT,   -- JSON array
     brief_summary           TEXT,
+    detailed_description    TEXT,
+    keywords                TEXT,   -- JSON array
     eligibility_criteria    TEXT,
     minimum_age             TEXT,
     maximum_age             TEXT,
@@ -61,6 +121,7 @@ CREATE TABLE IF NOT EXISTS trials (
     central_contacts        TEXT,   -- JSON array of {name, email, phone}
     locations               TEXT,   -- JSON array of {facility, city, state, country, status}
     biomarker_gating        TEXT,   -- space-padded ' MARKER:STATUS ' tokens for LIKE filtering
+    biomarker_basis         TEXT,   -- space-padded ' MARKER:EXPLICIT|SYNONYM|NONE ' tokens
     biomarker_flags         TEXT,   -- JSON {marker: {status, span}}, computed at ingest
     found_by                TEXT,   -- JSON array of query labels that returned this trial
     query_sets              TEXT,   -- space-padded ' setkey ' tokens for LIKE filtering
@@ -92,6 +153,9 @@ CREATE TABLE IF NOT EXISTS query_coverage (
     total_unique   INTEGER,
     basket_caveat  TEXT,
     errors         TEXT,      -- JSON array; non-empty means coverage is incomplete
+    status         TEXT,      -- IN_PROGRESS | COMPLETE | PARTIAL; see INGEST_STATES
+    started_at     TEXT,      -- when the fetch began, written BEFORE any network call
+    held           INTEGER,   -- store count verified at completion; NULL until verified
     updated_at     TEXT DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -99,9 +163,175 @@ CREATE TABLE IF NOT EXISTS query_coverage (
 # JSON-encoded on write, decoded on read. The three patient-perspective lists
 # join the diligence trio here.
 _ARRAY_FIELDS = (
-    "conditions", "interventions", "collaborators",
+    "conditions", "keywords", "interventions", "collaborators",
     "overall_officials", "central_contacts", "locations",
 )
+
+
+def _intervention_clause(intervention: str, params: list, join: str = "AND") -> str:
+    """SQL for "this trial involves these agents", over the token column.
+
+    `join` is a deliberate per-caller POLICY, the same shape as the split
+    between `biomarker.py` and `biomarker_gating.py`:
+
+      * AND (population selection). "botensilimab and balstilimab" means trials
+        carrying BOTH. This is what a diligence section or a claim retrieval
+        wants — the asset IS the combination, and a monotherapy trial of one
+        half is a different asset.
+
+      * OR (the negative-evidence sweep). `find_stopped_trials` exists to
+        surface a molecule that failed somewhere, and ANDing would hide a
+        terminated botensilimab-monotherapy trial from a reader diligencing the
+        doublet — which is precisely the failure the "OR intervention and
+        indication, never AND" rule already guards against one level up. Same
+        reasoning, one level down: widening risks a few loosely related trials a
+        reader can dismiss, narrowing risks a silence they cannot detect.
+
+    A term the alias table does not know still matches its own name, so this
+    never degrades to matching nothing on an uncurated agent.
+    """
+    query = agents.parse_asset(intervention)
+    if not query:
+        return "1=1"
+    per_term = []
+    for term in query.terms:
+        per_term.append(
+            "(" + " OR ".join(["intervention_tokens LIKE ?"] * len(term.forms)) + ")"
+        )
+        params.extend(f"% {f} %" for f in term.forms)
+    return "(" + f" {join} ".join(per_term) + ")"
+
+
+#: Schema versions whose gap to the current one is entirely DERIVABLE — every
+#: added column can be recomputed from fields already stored, with no network.
+#: v7 -> v8 added `intervention_tokens`, which is a parse of the
+#: `interventions` array v7 already holds. v8 -> v9 added the ingest lifecycle,
+#: which is derivable in the only direction that is safe: a pre-v9 row can be
+#: called COMPLETE only when its own recorded numbers prove it (see
+#: `_derive_status`), and everything else — including every row whose numbers
+#: are merely silent — becomes PARTIAL. A version not listed here is refused
+#: outright, because the missing columns hold data only a re-fetch can supply
+#: (v4's fetch provenance, v5's detailed_description) and inventing them would
+#: be worse than the refusal.
+_BACKFILLABLE_FROM = frozenset({7, 8})
+
+
+def verify_ingest(held: int, total_unique: int, yields: list[dict],
+                  errors: list[str]) -> tuple[str, list[str]]:
+    """Decide COMPLETE vs PARTIAL from recorded numbers, and say why.
+
+    The ONE place that answers "did this family finish", so the live ingest and
+    the v8 backfill cannot drift apart — the same reasoning that put the marker
+    vocabulary in `markers.py` and the coverage wording in `coverage.py`.
+
+    Note what it checks that `CoverageReport.complete` never did: that each
+    query's `fetched` reached its own `reported_total`. `complete` only looked
+    for errors, so a `--max-records` ingest — truncation by intent, no error
+    raised, `IncompleteFetch` deliberately suppressed — recorded as a finished
+    census. That is the same silent-subset failure as a killed process, reached
+    through a documented flag instead of a crash.
+    """
+    reasons: list[str] = []
+    if errors:
+        reasons.extend(errors)
+    for y in yields:
+        if y.get("error"):
+            reasons.append(f"{y.get('query')} failed — {y['error']}")
+            continue
+        reported, fetched = y.get("reported_total"), y.get("fetched") or 0
+        if reported is None:
+            reasons.append(f"{y.get('query')} recorded no registry total to check against")
+        elif fetched < reported:
+            reasons.append(
+                f"{y.get('query')} fetched {fetched:,} of {reported:,} reported")
+    if held != total_unique:
+        reasons.append(
+            f"the store holds {held:,} trials for this set but the fetch produced "
+            f"{total_unique:,}")
+    return (INGEST_COMPLETE if not reasons else INGEST_PARTIAL), reasons
+
+
+def migrate_derived_columns(path: str | Path) -> dict:
+    """Recompute the columns a newer schema derives from data already on disk.
+
+    Deliberately NOT a general migration framework, and deliberately not
+    automatic: it refuses any gap it cannot close honestly, and the fail-closed
+    refusal in `TrialStore.__init__` stays the default. What it exists to stop
+    is a pointless re-fetch — the alternative for a v7 store was deleting 12,095
+    records and pulling them again over the network to obtain a column that is
+    a pure function of a column already sitting in the file. That is the same
+    reasoning as `ingest_pubmed` parking fetched abstracts rather than
+    discarding them on a local write failure.
+    """
+    path = Path(path)
+    conn = sqlite3.connect(str(path))
+    conn.row_factory = sqlite3.Row
+    try:
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+        if version == STORE_VERSION:
+            return {"migrated": False, "from_version": version, "rows": 0,
+                    "graded": [], "reason": "already current"}
+        if version not in _BACKFILLABLE_FROM:
+            raise TrialStoreSchemaError(
+                f"the trial database at {path} is schema v{version or 1} and the gap to "
+                f"v{STORE_VERSION} is not derivable from what it holds — the missing "
+                "columns need data only a re-fetch can supply. Delete it and re-ingest:\n"
+                f"    rm {path}\n"
+                '    python -m medrag trials --condition "..."'
+            )
+
+        # Each step is guarded by the version it closes, so migrating a v8 file
+        # does not pointlessly recompute 15,000 token blobs that are already
+        # there — and so a future v10 step cannot silently re-run v8's.
+        updates: list = []
+        if version < 8:
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(trials)")}
+            if "intervention_tokens" not in cols:
+                conn.execute("ALTER TABLE trials ADD COLUMN intervention_tokens TEXT")
+
+            rows = conn.execute("SELECT nct_id, interventions FROM trials").fetchall()
+            updates = [
+                (agents.token_blob(json.loads(r["interventions"] or "[]")), r["nct_id"])
+                for r in rows
+            ]
+
+        graded: list = []
+        if version < 9:
+            cov_cols = {r["name"] for r in conn.execute("PRAGMA table_info(query_coverage)")}
+            for col, decl in (("status", "TEXT"), ("started_at", "TEXT"), ("held", "INTEGER")):
+                if col not in cov_cols:
+                    conn.execute(f"ALTER TABLE query_coverage ADD COLUMN {col} {decl}")
+
+            # A pre-v9 row carries no marker, so completeness has to be RE-DERIVED
+            # from the numbers it does carry — and only a row whose own numbers
+            # prove it may be called COMPLETE. Anything ambiguous grades PARTIAL:
+            # a family wrongly told to re-run costs one fetch, a family wrongly
+            # called complete is the failure this whole change exists to stop.
+            for row in conn.execute(
+                    "SELECT set_key, yields, total_unique, errors FROM query_coverage"):
+                held = conn.execute(
+                    "SELECT COUNT(*) FROM trials WHERE query_sets LIKE ?",
+                    (f"% {row['set_key']} %",)).fetchone()[0]
+                status, _why = verify_ingest(
+                    held=held,
+                    total_unique=row["total_unique"] or 0,
+                    yields=json.loads(row["yields"] or "[]"),
+                    errors=json.loads(row["errors"] or "[]"),
+                )
+                graded.append((status, held, row["set_key"]))
+
+        with conn:
+            if updates:
+                conn.executemany(
+                    "UPDATE trials SET intervention_tokens = ? WHERE nct_id = ?", updates)
+            if graded:
+                conn.executemany(
+                    "UPDATE query_coverage SET status = ?, held = ? WHERE set_key = ?", graded)
+            conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
+        return {"migrated": True, "from_version": version, "rows": len(updates),
+                "graded": [(k, s) for s, _h, k in graded], "reason": ""}
+    finally:
+        conn.close()
 
 
 class TrialStoreSchemaError(RuntimeError):
@@ -126,12 +356,23 @@ class TrialStore:
             version = self.conn.execute("PRAGMA user_version").fetchone()[0]
             if version != STORE_VERSION:
                 self.conn.close()
+                # Two different remedies, and telling them apart matters: some
+                # gaps need a re-fetch, and some are a pure recomputation of
+                # data already in the file. Sending an operator to re-download
+                # 12,000 records for a column that can be derived locally is its
+                # own kind of wrong answer.
+                if version in _BACKFILLABLE_FROM:
+                    remedy = ("every column it lacks can be recomputed from what it "
+                              "already holds — no re-download:\n"
+                              "    python -m medrag trials --migrate")
+                else:
+                    remedy = ("the columns it lacks need data only a re-fetch can "
+                              "supply. Delete it and re-ingest:\n"
+                              f"    rm {self.path}\n"
+                              '    python -m medrag trials --condition "..."')
                 raise TrialStoreSchemaError(
                     f"the trial database at {self.path} was built by an older version "
-                    f"(schema v{version or 1}, current is v{STORE_VERSION}) and lacks the "
-                    "eligibility and location columns. Delete it and re-ingest:\n"
-                    f"    rm {self.path}\n"
-                    '    python -m medrag trials --condition "..." --intervention "..."'
+                    f"(schema v{version or 1}, current is v{STORE_VERSION}). " + remedy
                 )
 
         self.conn.executescript(SCHEMA)
@@ -201,9 +442,21 @@ class TrialStore:
             d["query_sets"] = (" " + " ".join(sets) + " ") if sets else ""
             # The gating census is deterministic (regex only) and computed once
             # here, so a landscape COUNT is real SQL over the stored flags — not a
-            # parse of the retrieved sample.
-            flags = gate_markers(r.eligibility_criteria)
+            # parse of the retrieved sample. Supplementary fields are consulted
+            # by gate_markers only when eligibility_criteria itself is silent.
+            flags = gate_markers(
+                r.eligibility_criteria,
+                detailed_description=r.detailed_description,
+                brief_summary=r.brief_summary,
+                keywords=r.keywords,
+            )
+            # Agent names are parsed from the ARRAY, never the joined string —
+            # see agents.py. Stored as the registry's own surface forms, not
+            # canonicalised to a generic: alias expansion happens at query time
+            # so config/agents.yaml can gain a brand name without a re-ingest.
+            d["intervention_tokens"] = agents.token_blob(r.interventions)
             d["biomarker_gating"] = gating_tokens(flags)
+            d["biomarker_basis"] = gating_basis_tokens(flags)
             d["biomarker_flags"] = json.dumps(
                 {k: {"status": f.status, "span": f.span} for k, f in flags.items()}
             )
@@ -244,8 +497,9 @@ class TrialStore:
     # ------------------------------------------------------------ reads
 
     # Columns computed by the store, not part of TrialRecord.
-    _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_flags",
-                        "found_by", "query_sets")
+    _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_basis",
+                        "biomarker_flags", "found_by", "query_sets",
+                        "intervention_tokens")
 
     @staticmethod
     def _to_record(row: sqlite3.Row) -> TrialRecord:
@@ -275,6 +529,7 @@ class TrialStore:
         stopped_only: bool = False,
         query_set: str | None = None,
         limit: int = 50,
+        intervention_join: str = "AND",
     ) -> list[TrialRecord]:
         """Structured filter query. This is the precision the registry exists for.
 
@@ -283,15 +538,22 @@ class TrialStore:
         use. `condition` re-runs a substring match over the free-text condition
         array with different logic from the fetch, so it DISCARDS trials the
         ingest deliberately went and got: "Colorectal Neoplasms" does not contain
-        "colorectal cancer". It is kept only for `stopped_trials`, where it is
-        ORed with intervention to WIDEN a negative-evidence sweep rather than
-        narrow a population. Do not reach for it to scope a landscape.
+        "colorectal cancer". It has NO production caller: `stopped_trials` was
+        the last one, exempted on the reasoning that a substring only ever
+        widens a negative-evidence sweep. Measured, it does the opposite — it
+        saw 557 of 1,336 stopped colorectal trials, missing 58% — so that arm
+        selects by `query_set` too. Do not reach for this to scope anything.
+
+        `intervention` is matched against the parsed agent tokens, not as a
+        substring of the joined array — a combination like "botensilimab and
+        balstilimab" ANDs its agents and each agent ORs its aliases. See
+        agents.py. Use `intervention_terms()` to find out WHICH agent of a
+        combination returned nothing before reporting an empty result.
         """
         where, params = [], []
 
         if intervention:
-            where.append("LOWER(interventions) LIKE ?")
-            params.append(f"%{intervention.lower()}%")
+            where.append(_intervention_clause(intervention, params, join=intervention_join))
         if condition:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
@@ -358,6 +620,43 @@ class TrialStore:
             "SELECT COUNT(*) FROM trials WHERE query_sets LIKE ?", (f"% {query_set} %",)
         ).fetchone()[0]
 
+    def biomarker_counts(self, marker: str, query_set: str | None = None) -> dict[str, int]:
+        """The REQUIRED/ELIGIBLE_BY_EXCLUSION/EXCLUDED/NOT_MENTIONED census for
+        ONE marker over a query set's population — the same computation
+        `landscape()`'s `by_biomarker` does for all seven, exposed standalone
+        so the coverage statement (coverage.py) does not pay for six markers
+        it will not report."""
+        where, params = [], []
+        if query_set:
+            where.append("query_sets LIKE ?")
+            params.append(f"% {query_set} %")
+        clause = (" WHERE " + " AND ".join(where) + " AND " if where else " WHERE ")
+        return {
+            status: self.conn.execute(
+                f"SELECT COUNT(*) FROM trials{clause}biomarker_gating LIKE ?",
+                (*params, f"%{gating_token(marker, status)}%"),
+            ).fetchone()[0]
+            for status in ("REQUIRED", "ELIGIBLE_BY_EXCLUSION", "EXCLUDED", "NOT_MENTIONED")
+        }
+
+    def biomarker_basis_counts(self, marker: str, query_set: str | None = None) -> dict[str, int]:
+        """For a REQUIRED marker, the SQL-COUNTED split of how many admitting
+        trials name it EXPLICITLY versus only by SYNONYM, over one query set's
+        population. Feeds the coverage statement's 'N explicit, M by synonym'
+        line — a stored count, never a live re-scan of eligibility text."""
+        where, params = [], []
+        if query_set:
+            where.append("query_sets LIKE ?")
+            params.append(f"% {query_set} %")
+        clause = (" WHERE " + " AND ".join(where) + " AND " if where else " WHERE ")
+        return {
+            basis: self.conn.execute(
+                f"SELECT COUNT(*) FROM trials{clause}biomarker_basis LIKE ?",
+                (*params, f"%{gating_basis_token(marker, basis)}%"),
+            ).fetchone()[0]
+            for basis in ("EXPLICIT", "SYNONYM")
+        }
+
     def found_by(self, nct_id: str) -> list[str]:
         """The query labels that returned this trial — the audit trail for
         'did we search for colon cancer?'."""
@@ -365,24 +664,100 @@ class TrialStore:
             "SELECT found_by FROM trials WHERE nct_id = ?", (nct_id,)).fetchone()
         return json.loads(row["found_by"] or "[]") if row else []
 
-    def record_coverage(self, report) -> None:
-        """Persist one ingest's CoverageReport beside the records it produced."""
+    def found_by_map(self, query_set: str | None = None) -> dict[str, list[str]]:
+        """`found_by` for a whole population in one read.
+
+        Provenance is one of `ranking.score_record`'s inputs, and it is a
+        store-computed column rather than part of TrialRecord
+        (`_NON_RECORD_COLS`), so a caller that ranks a screened population — the
+        patient landscape does — would otherwise issue one point query per
+        trial to get it.
+        """
+        sql = "SELECT nct_id, found_by FROM trials"
+        params: list = []
+        if query_set:
+            sql += " WHERE query_sets LIKE ?"
+            params.append(f"% {query_set} %")
+        return {r["nct_id"]: json.loads(r["found_by"] or "[]")
+                for r in self.conn.execute(sql, params)}
+
+    def begin_ingest(self, qset) -> None:
+        """Mark a query set IN_PROGRESS **before the first network call**.
+
+        This is the half of the guarantee that `IncompleteFetch` cannot give.
+        That exception fires on a short RESPONSE; it has nothing to say about a
+        process that is killed, and a killed ingest raises nothing at all — the
+        family simply stops growing and then sits in the store looking exactly
+        like a finished one. Writing the marker first inverts the default: the
+        crash leaves a visible in-progress state, and only a verified count
+        clears it.
+
+        A family that was already COMPLETE and is being re-fetched is knocked
+        back to IN_PROGRESS too, and that is deliberate rather than tidy: the
+        moment a new fetch starts writing, the old recorded total no longer
+        describes what the store holds, so continuing to advertise it would be
+        the same lie in a smaller window. The previous numbers are kept in the
+        row, so the coverage line can still say "N of M" while it says the
+        ingest did not finish.
+        """
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO query_coverage (set_key, set_label, curated, status, "
+                "started_at, held) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, NULL) "
+                "ON CONFLICT(set_key) DO UPDATE SET set_label=excluded.set_label, "
+                "curated=excluded.curated, status=excluded.status, "
+                "started_at=CURRENT_TIMESTAMP, held=NULL",
+                (qset.key, getattr(qset, "label", qset.key),
+                 int(getattr(qset, "curated", True)), INGEST_IN_PROGRESS),
+            )
+
+    def record_coverage(self, report) -> SimpleNamespace:
+        """Persist one ingest's CoverageReport beside the records it produced,
+        and grade it — COMPLETE only when the stored count is verified against
+        what the fetch produced and every query reached its registry-reported
+        total.
+
+        `held` is counted here rather than passed in on purpose. The claim being
+        made is about the DATABASE, so it has to be read from the database; a
+        caller handing in the number it hoped for would verify nothing. Must
+        therefore be called after `upsert`, which is the order `cmd_trials`
+        uses.
+        """
+        held = self.count(query_set=report.set_key)
+        yields = [
+            {"query": y.query.label, "fetched": y.fetched, "new": y.new,
+             "reported_total": y.reported_total, "error": y.error,
+             # Stored so "was the registry healthy when we fetched this?" is
+             # answerable from the database months later, not only from whatever
+             # scrolled past in a terminal at the time.
+             "retries": getattr(y, "retries", 0),
+             "retry_seconds": round(getattr(y, "retry_seconds", 0.0), 1)}
+            for y in report.yields
+        ]
+        status, reasons = verify_ingest(
+            held=held, total_unique=report.total_unique,
+            yields=yields, errors=list(report.errors),
+        )
+        prior = self.conn.execute(
+            "SELECT started_at FROM query_coverage WHERE set_key = ?",
+            (report.set_key,)).fetchone()
+        started_at = prior["started_at"] if prior else None
+
         self.conn.execute("DELETE FROM query_coverage WHERE set_key = ?", (report.set_key,))
         with self.conn:
             self.conn.execute(
                 "INSERT INTO query_coverage (set_key, set_label, curated, yields, "
-                "total_unique, basket_caveat, errors) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "total_unique, basket_caveat, errors, status, started_at, held) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     report.set_key, report.set_label, int(report.curated),
-                    json.dumps([
-                        {"query": y.query.label, "fetched": y.fetched, "new": y.new,
-                         "reported_total": y.reported_total, "error": y.error}
-                        for y in report.yields
-                    ]),
+                    json.dumps(yields),
                     report.total_unique, report.basket_caveat,
-                    json.dumps(report.errors),
+                    json.dumps(report.errors), status, started_at, held,
                 ),
             )
+        return SimpleNamespace(status=status, reasons=reasons, held=held,
+                               total_unique=report.total_unique)
 
     def coverage(self, set_key: str) -> dict | None:
         """What was searched for this set, or None if it was never ingested —
@@ -395,15 +770,109 @@ class TrialStore:
         d["yields"] = json.loads(d["yields"] or "[]")
         d["errors"] = json.loads(d["errors"] or "[]")
         d["curated"] = bool(d["curated"])
+        # A row with no status predates the lifecycle columns and cannot be read
+        # as a finished census: unknown grades PARTIAL, never COMPLETE.
+        d["status"] = d.get("status") or INGEST_PARTIAL
+        d["verified_complete"] = d["status"] == INGEST_COMPLETE
+        if d["held"] is None:
+            d["held"] = self.count(query_set=set_key)
         return d
 
+    def ingest_states(self) -> list[dict]:
+        """Every query set the store has a row for, with its lifecycle state and
+        the two numbers a re-run decision needs. Ordered incomplete-first,
+        because the reason to ask is to find what still needs fetching."""
+        out = []
+        for row in self.conn.execute(
+                "SELECT set_key, set_label, status, total_unique, held, started_at, "
+                "updated_at FROM query_coverage"):
+            d = dict(row)
+            d["status"] = d["status"] or INGEST_PARTIAL
+            if d["held"] is None:
+                d["held"] = self.count(query_set=d["set_key"])
+            out.append(d)
+        return sorted(out, key=lambda d: (d["status"] == INGEST_COMPLETE, d["set_key"]))
+
+    def incomplete_sets(self) -> list[dict]:
+        """The families a resume must re-run: started and never verified, or
+        verified and found short. A family with NO row is absent from this list
+        by design — never searched and searched-but-unfinished are different
+        states, and only the caller holding the config knows the full list of
+        families that ought to exist."""
+        return [d for d in self.ingest_states() if d["status"] != INGEST_COMPLETE]
+
     def stopped_trials(
-        self, intervention: str | None = None, condition: str | None = None, limit: int = 50
+        self, intervention: str | None = None, condition: str | None = None,
+        limit: int = 50, query_set: str | None = None,
     ) -> list[TrialRecord]:
-        """Deterministic half of the negative-evidence pass. No model involved."""
+        """Deterministic half of the negative-evidence pass. No model involved.
+
+        The agents of a combination are ORed here, not ANDed — a terminated
+        monotherapy trial of one half is exactly the signal this sweep exists to
+        surface. See `_intervention_clause` for the full reasoning; it is the
+        same widen-rather-than-narrow rule `find_stopped_trials` already applies
+        to intervention-vs-condition, applied one level down.
+
+        `query_set` selects the indication arm the way every other consumer
+        selects a population. `condition` remains only for a caller that
+        genuinely wants a raw substring; it under-selects badly (measured: 557
+        of 1,336 stopped colorectal trials) and no production path uses it.
+        """
         return self.query(
-            intervention=intervention, condition=condition, stopped_only=True, limit=limit
+            intervention=intervention, condition=condition, stopped_only=True, limit=limit,
+            query_set=query_set, intervention_join="OR",
         )
+
+    def stopped_trials_total(
+        self, intervention: str | None = None, condition: str | None = None,
+        query_set: str | None = None,
+    ) -> int:
+        """How many stopped trials the arm actually HAS, independent of any cap.
+
+        The denominator `stopped_trials` cannot supply. Without it a sweep that
+        shows 25 of 1,336 and a sweep that shows 25 of 25 are indistinguishable
+        — the same gap `store.landscape` closed with population_total and the
+        landscape page closed with n_candidates.
+        """
+        where, params = [], []
+        if intervention:
+            where.append(_intervention_clause(intervention, params, join="OR"))
+        if condition:
+            where.append("LOWER(conditions) LIKE ?")
+            params.append(f"%{condition.lower()}%")
+        if query_set:
+            where.append("query_sets LIKE ?")
+            params.append(f"% {query_set} %")
+        where.append(
+            f"UPPER(overall_status) IN ({', '.join('?' * len(STOPPED_STATUSES))})")
+        params.extend(sorted(STOPPED_STATUSES))
+        return self.conn.execute(
+            f"SELECT COUNT(*) FROM trials WHERE {' AND '.join(where)}", params).fetchone()[0]
+
+    def intervention_terms(self, intervention: str, query_set: str | None = None) -> list[dict]:
+        """Per-agent match counts for a typed asset, so an empty combination
+        result can name WHICH agent collapsed it.
+
+        `store.query` returns rows with no denominator, which is how "0 of 214"
+        and "there were none" became indistinguishable (CLAUDE.md records the
+        same gap for the free-text fallback). For a combination the useful
+        diagnostic is finer than a total: "botensilimab matched 23, balstilimab
+        matched 22, both together 18" is an answer; a bare 0 is not.
+        """
+        query = agents.parse_asset(intervention)
+        out = []
+        for term in query.terms:
+            params: list = []
+            clause = "(" + " OR ".join(["intervention_tokens LIKE ?"] * len(term.forms)) + ")"
+            params.extend(f"% {f} %" for f in term.forms)
+            if query_set:
+                clause += " AND query_sets LIKE ?"
+                params.append(f"% {query_set} %")
+            n = self.conn.execute(
+                f"SELECT COUNT(*) FROM trials WHERE {clause}", params).fetchone()[0]
+            out.append({"typed": term.typed, "forms": list(term.forms),
+                        "curated": term.curated, "n_trials": n})
+        return out
 
     def stats(self) -> dict:
         """Includes why_stopped fill rate: the highest-signal field is also the
@@ -445,10 +914,14 @@ class TrialStore:
         retrieved sample. This is the fix for the counting problem: a memo section
         can state the denominator and label its listed trials as a sample of it.
 
-        `biomarker_filters` is a list of (marker_key, status) narrowing the set,
-        e.g. [("MSS", "REQUIRED")]. NOT_MENTIONED trials are only included if a
-        caller explicitly asks for ("MARKER", "NOT_MENTIONED") — they are never
-        folded into a REQUIRED or EXCLUDED count.
+        `biomarker_filters` is a list of (marker_key, status_or_statuses)
+        narrowing the set. `status_or_statuses` is a single status string, e.g.
+        [("MSS", "REQUIRED")], OR a list of statuses ORed together for that one
+        marker, e.g. [("MSS", ["REQUIRED", "ELIGIBLE_BY_EXCLUSION"])] — a trial
+        stating MSS directly OR excluding MSI-H counts either way. Different
+        marker filters AND together. NOT_MENTIONED trials are only included if
+        a caller explicitly asks for ("MARKER", "NOT_MENTIONED") — they are
+        never folded into a REQUIRED/ELIGIBLE_BY_EXCLUSION/EXCLUDED count.
         """
         where, params = [], []
         if condition:
@@ -463,10 +936,24 @@ class TrialStore:
         if statuses:
             where.append(f"UPPER(overall_status) IN ({', '.join('?' * len(statuses))})")
             params.extend(s.upper() for s in statuses)
-        for marker, status in (biomarker_filters or []):
-            where.append("biomarker_gating LIKE ?")
-            params.append(f"%{gating_token(marker, status)}%")
+        # The population BEFORE any biomarker narrowing — condition/query_set/
+        # phase/status only. The coverage statement's breakdown needs THIS
+        # population (so "not mentioned" and "requires the opposite" trials are
+        # counted, which the biomarker-filtered `total` below excludes by
+        # construction), not the post-biomarker-filter one.
+        base_where, base_params = list(where), list(params)
+        for marker, status_or_statuses in (biomarker_filters or []):
+            statuses_for_marker = (
+                [status_or_statuses] if isinstance(status_or_statuses, str)
+                else list(status_or_statuses)
+            )
+            # OR within one marker's allowed statuses (a trial can only ever
+            # have ONE status per marker, so ANDing two statuses for the same
+            # marker is never satisfiable and would silently zero the count).
+            where.append("(" + " OR ".join(["biomarker_gating LIKE ?"] * len(statuses_for_marker)) + ")")
+            params.extend(f"%{gating_token(marker, st)}%" for st in statuses_for_marker)
         clause = (" WHERE " + " AND ".join(where)) if where else ""
+        base_clause = (" WHERE " + " AND ".join(base_where)) if base_where else ""
 
         def scalar(extra_sql="", extra_params=()):
             return self.conn.execute(
@@ -490,19 +977,97 @@ class TrialStore:
         by_biomarker: dict[str, dict[str, int]] = {}
         for mkey in MARKER_KEYS:
             row = {}
-            for st in ("REQUIRED", "EXCLUDED", "NOT_MENTIONED"):
+            for st in ("REQUIRED", "ELIGIBLE_BY_EXCLUSION", "EXCLUDED", "NOT_MENTIONED"):
                 row[st] = scalar(" AND biomarker_gating LIKE ?", (f"%{gating_token(mkey, st)}%",))
             by_biomarker[mkey] = row
 
-        # A capped sample to list, with its stored gating flags for the table.
-        sample_sql = (
-            f"SELECT * FROM trials{clause} ORDER BY "
-            "CASE WHEN UPPER(overall_status) IN ('RECRUITING','NOT_YET_RECRUITING') THEN 0 ELSE 1 END, "
-            "primary_completion_date DESC LIMIT ?"
+        # The coverage statement's biomarker breakdown, when this call filters
+        # on exactly one marker (the common case — "MSS/pMMR trials
+        # specifically"). Deliberately scored over `base_clause` (query_set +
+        # status/phase, WITHOUT the biomarker filter itself), never `clause`:
+        # `clause` already requires this marker to be REQUIRED-or-
+        # ELIGIBLE_BY_EXCLUSION, so a NOT_MENTIONED or EXCLUDED count against it
+        # would always be zero by construction — the coverage line needs the
+        # population BEFORE that narrowing to report what it set aside.
+        filtered_markers = [m for m, _ in (biomarker_filters or [])]
+        coverage_biomarker_marker = filtered_markers[0] if len(filtered_markers) == 1 else None
+        biomarker_coverage_obj = None
+        if coverage_biomarker_marker:
+            def base_scalar(extra_sql="", extra_params=()):
+                return self.conn.execute(
+                    f"SELECT COUNT(*) FROM trials{base_clause}{extra_sql}",
+                    (*base_params, *extra_params),
+                ).fetchone()[0]
+
+            base_total = base_scalar()
+            gating_counts = {
+                st: base_scalar(" AND biomarker_gating LIKE ?",
+                                (f"%{gating_token(coverage_biomarker_marker, st)}%",))
+                for st in ("REQUIRED", "ELIGIBLE_BY_EXCLUSION", "EXCLUDED", "NOT_MENTIONED")
+            }
+            basis_counts = {
+                b: base_scalar(" AND biomarker_basis LIKE ?",
+                               (f"%{gating_basis_token(coverage_biomarker_marker, b)}%",))
+                for b in ("EXPLICIT", "SYNONYM")
+            }
+            scope_bits = []
+            if statuses:
+                scope_bits.append(", ".join(statuses))
+            if phase:
+                scope_bits.append(phase)
+            biomarker_coverage_obj = coverage.biomarker_coverage_from_counts(
+                coverage_biomarker_marker, gating_counts, basis_counts,
+                population_total=base_total, scope_note=" and ".join(scope_bits),
+            )
+
+        # The printed sample is picked by a deterministic, explainable relevance
+        # score (ranking.py), not by "recruiting first, then completion date" —
+        # a partner reading a memo needs a one-line reason a row outranks the
+        # one below it, not a coincidence of two SQL tie-breakers. Scoring reads
+        # only narrow columns over the FULL filtered set (no eligibility text or
+        # other large TEXT blobs) so this stays cheap even when a section has no
+        # other filter and the population is the whole query set.
+        rank_cfg = ranking.load_ranking_config()
+        today = date.today()
+        score_sql = (
+            f"SELECT nct_id, phase, overall_status, enrollment_count, allocation, "
+            f"start_date, locations, found_by FROM trials{clause}"
         )
-        sample_rows = self.conn.execute(sample_sql, (*params, sample_limit)).fetchall()
+        rankings: dict[str, ranking.Ranking] = {}
+        order_keys: dict[str, tuple] = {}
+        for row in self.conn.execute(score_sql, params):
+            shim = SimpleNamespace(
+                phase=row["phase"], overall_status=row["overall_status"],
+                enrollment_count=row["enrollment_count"], allocation=row["allocation"],
+                start_date=row["start_date"], locations=json.loads(row["locations"] or "[]"),
+            )
+            found_by = json.loads(row["found_by"] or "[]")
+            r = ranking.score_record(shim, found_by, rank_cfg, today=today)
+            rankings[row["nct_id"]] = r
+            # A tie on score falls back to NCT ID, not a second unscored
+            # signal — anything that broke ties would need to appear in
+            # explain() to keep every row's position accountable to something
+            # printed, and a genuine tie means the scored signals ran out.
+            order_keys[row["nct_id"]] = (-r.score, row["nct_id"])
+
+        top_ids = sorted(order_keys, key=order_keys.get)[:sample_limit]
+
+        if top_ids:
+            rows_by_id = {
+                r["nct_id"]: r for r in self.conn.execute(
+                    f"SELECT * FROM trials WHERE nct_id IN ({', '.join('?' * len(top_ids))})",
+                    top_ids,
+                )
+            }
+            sample_rows = [rows_by_id[i] for i in top_ids if i in rows_by_id]
+        else:
+            sample_rows = []
         sample = [self._to_record(r) for r in sample_rows]
         sample_flags = [json.loads(r["biomarker_flags"] or "{}") for r in sample_rows]
+        sample_rankings = [rankings[r["nct_id"]] for r in sample_rows]
+
+        cov_row = self.coverage(query_set) if query_set else None
+        qset_total = self.count(query_set=query_set) if query_set else len(self)
 
         return {
             "total": total,
@@ -518,8 +1083,17 @@ class TrialStore:
             # never ingested. A census of 0 because nothing was fetched and a
             # census of 0 because nothing matched are different facts, and the
             # memo has to be able to tell the reader which one it is.
-            "coverage": self.coverage(query_set) if query_set else None,
-            "population_total": self.count(query_set=query_set) if query_set else len(self),
+            "coverage": cov_row,
+            "population_total": qset_total,
+            # The full coverage statement — searched/not-searched/biomarker
+            # breakdown — for THIS section's population. None only when no
+            # query_set was given at all (a caller not going through the
+            # query-set path this whole system is built around).
+            "coverage_statement": (
+                coverage.registry_coverage_statement(
+                    cov_row, qset_total, biomarker=biomarker_coverage_obj,
+                ) if query_set else None
+            ),
             "filters": {
                 "condition": condition or "",
                 "query_set": query_set or "",
@@ -529,6 +1103,9 @@ class TrialStore:
             },
             "sample": sample,
             "sample_flags": sample_flags,
+            # Parallel to `sample`: why each printed row ranks where it does.
+            # See ranking.py — deterministic, no model call, config-driven.
+            "sample_rankings": sample_rankings,
         }
 
     def close(self) -> None:

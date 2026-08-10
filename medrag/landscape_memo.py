@@ -4,7 +4,15 @@ The same table machinery as the claim-verification report (see table_render.py),
 so the two artefacts read as one product. This one is a wide, scannable table —
 one row per trial a patient could enter — rendered landscape in the PDF to give
 the columns room. Every row carries the exact eligibility sentence that placed it
-there, because a filtered list with no shown evidence cannot be checked.
+there, because a filtered list with no shown evidence cannot be checked, and the
+score that placed it in the printed sample, because a capped table whose rows
+cannot be accounted for is the arbitrary-sample failure `ranking.py` exists to
+prevent.
+
+Which rows print, and how many, is decided in `landscape.build_landscape` and
+not here — this module renders `ls.trials` and states `ls.sample_lines()`. Both
+renderers and the Streamlit page therefore show the same rows by construction
+rather than by three surfaces agreeing to apply the same cap.
 """
 
 from __future__ import annotations
@@ -13,7 +21,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from .biomarker import ELIGIBLE, UNCLEAR
+from . import coverage
+from .biomarker import ELIGIBLE, ELIGIBLE_BY_EXCLUSION, UNCLEAR
 from .crypto import harden_outputs, write_secure
 from .landscape import LandscapeTrial, TrialLandscape, _format_location
 from .memo import _fmt_date, _inline_to_rl
@@ -27,10 +36,21 @@ LANDSCAPE_DISCLAIMER = (
     "acting on it."
 )
 
-_MATCH_COLOUR = {ELIGIBLE: "#0a7d0a", UNCLEAR: "#b8860b"}
+_MATCH_COLOUR = {ELIGIBLE: "#0a7d0a", ELIGIBLE_BY_EXCLUSION: "#0a7d0a", UNCLEAR: "#b8860b"}
 
 _HEADERS = ["NCT ID", "Title", "Phase", "Status", "Intervention", "Sponsor",
-            "Locations", "PI", "Contact", "Eligibility match"]
+            "Locations", "PI", "Contact", "Eligibility match", "Why ranked here"]
+_MATCH_COL = 9
+_RANK_COL = 10
+
+# Page geometry, stated once — see memo.PAGE_SIZE_IN. Landscape LETTER, so the
+# eleven columns have 10 inches to share.
+PAGE_SIZE_IN = (11.0, 8.5)          # LETTER, landscape
+SIDE_MARGIN_IN = 0.5
+AVAILABLE_WIDTH_IN = PAGE_SIZE_IN[0] - 2 * SIDE_MARGIN_IN
+
+# Sums to 9.95in of the 10in budget.
+_COL_WIDTHS_IN = [0.75, 1.35, 0.4, 0.7, 0.85, 0.9, 0.95, 0.75, 0.9, 1.35, 1.05]
 
 
 # ------------------------------------------------------------------ cell formatting
@@ -83,6 +103,10 @@ def _evidence(t: LandscapeTrial) -> str:
     return f"{t.match.status} — {sentence}"
 
 
+def _why_ranked(t: LandscapeTrial) -> str:
+    return t.ranking.explain() if t.ranking else "not ranked"
+
+
 def _row_values(t: LandscapeTrial) -> list[str]:
     r = t.record
     return [
@@ -96,6 +120,7 @@ def _row_values(t: LandscapeTrial) -> list[str]:
         _pi(t),
         _contact(t),
         _evidence(t),
+        _why_ranked(t),
     ]
 
 
@@ -108,7 +133,8 @@ def _summary_lines(ls: TrialLandscape) -> list[str]:
         "",
         f"- Condition trials screened: {ls.n_condition}",
         f"- Eligible on the biomarker: {ls.n_eligible}",
-        f"- Unclear — shown and flagged: {ls.n_unclear}",
+        f"- Eligible by exclusion of the opposite biomarker: {ls.n_eligible_by_exclusion}",
+        f"- Unclear — flagged, ranked alongside the rest: {ls.n_unclear}",
         f"- Require the opposite biomarker (not shown): {ls.n_excluded}",
         f"- Biomarker not mentioned (not shown): {ls.n_not_mentioned}",
         "",
@@ -126,6 +152,14 @@ def render_markdown(ls: TrialLandscape, generated: datetime | None = None) -> st
         "---",
         "",
     ]
+    if ls.coverage_statement is not None:
+        lines.append("**Coverage**")
+        lines.append("")
+        for line in coverage.render_lines(ls.coverage_statement):
+            lines.append(f"> {line}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
     lines += _summary_lines(ls)
 
     if ls.warnings:
@@ -150,12 +184,18 @@ def render_markdown(ls: TrialLandscape, generated: datetime | None = None) -> st
         lines.append("_No trials referencing this biomarker were found for this condition._")
         lines.append("")
     else:
+        for line in ls.sample_lines():
+            lines.append(f"> {line}")
+            lines.append(">")
+        lines.append("")
         rows = []
         for t in ls.trials:
             vals = _row_values(t)
             # Make the NCT a link in Markdown; keep everything else plain text.
             vals[0] = f"[{t.record.nct_id}]({t.record.url})"
-            vals[9] = f"**{t.match.status}** — {t.match.evidence or '(no matching criterion text)'}"
+            vals[_MATCH_COL] = (
+                f"**{t.match.status}** — "
+                f"{t.match.evidence or '(no matching criterion text)'}")
             rows.append(vals)
         lines.extend(markdown_table(_HEADERS, rows))
         lines.append("")
@@ -190,6 +230,8 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
         "cell": ParagraphStyle("c", parent=base["Normal"], fontSize=6.8, leading=8.4),
         "small": ParagraphStyle("sm", parent=base["Normal"], fontSize=7.5, leading=10,
                                 textColor="#666666", spaceAfter=4),
+        "note": ParagraphStyle("n", parent=base["Normal"], fontSize=8.5, leading=11,
+                               leftIndent=10, textColor="#444444", spaceAfter=5),
     }
 
     story = [Paragraph(f"Trial landscape — {_inline_to_rl(ls.condition or 'condition not specified')}",
@@ -203,10 +245,18 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", color="#cccccc"))
 
+    if ls.coverage_statement is not None:
+        story.append(Paragraph("Coverage", styles["h2"]))
+        for line in coverage.render_lines(ls.coverage_statement):
+            story.append(Paragraph(_inline_to_rl(line), styles["body"]))
+        story.append(Spacer(1, 6))
+        story.append(HRFlowable(width="100%", color="#cccccc"))
+
     story.append(Paragraph("Summary", styles["h2"]))
     story.append(Paragraph(
         _inline_to_rl(
             f"Condition trials screened: {ls.n_condition} · eligible: {ls.n_eligible} · "
+            f"eligible by exclusion: {ls.n_eligible_by_exclusion} · "
             f"unclear (shown): {ls.n_unclear} · require opposite biomarker: {ls.n_excluded} · "
             f"biomarker not mentioned: {ls.n_not_mentioned}"),
         styles["body"]))
@@ -218,16 +268,19 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
         story.append(Paragraph("No trials referencing this biomarker were found for this "
                                "condition.", styles["body"]))
     else:
+        for line in ls.sample_lines():
+            story.append(Paragraph(_inline_to_rl(line), styles["note"]))
         rows, cell_colours = [], []
         for i, t in enumerate(ls.trials, 1):
-            cell_colours.append((9, i, _MATCH_COLOUR.get(t.match.status, "#000000")))
+            cell_colours.append((_MATCH_COL, i, _MATCH_COLOUR.get(t.match.status, "#000000")))
             vals = _row_values(t)
-            vals[9] = f"<b>{_inline_to_rl(t.match.status)}</b> — " \
-                      f"{_inline_to_rl(t.match.evidence or '(no matching criterion text)')}"
-            rows.append([v if i2 == 9 else _inline_to_rl(v) for i2, v in enumerate(vals)])
-        widths = [0.8, 1.5, 0.42, 0.72, 0.95, 1.02, 1.05, 0.82, 1.02, 1.55]
-        story.append(pdf_table(_HEADERS, rows, [w * inch for w in widths], styles["cell"],
-                               cell_colours=cell_colours))
+            vals[_MATCH_COL] = f"<b>{_inline_to_rl(t.match.status)}</b> — " \
+                               f"{_inline_to_rl(t.match.evidence or '(no matching criterion text)')}"
+            rows.append([v if i2 == _MATCH_COL else _inline_to_rl(v)
+                         for i2, v in enumerate(vals)])
+        story.append(pdf_table(_HEADERS, rows, [w * inch for w in _COL_WIDTHS_IN],
+                               styles["cell"], cell_colours=cell_colours,
+                               available_width=AVAILABLE_WIDTH_IN * inch))
 
     story.append(Spacer(1, 12))
     story.append(Paragraph(_inline_to_rl(LANDSCAPE_DISCLAIMER), styles["small"]))
@@ -235,7 +288,7 @@ def render_pdf(ls: TrialLandscape, path: str | Path, generated: datetime | None 
     SimpleDocTemplate(
         str(path),
         pagesize=landscape(LETTER),
-        leftMargin=0.5 * inch, rightMargin=0.5 * inch,
+        leftMargin=SIDE_MARGIN_IN * inch, rightMargin=SIDE_MARGIN_IN * inch,
         topMargin=0.6 * inch, bottomMargin=0.6 * inch,
         title=f"Trial landscape — {ls.condition}",
         author="MedRAG",

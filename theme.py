@@ -86,7 +86,12 @@ MARKERS = {
     "COMPANY ONLY": (ADVERSE, RED),
     "NO DISCLOSURE": (HOLLOW, MUTED),
     "N/A": (NEUTRAL, MUTED),
-    # biomarker eligibility
+    # biomarker eligibility. ELIGIBLE BY EXCLUSION is a distinct, weaker-
+    # confidence state: the trial names only the opposite marker, excluded, not
+    # this one directly. Same shape as UNCLEAR (half-filled — not the strongest
+    # form) but navy, not amber: the direction is not in doubt, only the
+    # directness of the statement.
+    "ELIGIBLE BY EXCLUSION": (HALF, NAVY),
     "ELIGIBLE": (FILLED, NAVY),
     "UNCLEAR": (HALF, AMBER),
     "EXCLUDED": (ADVERSE, RED),
@@ -395,6 +400,23 @@ code, [data-testid="stMarkdownContainer"] code {
 .mr-badge-shape { font-size: 0.8rem; line-height: 1; }
 .mr-badge-body { color: $ink; font-size: 0.9375rem; line-height: 1.55; }
 
+/* --- coverage statement: what was searched, what was not, what matched. Full
+   navy border, not just a left rule — this is the one block on the page that
+   should read as load-bearing on sight, distinct from an advisory badge. --- */
+.mr-coverage {
+  background: $white; border: 1.5px solid $navy; border-radius: 2px;
+  padding: 0.9rem 1.05rem; margin: 1rem 0 1.5rem;
+}
+.mr-coverage-label {
+  font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase;
+  font-weight: 700; color: $navy; margin-bottom: 0.5rem;
+}
+.mr-coverage-line {
+  font-family: $mono; font-size: 0.8125rem; line-height: 1.6; color: $ink;
+  white-space: pre-wrap; margin: 0 0 0.35rem;
+}
+.mr-coverage-line:last-child { margin-bottom: 0; }
+
 /* --- result table: sand header, ink body, shape-marked verdicts. Rendered as a
    real <table> rather than the canvas grid so the shapes and weights are actual
    text a screen reader and a greyscale printer can both read. --- */
@@ -563,6 +585,19 @@ def _href(path: str) -> str:
         return "./"
     stem = path.rsplit("/", 1)[-1].removesuffix(".py")
     return "./" + (stem.split("_", 1)[1] if "_" in stem else stem)
+
+
+def coverage_box(lines: list[str], label: str = "Coverage") -> None:
+    """The registry-coverage statement: what was searched, what was not, what
+    matched. Deliberately its own component, not a badge — this states facts
+    with numbers a reader can go verify, not a judgement on whether they are
+    good news."""
+    body = "".join(f'<p class="mr-coverage-line">{html.escape(line)}</p>' for line in lines)
+    st.markdown(
+        f'<div class="mr-coverage"><div class="mr-coverage-label">{html.escape(label)}</div>'
+        f'{body}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def badge(kind: str, label: str, body: str) -> None:

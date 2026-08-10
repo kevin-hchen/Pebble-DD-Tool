@@ -1,0 +1,143 @@
+"""Orange Book fixtures — real records from the openFDA bulk export (2026-08-06).
+
+Chosen by measurement to cover the shapes that matter:
+
+  * an application with BOTH listed patents and ORPHAN exclusivity (ODE-*), the
+    case the whole section exists to report;
+  * one with PAEDIATRIC exclusivity (PED);
+  * one with a patent carrying `patent_delist_flag` — the FDA sets it when a
+    holder has asked for a patent to be delisted but it cannot be;
+  * a generic (application_type "A"), which is how "do generics already exist"
+    is answered;
+  * one `approved_prior_to_1982`, which carries no approval_date at all.
+
+Measured sparsity, which is the interpretive point: only 2,634 of 48,502 records
+carry listed patents (5.4%) and 1,192 carry exclusivity (2.5%). For an approved
+product, no listed patents usually means they have expired and been removed —
+NOT that none ever existed.
+"""
+
+ORANGE_BOOK_PAGE = {'meta': {'results': {'total': 5}, 'last_updated': '2026-08-06'},
+ 'results': [{'approval_date': '20060629',
+              'exclusivity': [{'exclusivity_code': 'ODE-241',
+                               'exclusivity_expiration_date': '20260528'},
+                              {'exclusivity_code': 'ODE-245',
+                               'exclusivity_expiration_date': '20260528'}],
+              'patents': [{'patent_number': '7465800',
+                           'expiration_date': '20270427',
+                           'drug_substance_flag': True,
+                           'drug_product_flag': True},
+                          {'patent_number': '8741929',
+                           'expiration_date': '20280308',
+                           'patent_use_code': 'U-1983',
+                           'patent_submission_date': '20140617'}],
+              'product_number': '004',
+              'products': [{'active_ingredients': [{'name': 'LENALIDOMIDE',
+                                                    'strength': '25MG'}],
+                            'brand_name': 'REVLIMID',
+                            'application_name': 'BRISTOL MYERS SQUIBB',
+                            'application_type': 'N',
+                            'application_number': '021880',
+                            'therapeutic_equivalence_codes': ['AB'],
+                            'reference_listed_drug': True,
+                            'reference_standard': True,
+                            'marketing_status': 'HUMAN PRESCRIPTION DRUG',
+                            'application_full_name': 'BRISTOL MYERS SQUIBB',
+                            'dosage_form': 'CAPSULE',
+                            'route': 'ORAL'}]},
+             {'approval_date': '20060628',
+              'exclusivity': [{'exclusivity_code': 'ODE-225',
+                               'exclusivity_expiration_date': '20251221'},
+                              {'exclusivity_code': 'PED',
+                               'exclusivity_expiration_date': '20260621'}],
+              'patents': [{'patent_number': '7491725',
+                           'expiration_date': '20260328',
+                           'drug_substance_flag': True,
+                           'drug_product_flag': True},
+                          {'patent_number': '7491725*PED', 'expiration_date': '20260928'}],
+              'product_number': '003',
+              'products': [{'active_ingredients': [{'name': 'DASATINIB', 'strength': '70MG'}],
+                            'brand_name': 'SPRYCEL',
+                            'application_name': 'BRISTOL MYERS SQUIBB',
+                            'application_type': 'N',
+                            'application_number': '021986',
+                            'therapeutic_equivalence_codes': ['AB'],
+                            'reference_listed_drug': True,
+                            'reference_standard': False,
+                            'marketing_status': 'HUMAN PRESCRIPTION DRUG',
+                            'application_full_name': 'BRISTOL MYERS SQUIBB CO',
+                            'dosage_form': 'TABLET',
+                            'route': 'ORAL'}]},
+             {'approval_date': '20111007',
+              'patents': [{'patent_number': '7396341',
+                           'expiration_date': '20261010',
+                           'drug_product_flag': True,
+                           'patent_delist_flag': True,
+                           'patent_submission_date': '20111102'},
+                          {'patent_number': '7837235',
+                           'expiration_date': '20280313',
+                           'drug_product_flag': True,
+                           'patent_delist_flag': True,
+                           'patent_submission_date': '20111102'},
+                          {'patent_number': '8733341',
+                           'expiration_date': '20301016',
+                           'drug_product_flag': True,
+                           'patent_delist_flag': True,
+                           'patent_submission_date': '20150904'},
+                          {'patent_number': '9027967',
+                           'expiration_date': '20270331',
+                           'drug_product_flag': True,
+                           'patent_delist_flag': True,
+                           'patent_submission_date': '20150904'}],
+              'product_number': '001',
+              'products': [{'active_ingredients': [{'name': 'ALBUTEROL SULFATE',
+                                                    'strength': 'EQ 0.1MG BASE/INH'},
+                                                   {'name': 'IPRATROPIUM BROMIDE',
+                                                    'strength': '0.02MG/INH'}],
+                            'brand_name': 'COMBIVENT RESPIMAT',
+                            'application_name': 'BOEHRINGER INGELHEIM',
+                            'application_type': 'N',
+                            'application_number': '021747',
+                            'reference_listed_drug': True,
+                            'reference_standard': True,
+                            'marketing_status': 'HUMAN PRESCRIPTION DRUG',
+                            'application_full_name': 'BOEHRINGER INGELHEIM PHARMACEUTICALS INC',
+                            'dosage_form': 'SPRAY, METERED',
+                            'route': 'INHALATION'}]},
+             {'approval_date': '19861024',
+              'product_number': '001',
+              'products': [{'active_ingredients': [{'name': 'ALLOPURINOL',
+                                                    'strength': '100MG'}],
+                            'brand_name': 'ALLOPURINOL',
+                            'application_name': 'MYLAN',
+                            'application_type': 'A',
+                            'application_number': '018659',
+                            'therapeutic_equivalence_codes': ['AB'],
+                            'reference_listed_drug': False,
+                            'reference_standard': False,
+                            'marketing_status': 'HUMAN PRESCRIPTION DRUG',
+                            'application_full_name': 'MYLAN PHARMACEUTICALS INC',
+                            'dosage_form': 'TABLET',
+                            'route': 'ORAL'}]},
+             {'approved_prior_to_1982': True,
+              'product_number': '001',
+              'products': [{'active_ingredients': [{'name': 'PENICILLIN V POTASSIUM',
+                                                    'strength': 'EQ 125MG BASE/5ML'}],
+                            'brand_name': 'V-CILLIN K',
+                            'application_name': 'LILLY',
+                            'application_type': 'A',
+                            'application_number': '060004',
+                            'reference_listed_drug': False,
+                            'reference_standard': False,
+                            'marketing_status': 'DISCONTINUED',
+                            'application_full_name': 'ELI LILLY AND CO',
+                            'dosage_form': 'FOR SOLUTION',
+                            'route': 'ORAL'}]}]}
+
+from pathlib import Path
+
+ORANGE_BOOK_BULK_ZIP = (Path(__file__).parent / "orangebook_bulk.zip").read_bytes()
+
+BULK_CATALOGUE = {"results": {"drug": {"orangebook": {
+    "export_date": "2026-08-06", "total_records": 5,
+    "partitions": [{"file": "https://download.open.fda.gov/drug/orangebook/drug-orangebook-0001-of-0001.json.zip", "size_mb": "2.33"}]}}}}

@@ -1,0 +1,1672 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT05425940",
+      "orgStudyIdInfo": {
+        "id": "XL092-303"
+      },
+      "secondaryIdInfos": [
+        {
+          "id": "2021-003243-21",
+          "type": "EUDRACT_NUMBER"
+        }
+      ],
+      "organization": {
+        "fullName": "Exelixis",
+        "class": "INDUSTRY"
+      },
+      "briefTitle": "Study of XL092 + Atezolizumab vs Regorafenib in Participants With Metastatic Colorectal Cancer",
+      "officialTitle": "A Randomized Open-Label Phase 3 Study of XL092 + Atezolizumab vs Regorafenib in Subjects With Metastatic Colorectal Cancer",
+      "acronym": "STELLAR-303"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2026-07",
+      "overallStatus": "ACTIVE_NOT_RECRUITING",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2022-09-07",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2026-06-16",
+        "type": "ACTUAL"
+      },
+      "completionDateStruct": {
+        "date": "2027-01-31",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2022-06-16",
+      "studyFirstSubmitQcDate": "2022-06-16",
+      "studyFirstPostDateStruct": {
+        "date": "2022-06-21",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2026-07-16",
+      "lastUpdatePostDateStruct": {
+        "date": "2026-07-17",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "Exelixis",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true,
+      "isFdaRegulatedDrug": true,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "The primary purpose of this study is to evaluate XL092 + atezolizumab versus regorafenib in participants with microsatellite stable/microsatellite instability low (MSS/MSI-low) metastatic colorectal cancer (mCRC) who have progressed during, after or are intolerant to standard-of-care (SOC) therapy."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Colorectal Cancer"
+      ],
+      "keywords": [
+        "Colorectal Cancer"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 901,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "XL092 + Atezolizumab",
+          "type": "EXPERIMENTAL",
+          "description": "Participants with mCRC will receive XL092 + atezolizumab.",
+          "interventionNames": [
+            "Drug: XL092",
+            "Drug: Atezolizumab"
+          ]
+        },
+        {
+          "label": "Regorafenib",
+          "type": "ACTIVE_COMPARATOR",
+          "description": "Participants with mCRC will receive active comparator of regorafenib.",
+          "interventionNames": [
+            "Drug: Regorafenib"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "XL092",
+          "description": "Supplied as tablets; administered orally daily.",
+          "armGroupLabels": [
+            "XL092 + Atezolizumab"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Atezolizumab",
+          "description": "Supplied as 1200 milligrams (mg)/20 milliliter (mL) vials; administered as a 1200 mg intravenous (IV) infusion once in a 3-week cycle (q3w).",
+          "armGroupLabels": [
+            "XL092 + Atezolizumab"
+          ],
+          "otherNames": [
+            "Tecentriq\u00ae"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Regorafenib",
+          "description": "Supplied as 40 mg tablets; administered orally daily at 160 mg for the first 21 days of each 28-day cycle.",
+          "armGroupLabels": [
+            "Regorafenib"
+          ],
+          "otherNames": [
+            "Stivarga\u00ae"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Overall Survival (OS) of XL092 + Atezolizumab Versus Regorafenib in All Randomized Participants",
+          "timeFrame": "Up to 32 months"
+        },
+        {
+          "measure": "Overall Survival (OS) of XL092 + Atezolizumab Versus Regorafenib in Randomized Non-Liver Metastases (NLM) Participants",
+          "timeFrame": "Up to 32 months"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Progression-Free Survival (PFS) as Assessed by the Investigator",
+          "timeFrame": "Up to 26 months"
+        },
+        {
+          "measure": "Duration of Response (DOR) as Assessed by the Investigator",
+          "timeFrame": "Up to 36 months"
+        },
+        {
+          "measure": "Objective Response Rate (ORR) as Assessed by the Investigator",
+          "timeFrame": "Up to 36 months"
+        },
+        {
+          "measure": "Number of Participants with Treatment Emergent Adverse Events (TEAEs)",
+          "timeFrame": "Up to 36 months"
+        },
+        {
+          "measure": "Maximum Observed Plasma Drug Concentration (Cmax) of XL092",
+          "timeFrame": "Predose up to 72 hours postdose"
+        },
+        {
+          "measure": "Time to Maximum Observed Plasma Drug Concentration (Tmax) of XL092",
+          "timeFrame": "Predose up to 72 hours postdose"
+        },
+        {
+          "measure": "Number of Participants who Develop Antidrug Antibodies (ADA) Against Atezolizumab",
+          "timeFrame": "Up to 36 months"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Key Inclusion Criteria:\n\n* Participants with histologically or cytologically confirmed adenocarcinoma of the colon or rectum.\n\n  * Documented rat sarcoma (RAS) status (mutant or wild-type \\[WT\\]), by tissue-based analysis.\n  * Documented NOT to have microsatellite instability-high (MSI-high) or mismatch repair deficient (dMMR) CRC by tissue-based analysis.\n* Has received SOC anticancer therapies as prior therapy for metastatic CRC and has radiographically progressed, is refractory or intolerant to these therapies.\n\n  * Systemic SOC anticancer therapy if approved and available in the country where the participant is randomized.\n  * Radiographic progression during treatment with or within 4 months following the last dose of the most recent approved SOC chemotherapy regimen.\n* Measurable disease according to Response Evaluation Criteria in Solid Tumors (RECIST) v1.1 as determined by the Investigator.\n* Available archival tumor biopsy material. If archival tissue is unavailable, must provide fresh tumor tissue biopsy prior to randomization.\n* Recovery to baseline or \u2264 Grade 1 severity (common terminology criteria for adverse events \\[CTCAE\\] version 5) from adverse events (AEs) related to any prior treatments, unless AE(s) are clinically nonsignificant and/or stable on supportive therapy.\n* Eastern Cooperative Oncology Group (ECOG) performance status of 0-1.\n* Adequate organ and marrow function.\n* Fertile participants and their partners must agree to use highly effective methods of contraception during the course of the study and after the last dose of treatment.\n* Females of childbearing potential must not be pregnant at screening.\n\nKey Exclusion Criteria:\n\n* Prior treatment with XL092, regorafenib, trifluridine/tipiracil, or programmed cell death protein-1/and its ligand (PD-L1/PD-1) targeting immune checkpoint inhibitors (ICIs).\n* Receipt of a small molecule kinase inhibitor (including investigational agents) within 2 weeks before randomization.\n* Receipt of any type of anticancer antibody therapy, systemic chemotherapy, or hormonal anti-cancer therapy within 3 weeks (or bevacizumab within 4 weeks) before randomization.\n* Radiation therapy for bone metastasis within 2 weeks, any other radiation therapy within 4 weeks before randomization.\n* Known brain metastases or cranial epidural disease unless adequately treated with radiotherapy and/or surgery (including radiosurgery) and stable for at least 4 weeks before randomization.\n* Has uncontrolled, significant intercurrent or recent illness.\n* Major surgery (example, gastrointestinal (GI) surgery, removal or biopsy of brain metastasis) within 4 weeks prior to randomization.\n* Systemic treatment with, or any condition requiring, either corticosteroids (\\> 10 mg daily prednisone equivalent) or other immunosuppressive medications within 14 days prior to randomization.\n* Corrected QT interval calculated by the Fridericia formula (QTcF) \\> 460 milliseconds (ms) within 10 days before randomization.\n* History of psychiatric illness likely to interfere with ability to comply with protocol requirements or give informed consent.\n* Pregnant or lactating females.\n* Inability to swallow study treatment formulation, inability to receive IV administration, or presence of GI condition that might affect the absorption of study drug.\n* Previously identified allergy or hypersensitivity to components of the study treatment formulations.\n* Any other active malignancy or diagnosis of another malignancy within 2 years before randomization. Exceptions are noted in the protocol.\n* Administration of a live, attenuated vaccine within 30 days before randomization.\n\nNote: Other protocol defined Inclusion/Exclusion criteria may apply.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "overallOfficials": [
+        {
+          "name": "Medical Director",
+          "affiliation": "Exelixis",
+          "role": "STUDY_DIRECTOR"
+        }
+      ],
+      "locations": [
+        {
+          "facility": "Exelixis Clinical Site #65",
+          "city": "Jonesboro",
+          "state": "Alabama",
+          "zip": "72401",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.55565,
+            "lon": -87.76309
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #30",
+          "city": "Phoenix",
+          "state": "Arizona",
+          "zip": "85004",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.44838,
+            "lon": -112.07404
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #70",
+          "city": "Tucson",
+          "state": "Arizona",
+          "zip": "85719",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.22174,
+            "lon": -110.92648
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #9",
+          "city": "Duarte",
+          "state": "California",
+          "zip": "91010",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.13945,
+            "lon": -117.97729
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #55",
+          "city": "La Jolla",
+          "state": "California",
+          "zip": "92037",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.84727,
+            "lon": -117.2742
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #77",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90095",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #105",
+          "city": "Orange",
+          "state": "California",
+          "zip": "92868",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.78779,
+            "lon": -117.85311
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #80",
+          "city": "Santa Monica",
+          "state": "California",
+          "zip": "90404",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.01949,
+            "lon": -118.49138
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #5",
+          "city": "Santa Rosa",
+          "state": "California",
+          "zip": "95403",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.44047,
+            "lon": -122.71443
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #82",
+          "city": "Sylmar",
+          "state": "California",
+          "zip": "91342",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.30778,
+            "lon": -118.44925
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #58",
+          "city": "Torrance",
+          "state": "California",
+          "zip": "90505",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.83585,
+            "lon": -118.34063
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #81",
+          "city": "Whittier",
+          "state": "California",
+          "zip": "90602",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.97918,
+            "lon": -118.03284
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #125",
+          "city": "New Haven",
+          "state": "Connecticut",
+          "zip": "06510",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.30815,
+            "lon": -72.92816
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #16",
+          "city": "Miami Beach",
+          "state": "Florida",
+          "zip": "33140",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 25.79065,
+            "lon": -80.13005
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #60",
+          "city": "Orlando",
+          "state": "Florida",
+          "zip": "32804",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 28.53834,
+            "lon": -81.37924
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #4",
+          "city": "Marietta",
+          "state": "Georgia",
+          "zip": "30060",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.9526,
+            "lon": -84.54993
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #3",
+          "city": "Joliet",
+          "state": "Illinois",
+          "zip": "60435",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.52519,
+            "lon": -88.0834
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #102",
+          "city": "Indianapolis",
+          "state": "Indiana",
+          "zip": "46250",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.76838,
+            "lon": -86.15804
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #10",
+          "city": "Westwood",
+          "state": "Kansas",
+          "zip": "66205",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.04056,
+            "lon": -94.6169
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #47",
+          "city": "Lexington",
+          "state": "Kentucky",
+          "zip": "40536",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 37.98869,
+            "lon": -84.47772
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #7",
+          "city": "New Orleans",
+          "state": "Louisiana",
+          "zip": "70112",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 29.95465,
+            "lon": -90.07507
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #22",
+          "city": "St Louis",
+          "state": "Missouri",
+          "zip": "63141",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.62727,
+            "lon": -90.19789
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #8",
+          "city": "Billings",
+          "state": "Montana",
+          "zip": "59102",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.78329,
+            "lon": -108.50069
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #1",
+          "city": "Omaha",
+          "state": "Nebraska",
+          "zip": "68130",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.25626,
+            "lon": -95.94043
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #15",
+          "city": "Albuquerque",
+          "state": "New Mexico",
+          "zip": "87131",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.08449,
+            "lon": -106.65114
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #11",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10016",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #59",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10029",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #17",
+          "city": "The Bronx",
+          "state": "New York",
+          "zip": "10461",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.84985,
+            "lon": -73.86641
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #74",
+          "city": "Charlotte",
+          "state": "North Carolina",
+          "zip": "28204",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.22709,
+            "lon": -80.84313
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #6",
+          "city": "Cincinnati",
+          "state": "Ohio",
+          "zip": "45219",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.12711,
+            "lon": -84.51439
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #12",
+          "city": "Oklahoma City",
+          "state": "Oklahoma",
+          "zip": "73142",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.46756,
+            "lon": -97.51643
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #75",
+          "city": "Portland",
+          "state": "Oregon",
+          "zip": "97210",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.52345,
+            "lon": -122.67621
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #106",
+          "city": "Philadelphia",
+          "state": "Pennsylvania",
+          "zip": "19107",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.95238,
+            "lon": -75.16362
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #18",
+          "city": "Pittsburgh",
+          "state": "Pennsylvania",
+          "zip": "15212",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.44062,
+            "lon": -79.99589
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #103",
+          "city": "Pittsburgh",
+          "state": "Pennsylvania",
+          "zip": "15232",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.44062,
+            "lon": -79.99589
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #24",
+          "city": "Greenville",
+          "state": "South Carolina",
+          "zip": "29607",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.85262,
+            "lon": -82.39401
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #56",
+          "city": "Chattanooga",
+          "state": "Tennessee",
+          "zip": "37404",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.04563,
+            "lon": -85.30968
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #76",
+          "city": "Nashville",
+          "state": "Tennessee",
+          "zip": "37203",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 36.16589,
+            "lon": -86.78444
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #133",
+          "city": "Nashville",
+          "state": "Tennessee",
+          "zip": "37232",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 36.16589,
+            "lon": -86.78444
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #450",
+          "city": "Fairfax",
+          "state": "Virginia",
+          "zip": "22031",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.84622,
+            "lon": -77.30637
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #14",
+          "city": "Roanoke",
+          "state": "Virginia",
+          "zip": "24014",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 37.27097,
+            "lon": -79.94143
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #13",
+          "city": "Seattle",
+          "state": "Washington",
+          "zip": "98101",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.60621,
+            "lon": -122.33207
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #32",
+          "city": "Seattle",
+          "state": "Washington",
+          "zip": "98104",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.60621,
+            "lon": -122.33207
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #89",
+          "city": "Seattle",
+          "state": "Washington",
+          "zip": "98109",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.60621,
+            "lon": -122.33207
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #2",
+          "city": "Spokane",
+          "state": "Washington",
+          "zip": "99208",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.65966,
+            "lon": -117.42908
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #83",
+          "city": "Albury",
+          "zip": "2640",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -36.07482,
+            "lon": 146.92401
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #53",
+          "city": "Bankstown",
+          "zip": "2200",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -33.91667,
+            "lon": 151.03333
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #117",
+          "city": "Bedford Park",
+          "zip": "5042",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -35.02204,
+            "lon": 138.56815
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #97",
+          "city": "Heidelberg",
+          "zip": "3084",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -37.75,
+            "lon": 145.06667
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #19",
+          "city": "Melbourne",
+          "zip": "3002",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -37.814,
+            "lon": 144.96332
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #23",
+          "city": "Melbourne",
+          "zip": "3021",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -37.814,
+            "lon": 144.96332
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #27",
+          "city": "Port Macquarie",
+          "zip": "2444",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -31.43084,
+            "lon": 152.90894
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #64",
+          "city": "Woodville South",
+          "zip": "5011",
+          "country": "Australia",
+          "geoPoint": {
+            "lat": -34.88186,
+            "lon": 138.53477
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #43",
+          "city": "Antwerp",
+          "zip": "2300",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 51.22047,
+            "lon": 4.40026
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #51",
+          "city": "Brussels",
+          "zip": "1200",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.85045,
+            "lon": 4.34878
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #35",
+          "city": "Namur",
+          "zip": "5000",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.4669,
+            "lon": 4.86746
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #52",
+          "city": "Besan\u00e7on",
+          "zip": "25030",
+          "country": "France",
+          "geoPoint": {
+            "lat": 47.24878,
+            "lon": 6.01815
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #84",
+          "city": "Dijon",
+          "zip": "21079",
+          "country": "France",
+          "geoPoint": {
+            "lat": 47.31344,
+            "lon": 5.01391
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #88",
+          "city": "Herbault",
+          "zip": "34298",
+          "country": "France",
+          "geoPoint": {
+            "lat": 47.60501,
+            "lon": 1.13934
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #71",
+          "city": "Lyon",
+          "zip": "69008",
+          "country": "France",
+          "geoPoint": {
+            "lat": 45.74906,
+            "lon": 4.84789
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #87",
+          "city": "Marseille",
+          "zip": "13385",
+          "country": "France",
+          "geoPoint": {
+            "lat": 43.29695,
+            "lon": 5.38107
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #38",
+          "city": "Paris",
+          "zip": "75020",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.85341,
+            "lon": 2.3488
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #93",
+          "city": "Suresnes",
+          "zip": "92150",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.87143,
+            "lon": 2.22929
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #127",
+          "city": "Hanover",
+          "state": "Niedersach",
+          "zip": "30625",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 52.37052,
+            "lon": 9.73322
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #109",
+          "city": "Dresden",
+          "zip": "01307",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 51.05089,
+            "lon": 13.73832
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #113",
+          "city": "Frankfurt am Main",
+          "zip": "60488",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 50.11552,
+            "lon": 8.68417
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #61",
+          "city": "Hamburg",
+          "zip": "20249",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.55073,
+            "lon": 9.99302
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #63",
+          "city": "Hamburg",
+          "zip": "22763",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.55073,
+            "lon": 9.99302
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #91",
+          "city": "M\u00fcnchen",
+          "zip": "81737",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 51.60698,
+            "lon": 13.31243
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #25",
+          "city": "Hong Kong",
+          "country": "Hong Kong",
+          "geoPoint": {
+            "lat": 22.27832,
+            "lon": 114.17469
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #33",
+          "city": "Hong Kong",
+          "country": "Hong Kong",
+          "geoPoint": {
+            "lat": 22.27832,
+            "lon": 114.17469
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #128",
+          "city": "Ny\u00edregyh\u00e1za",
+          "state": "Szabolcs-Szatmar-Bereg County",
+          "zip": "4400",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.95539,
+            "lon": 21.71671
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #41",
+          "city": "Budapest",
+          "zip": "1097",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.49835,
+            "lon": 19.04045
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #129",
+          "city": "Budapest",
+          "zip": "1122",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.49835,
+            "lon": 19.04045
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #48",
+          "city": "Debrecen",
+          "zip": "4302",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.53167,
+            "lon": 21.62444
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #122",
+          "city": "Gy\u0151r",
+          "zip": "9024",
+          "country": "Hungary",
+          "geoPoint": {
+            "lat": 47.68333,
+            "lon": 17.63512
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #57",
+          "city": "Auckland",
+          "zip": "1023",
+          "country": "New Zealand",
+          "geoPoint": {
+            "lat": -36.84853,
+            "lon": 174.76349
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #49",
+          "city": "Dunedin",
+          "zip": "9016",
+          "country": "New Zealand",
+          "geoPoint": {
+            "lat": -45.87416,
+            "lon": 170.50361
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #69",
+          "city": "Hamilton",
+          "zip": "3204",
+          "country": "New Zealand",
+          "geoPoint": {
+            "lat": -37.78333,
+            "lon": 175.28333
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #104",
+          "city": "Wellington",
+          "zip": "6021",
+          "country": "New Zealand",
+          "geoPoint": {
+            "lat": -41.28664,
+            "lon": 174.77557
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #20",
+          "city": "Bydgoszcz",
+          "zip": "85-796",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 53.1235,
+            "lon": 18.00762
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #68",
+          "city": "Opole",
+          "zip": "45-061",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 50.67119,
+            "lon": 17.92604
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #26",
+          "city": "Siedlce",
+          "zip": "08-110",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 52.16772,
+            "lon": 22.29006
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #42",
+          "city": "Tomasz\u00f3w Mazowiecki",
+          "zip": "97-200",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 51.53131,
+            "lon": 20.00855
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #31",
+          "city": "Warsaw",
+          "zip": "02-507",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 52.22977,
+            "lon": 21.01178
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #108",
+          "city": "Almada",
+          "zip": "2805-267",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 38.67902,
+            "lon": -9.1569
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #120",
+          "city": "Coimbra",
+          "zip": "3000-075",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 40.20686,
+            "lon": -8.41996
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #99",
+          "city": "Guimar\u00e3es",
+          "zip": "4835-044",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 41.44443,
+            "lon": -8.29619
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #131",
+          "city": "Lisbon",
+          "zip": "1500-650",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 38.72509,
+            "lon": -9.1498
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #124",
+          "city": "Lisbon",
+          "zip": "1649-035",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 38.72509,
+            "lon": -9.1498
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #96",
+          "city": "Lisbon",
+          "zip": "400-038",
+          "country": "Portugal",
+          "geoPoint": {
+            "lat": 38.72509,
+            "lon": -9.1498
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #132",
+          "city": "Singapore",
+          "zip": "119228",
+          "country": "Singapore",
+          "geoPoint": {
+            "lat": 1.28967,
+            "lon": 103.85007
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #100",
+          "city": "Singapore",
+          "zip": "168583",
+          "country": "Singapore",
+          "geoPoint": {
+            "lat": 1.28967,
+            "lon": 103.85007
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #39",
+          "city": "Singapore",
+          "zip": "217562",
+          "country": "Singapore",
+          "geoPoint": {
+            "lat": 1.28967,
+            "lon": 103.85007
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #98",
+          "city": "Singapore",
+          "zip": "258499",
+          "country": "Singapore",
+          "geoPoint": {
+            "lat": 1.28967,
+            "lon": 103.85007
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #94",
+          "city": "Singapore",
+          "zip": "329563",
+          "country": "Singapore",
+          "geoPoint": {
+            "lat": 1.28967,
+            "lon": 103.85007
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #36",
+          "city": "Goyang-si",
+          "zip": "10408",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.65639,
+            "lon": 126.835
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #29",
+          "city": "Gyeonggi-do",
+          "zip": "14068",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.58944,
+            "lon": 126.76917
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #28",
+          "city": "Hwasun",
+          "zip": "58128",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 35.06125,
+            "lon": 126.98746
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #37",
+          "city": "Seongnam-si",
+          "zip": "13620",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.43861,
+            "lon": 127.13778
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #34",
+          "city": "Seoul",
+          "zip": "03080",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #45",
+          "city": "Seoul",
+          "zip": "03722",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #66",
+          "city": "Seoul",
+          "zip": "05505",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #46",
+          "city": "Seoul",
+          "zip": "06351",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #54",
+          "city": "Seoul",
+          "zip": "06591",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #44",
+          "city": "Seoul",
+          "zip": "08308",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #40",
+          "city": "Seoul",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #78",
+          "city": "Barcelona",
+          "zip": "08023",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #21",
+          "city": "Barcelona",
+          "zip": "08025",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #86",
+          "city": "Barcelona",
+          "zip": "08035",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #112",
+          "city": "Barcelona",
+          "zip": "08908",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #95",
+          "city": "Lleida",
+          "zip": "25198",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.61674,
+            "lon": 0.62218
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #116",
+          "city": "Madrid",
+          "zip": "28007",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #72",
+          "city": "Madrid",
+          "zip": "28034",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #67",
+          "city": "Madrid",
+          "zip": "28041",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #79",
+          "city": "Madrid",
+          "zip": "28050",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #90",
+          "city": "Valencia",
+          "zip": "46014",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 39.47391,
+            "lon": -0.37966
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #121",
+          "city": "Zaragoza",
+          "zip": "50009",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.65606,
+            "lon": -0.87734
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #119",
+          "city": "Guishan",
+          "zip": "333",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 24.99436,
+            "lon": 121.33672
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #85",
+          "city": "Kaohsiung City",
+          "zip": "807",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 22.61626,
+            "lon": 120.31333
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #107",
+          "city": "Kaohsiung City",
+          "zip": "833",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 22.61626,
+            "lon": 120.31333
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #118",
+          "city": "Liuying",
+          "zip": "73657",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 24.44719,
+            "lon": 118.3877
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #73",
+          "city": "Taichung",
+          "zip": "40447",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 24.1469,
+            "lon": 120.6839
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #101",
+          "city": "Tainan",
+          "zip": "704",
+          "country": "Taiwan",
+          "geoPoint": {
+            "lat": 22.99083,
+            "lon": 120.21333
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #62",
+          "city": "Chiang Mai",
+          "zip": "50200",
+          "country": "Thailand",
+          "geoPoint": {
+            "lat": 18.79038,
+            "lon": 98.98468
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #92",
+          "city": "Hat Yai",
+          "zip": "90110",
+          "country": "Thailand",
+          "geoPoint": {
+            "lat": 7.00836,
+            "lon": 100.47668
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #130",
+          "city": "Bristol",
+          "state": "England",
+          "zip": "BS2 8ED",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.45523,
+            "lon": -2.59665
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #110",
+          "city": "Birmingham",
+          "zip": "B95SS",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 52.48142,
+            "lon": -1.89983
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #111",
+          "city": "Edinburgh",
+          "zip": "EH42XU",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 55.95206,
+            "lon": -3.19648
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #123",
+          "city": "London",
+          "zip": "EC1A 7BE",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.50853,
+            "lon": -0.12574
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #114",
+          "city": "London",
+          "zip": "W1G 6AD",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.50853,
+            "lon": -0.12574
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #115",
+          "city": "Romford",
+          "zip": "RM70AG",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.57515,
+            "lon": 0.18582
+          }
+        },
+        {
+          "facility": "Exelixis Clinical Site #126",
+          "city": "Sutton",
+          "zip": "SM2 5PT",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.35,
+            "lon": -0.2
+          }
+        }
+      ]
+    },
+    "referencesModule": {
+      "references": [
+        {
+          "pmid": "41130252",
+          "type": "DERIVED",
+          "citation": "Hecht JR, Park YS, Tabernero J, Lee MA, Lee S, Virgili AC, Van den Eynde M, Fontana E, Fakih M, Asghari G, So J, Stein A, Dubreuil O, Bodnar L, He CS, Wang G, Smith R, Eng C, Saeed A; STELLAR-303 study investigators. Zanzalintinib plus atezolizumab versus regorafenib in refractory colorectal cancer (STELLAR-303): a randomised, open-label, phase 3 trial. Lancet. 2025 Nov 15;406(10517):2360-2370. doi: 10.1016/S0140-6736(25)02025-2. Epub 2025 Oct 20."
+        },
+        {
+          "pmid": "39041200",
+          "type": "DERIVED",
+          "citation": "Saeed A, Tabernero J, Parikh A, Van den Eynde M, Karthaus M, Gerlinger M, Wang Z, Wang G, Smith R, Hecht JR. STELLAR-303: randomized phase III study of zanzalintinib + atezolizumab in previously treated metastatic colorectal cancer. Future Oncol. 2024;20(24):1733-1743. doi: 10.1080/14796694.2024.2352276. Epub 2024 Jul 23."
+        }
+      ]
+    },
+    "ipdSharingStatementModule": {
+      "ipdSharing": "NO"
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-08-03"
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D015179",
+          "term": "Colorectal Neoplasms"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D007414",
+          "term": "Intestinal Neoplasms"
+        },
+        {
+          "id": "D005770",
+          "term": "Gastrointestinal Neoplasms"
+        },
+        {
+          "id": "D004067",
+          "term": "Digestive System Neoplasms"
+        },
+        {
+          "id": "D009371",
+          "term": "Neoplasms by Site"
+        },
+        {
+          "id": "D009369",
+          "term": "Neoplasms"
+        },
+        {
+          "id": "D004066",
+          "term": "Digestive System Diseases"
+        },
+        {
+          "id": "D005767",
+          "term": "Gastrointestinal Diseases"
+        },
+        {
+          "id": "D003108",
+          "term": "Colonic Diseases"
+        },
+        {
+          "id": "D007410",
+          "term": "Intestinal Diseases"
+        },
+        {
+          "id": "D012002",
+          "term": "Rectal Diseases"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "C000594389",
+          "term": "atezolizumab"
+        },
+        {
+          "id": "C559147",
+          "term": "regorafenib"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

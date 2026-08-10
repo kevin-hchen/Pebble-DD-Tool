@@ -13,9 +13,11 @@ from pathlib import Path
 
 import yaml
 
+from . import agents
 from .config import Config, load_config
 from .context import Evidence, build_evidence, provenance_summary, render_context
 from .documents import Retrieved
+from .fda.drug_store import ApprovalAnswer
 from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
 from .router import Route, Router
@@ -37,6 +39,37 @@ registry record does not report a result, and a narrative review is not a trial.
 
 Answer using only these excerpts, with inline [n] citations. If the evidence \
 does not answer the question, say so plainly and state what is missing."""
+
+#: Appended for any section carrying a deterministic approval block.
+#:
+#: The approval sentence is rendered from `ApprovalAnswer` in code and inserted
+#: as a fixed string. Every guard around that answer — is_approved requiring
+#: positive evidence, the four meanings of absence, tentative-approval-is-not-
+#: approval — is a guard in CODE, and a model paraphrasing "no application
+#: matched" as "not approved in the US" walks straight past all of them. So the
+#: model is told, in the prompt, that the status is already stated and is not
+#: its to write. `_flag_approval_overreach` then checks whether it complied,
+#: because a prompt instruction is a request, not a guarantee.
+APPROVAL_PROMPT_GUARD = """
+
+REGULATORY STATUS IS ALREADY STATED, DETERMINISTICALLY, ELSEWHERE IN THIS \
+SECTION. Do NOT state, summarise, infer or imply whether {asset} is approved, \
+unapproved, cleared or authorised by the FDA or any other regulator, and do NOT \
+describe the absence of a record as evidence of non-approval. Write about what \
+the excerpts say — indications, sponsors, dates, trial and label content — and \
+leave approval status alone."""
+
+#: Phrasings that assert or imply non-approval. Checked against MODEL prose only
+#: (never against the deterministic block, which is allowed to use the words in
+#: order to deny them). Matching is deliberately literal and narrow: this exists
+#: to catch the model overstepping, not to police an analyst's vocabulary.
+_NON_APPROVAL_PHRASES = (
+    "not approved", "unapproved", "not been approved", "never approved",
+    "no fda approval", "lacks fda approval", "lacks approval", "without fda approval",
+    "not fda-approved", "not fda approved", "is not authorised", "is not authorized",
+    "not licensed", "no marketing authorisation", "no marketing authorization",
+    "failed to gain approval", "denied approval", "rejected by the fda",
+)
 
 
 @dataclass
@@ -75,6 +108,9 @@ class SectionResult:
     provenance: dict = field(default_factory=dict)
     negative: NegativeEvidence | None = None
     aggregate: dict | None = None        # store.landscape() counts, for a census section
+    #: The deterministic regulatory answer, rendered by the memo as a FIXED
+    #: string from `ApprovalAnswer.render_lines()`. Never summarised by a model.
+    approval: "ApprovalAnswer | None" = None
 
 
 @dataclass
@@ -165,7 +201,7 @@ class DiligenceRunner:
     """Orchestrates routing, dual-store retrieval, answering and the negative pass."""
 
     def __init__(self, cfg: Config | None = None, rag=None, trial_store: TrialStore | None = None,
-                 fda_store=None):
+                 fda_store=None, drug_store=None):
         self.cfg = cfg or load_config()
         self.router = Router(self.cfg)
 
@@ -217,6 +253,21 @@ class DiligenceRunner:
                 except FDAStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
 
+        # The DRUG store, likewise optional. Its absence is never a finding
+        # about the asset — `ApprovalAnswer.searched` carries that distinction
+        # into the memo rather than letting an empty section imply anything.
+        self.drug_store = drug_store
+        if self.drug_store is None:
+            from .fda.drug_store import DrugStore, DrugStoreSchemaError
+            from .pipeline import DRUGS_DB
+
+            db = self.cfg.raw_dir / DRUGS_DB
+            if db.exists():
+                try:
+                    self.drug_store = DrugStore(db)
+                except DrugStoreSchemaError as exc:
+                    self.warnings.append(str(exc).splitlines()[0])
+
     # ------------------------------------------------------------ retrieval
 
     def _trials_for(self, question: str, asset: str, indication: str, filters: dict,
@@ -228,9 +279,10 @@ class DiligenceRunner:
             found = [self.trial_store.get(n) for n in filters["nct_ids"]]
             return [f for f in found if f]
 
+        qset = resolve_query_set(indication).key if indication else None
         records = self.trial_store.query(
             intervention=asset or None,
-            query_set=resolve_query_set(indication).key if indication else None,
+            query_set=qset,
             phase=filters.get("phase"),
             statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
@@ -239,8 +291,28 @@ class DiligenceRunner:
         # Structured filters can legitimately return nothing (no Phase 3 exists).
         # Fall back to free text so the section is not silently empty.
         if not records:
+            self._warn_collapsed_combination(asset, qset)
             records = self.trial_store.search(f"{asset} {indication} {question}", limit=limit)
         return records
+
+    def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
+        """Say WHICH agent of a combination emptied the result.
+
+        A combination ANDs its agents, so one agent the registry never lists
+        under any known name zeroes the whole query — and the caller then falls
+        back to free text, which succeeds, which makes the collapse invisible.
+        Naming the responsible agent turns "the structured query found nothing"
+        into something an analyst can act on: either the asset is misspelt, or
+        `config/agents.yaml` lacks the name this registry uses for it. The
+        message itself lives in agents.py, shared with `claims._retrieve`.
+        """
+        if not asset or self.trial_store is None:
+            return
+        for note in agents.collapsed_combination_notes(
+            self.trial_store.intervention_terms(asset, query_set=query_set), asset
+        ):
+            if note not in self.warnings:
+                self.warnings.append(note)
 
     def _passages(self, question: str, k: int) -> list[Retrieved]:
         if self.rag is None:
@@ -270,17 +342,67 @@ class DiligenceRunner:
         }
         return records, meta
 
+    def _drugs_for(self, asset: str, limit: int):
+        """The drug applications for an asset, and the deterministic approval
+        answer beside them.
+
+        Both are returned because they do different jobs and must not be
+        conflated: the applications become numbered EVIDENCE the model can cite
+        ("[3] FDA DRUG APPROVAL — NDA 021923"), while the ApprovalAnswer is
+        rendered as a fixed string the model never sees as something to
+        summarise. When no store exists the answer still comes back, with
+        `searched=False`, so the memo can say "not checked" rather than printing
+        nothing and letting the silence read as a finding.
+        """
+        if self.drug_store is None or not asset:
+            return [], ApprovalAnswer(asset=asset or "the asset")
+        answer = self.drug_store.approval_answer(asset)
+        return answer.applications[:limit], answer
+
+    @staticmethod
+    def _flag_approval_overreach(answer: ApprovalAnswer, text: str) -> str | None:
+        """Did the model write the sentence it was told not to write?
+
+        A prompt instruction is a request, not a guarantee — this codebase's own
+        convention is that a guard the caller can bypass is decoration. So the
+        model's prose is checked for non-approval phrasing whenever the
+        deterministic answer does NOT support it, and a hit becomes a loud memo
+        warning rather than a silent contradiction between two paragraphs of the
+        same section.
+        """
+        if answer.is_approved:
+            return None      # the claim would be about something else entirely
+        lowered = (text or "").lower()
+        hit = next((p for p in _NON_APPROVAL_PHRASES if p in lowered), None)
+        if not hit:
+            return None
+        return (
+            f"the generated prose for “{answer.asset}” contains the phrase “{hit}”, which "
+            "states or implies non-approval. openFDA drugsFDA holding no matching "
+            "application is NOT evidence of non-approval — see the regulatory status "
+            "block, which is generated deterministically. Treat that sentence as "
+            "unsupported."
+        )
+
     # ------------------------------------------------------------ one section
 
     @staticmethod
-    def _biomarker_filters(tokens: list[str] | None) -> list[tuple[str, str]]:
-        """Parse ['MSS:REQUIRED'] into [('MSS','REQUIRED')]; ignore malformed."""
-        out = []
+    def _biomarker_filters(tokens: list[str] | None) -> list[tuple[str, list[str]]]:
+        """Parse ['MSS:REQUIRED', 'MSS:ELIGIBLE_BY_EXCLUSION'] into
+        [('MSS', ['REQUIRED', 'ELIGIBLE_BY_EXCLUSION'])] — multiple tokens
+        naming the same marker are ORed together (a trial matching any one of
+        them counts), so a question can ask for a marker stated directly OR
+        stated by excluding its opposite without excluding either from the
+        count. Different markers stay separate filters, ANDed. Ignore
+        malformed tokens."""
+        grouped: dict[str, list[str]] = {}
         for tok in tokens or []:
-            if ":" in tok:
-                marker, status = tok.split(":", 1)
-                out.append((marker.strip().upper().replace(" ", "_"), status.strip().upper()))
-        return out
+            if ":" not in tok:
+                continue
+            marker, status = tok.split(":", 1)
+            marker = marker.strip().upper().replace(" ", "_")
+            grouped.setdefault(marker, []).append(status.strip().upper())
+        return list(grouped.items())
 
     def _landscape_section(self, q: DiligenceQuestion, rendered: str,
                            indication: str) -> SectionResult:
@@ -313,6 +435,7 @@ class DiligenceRunner:
             negative = run_negative_pass(
                 claim=rendered, cfg=self.cfg, evidence=evidence,
                 trial_store=self.trial_store, condition=indication or None,
+                query_set=resolve_query_set(indication).key if indication else None,
                 fda_store=None,
             )
         return SectionResult(
@@ -334,12 +457,15 @@ class DiligenceRunner:
             route, method = decision.route, decision.method
             filters = decision.filters
             needs_regulatory = decision.needs_regulatory
+            needs_drug = decision.needs_drug_regulatory
         else:
             route, method = Route(q.route), "config"
             from .router import classify_by_rules, extract_filters
 
             filters = extract_filters(rendered)
-            needs_regulatory = classify_by_rules(rendered).needs_regulatory
+            rules = classify_by_rules(rendered)
+            needs_regulatory = rules.needs_regulatory
+            needs_drug = rules.needs_drug_regulatory
 
         trials = (
             self._trials_for(rendered, asset, indication, filters, q.k, statuses=q.status)
@@ -348,10 +474,17 @@ class DiligenceRunner:
         )
         passages = self._passages(rendered, q.k) if route in (Route.SEMANTIC, Route.BOTH) else []
         fda, fda_meta = self._fda_for(asset, filters) if needs_regulatory else ([], {})
+        drugs, approval = self._drugs_for(asset, q.k) if needs_drug else ([], None)
 
-        evidence = build_evidence(trials=trials, passages=passages, fda=fda,
+        evidence = build_evidence(trials=trials, passages=passages, fda=fda, drugs=drugs,
                                   max_chars=self.cfg.max_context_chars)
-        answer = self._answer(rendered, evidence)
+        # The model writes AROUND the regulatory status, never writes it.
+        answer = self._answer(rendered, evidence,
+                              approval_guard=asset if approval is not None else "")
+        if approval is not None:
+            note = self._flag_approval_overreach(approval, answer.text)
+            if note and note not in self.warnings:
+                self.warnings.append(note)
         # Validate against the assembled evidence, not the literature subset:
         # the markers the model saw are numbered across both stores.
         report = validate_answer(answer, evidence=evidence)
@@ -368,6 +501,10 @@ class DiligenceRunner:
                 trial_store=self.trial_store,
                 intervention=asset or None,
                 condition=indication or None,
+                # The indication arm selects the population the FETCH defined,
+                # like every other consumer. A substring over the condition
+                # array missed 58% of the stopped trials it should have seen.
+                query_set=resolve_query_set(indication).key if indication else None,
                 fda_store=self.fda_store,
                 product_code=filters.get("product_code"),
                 device_name=asset or None,
@@ -386,9 +523,11 @@ class DiligenceRunner:
             route_method=method,
             provenance=provenance,
             negative=negative,
+            approval=approval,
         )
 
-    def _answer(self, question: str, evidence: list[Evidence]) -> Answer:
+    def _answer(self, question: str, evidence: list[Evidence],
+                approval_guard: str = "") -> Answer:
         """Generate a grounded answer over provenance-labelled evidence."""
         if not evidence:
             return Answer(
@@ -421,7 +560,8 @@ class DiligenceRunner:
                     "role": "user",
                     "content": DILIGENCE_USER_TEMPLATE.format(
                         question=question, context=render_context(evidence)
-                    ),
+                    ) + (APPROVAL_PROMPT_GUARD.format(asset=approval_guard)
+                         if approval_guard else ""),
                 },
             ],
         )

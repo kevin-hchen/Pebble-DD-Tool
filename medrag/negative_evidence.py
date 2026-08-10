@@ -65,11 +65,64 @@ Return JSON only:
 "contradiction|non-replication|null-result|limitation|safety"}}]}}"""
 
 
+#: The two arms get their OWN budgets rather than competing for one, and the
+#: sizes were set by measurement, not by splitting 25 in half.
+#:
+#: They answer different questions — "has this compound failed anywhere, in any
+#: disease" and "what has failed in this disease" — and the first is the
+#: higher-value, harder-to-find answer. On the live colorectal store the
+#: indication arm holds 1,336 stopped trials against an intervention arm of
+#: 2-93, and 89% of the indication arm carries a stated reason, so the old
+#: shared sort (reason-stated, then NCT ID) decayed to alphabetical order across
+#: a pool the indication arm outnumbered by 15-600x.
+#:
+#: THE FIRST SPLIT TRIED WAS WRONG, AND THE MEASUREMENT SAID SO. Reserving 15
+#: of the 25 for the intervention arm looked protective and was not: for
+#: "encorafenib and cetuximab" the old shared budget happened to yield 20
+#: intervention rows, so a 15-row reservation DROPPED 5 of them, and across five
+#: real assets 23 intervention-derived trials that had been shown stopped being
+#: shown. A reservation is a ceiling as well as a floor, and putting a ceiling
+#: on the high-value arm is the opposite of the intent.
+#:
+#: So the arms are sized by their nature instead. The intervention arm is
+#: BOUNDED BY THE WORLD — a compound has as many trials as it has, 93 at the
+#: top of what was measured — and every one of them is a direct answer, so it
+#: gets the whole original budget and can never lose a row it used to show. The
+#: indication arm is effectively UNBOUNDED (1,336 and rising with the fetch), it
+#: is context rather than a finding about this asset, and no sample size makes a
+#: 1,336-row pool representative — so it gets a small fixed budget and states
+#: its denominator. Worst case a section grows from 25 rows to 35.
+#:
+#: Deliberately no spillover between them. Letting an empty intervention arm
+#: inflate the indication arm to 35 rows trades a bigger memo for more rows of a
+#: sample that was already unrepresentative at 10; the coverage line carries
+#: that information honestly in one sentence instead.
+INTERVENTION_BUDGET = 25
+INDICATION_BUDGET = 10
+
+#: How many candidates to pull per arm before ordering and truncating. Larger
+#: than the budget so "trials with a stated reason first" ranks over a real
+#: window rather than over exactly the rows that will be shown; bounded so a
+#: 1,336-trial arm is never materialised in full for a 35-row section.
+_CANDIDATE_WINDOW = (INTERVENTION_BUDGET + INDICATION_BUDGET) * 2
+
+INTERVENTION_ARM = "intervention"
+INDICATION_ARM = "indication"
+
+
 @dataclass
 class StoppedTrial:
     """A trial that stopped early. Deterministic; no model judgement."""
 
     record: TrialRecord
+    #: Which arm(s) surfaced it. A trial of this compound IN this indication is
+    #: found by both, and is attributed to the intervention arm because that is
+    #: the question it answers most directly.
+    arms: tuple[str, ...] = (INTERVENTION_ARM,)
+
+    @property
+    def from_intervention(self) -> bool:
+        return INTERVENTION_ARM in self.arms
 
     @property
     def reason(self) -> str:
@@ -103,7 +156,10 @@ class Finding:
 @dataclass
 class NegativeEvidence:
     claim: str = ""
-    stopped_trials: list[StoppedTrial] = field(default_factory=list)
+    #: The full sweep, with its per-arm denominators. `stopped_trials` below
+    #: reads from it, so every renderer keeps working while the counts a memo
+    #: must state stay reachable.
+    stopped: "StoppedTrialSweep" = field(default_factory=lambda: StoppedTrialSweep())
     recalls: list[Recall] = field(default_factory=list)
     adverse_events: list[AdverseEvent] = field(default_factory=list)
     event_totals: dict = field(default_factory=dict)   # event_type -> count in store
@@ -113,6 +169,11 @@ class NegativeEvidence:
     searched: bool = True          # False when the model half could not run
     fda_searched: bool = True      # False when no FDA store was available to check
     note: str = ""
+
+    @property
+    def stopped_trials(self) -> list[StoppedTrial]:
+        """What gets printed. Kept as the name every renderer already uses."""
+        return self.stopped.trials
 
     @property
     def is_empty(self) -> bool:
@@ -138,9 +199,11 @@ class NegativeEvidence:
         bits = []
         if self.stopped_trials:
             stated = sum(1 for s in self.stopped_trials if s.reason_is_stated)
+            # "of N" is not decoration here: this is a capped sample of a pool
+            # that reaches 1,336 on a real indication.
             bits.append(
-                f"{len(self.stopped_trials)} trial(s) stopped early "
-                f"({stated} with a stated reason)"
+                f"{len(self.stopped_trials)} of {self.stopped.n_total} trial(s) stopped "
+                f"early shown ({stated} with a stated reason)"
             )
         if self.recalls:
             bits.append(f"{len(self.recalls)} FDA recall(s)")
@@ -154,41 +217,178 @@ class NegativeEvidence:
         return "; ".join(bits)
 
 
+def _recency_key(start_date: str) -> int:
+    """Sort key placing the most recently started trial first, and a trial with
+    no start date on file last rather than first — an absent date is not a
+    recent one, the same not-found-is-not-a-value rule this codebase applies to
+    disclosures and biomarkers."""
+    digits = "".join(c for c in (start_date or "") if c.isdigit())[:8]
+    if not digits:
+        return 1                      # sorts after every negative value below
+    return -int(digits.ljust(8, "0"))
+
+
+@dataclass
+class StoppedTrialSweep:
+    """What the deterministic half found, per arm, with its denominators.
+
+    `trials` is what gets printed; every other field exists so a reader is never
+    shown a capped sample that looks like a complete answer. `store.query`
+    returns rows with no denominator, and this sweep used to inherit that: 25
+    shown of 1,336 and 25 shown of 25 rendered identically.
+    """
+    trials: list[StoppedTrial] = field(default_factory=list)
+    n_intervention_total: int = 0     # stopped trials of this compound, anywhere
+    n_indication_total: int = 0       # stopped trials in this indication
+    n_total: int = 0                  # unique union of the two arms
+    searched_intervention: bool = False   # False => no asset given, NOT "none found"
+    searched_indication: bool = False
+
+    @property
+    def n_shown(self) -> int:
+        return len(self.trials)
+
+    @property
+    def n_shown_intervention(self) -> int:
+        return sum(1 for t in self.trials if t.from_intervention)
+
+    @property
+    def n_shown_indication(self) -> int:
+        return sum(1 for t in self.trials if not t.from_intervention)
+
+    def coverage_line(self) -> str:
+        """One line naming the split and both denominators — the same discipline
+        the trial landscape applies to its own capped sample. Rendered by the
+        Markdown memo and the PDF from this single function so the two cannot
+        disagree."""
+        if not (self.searched_intervention or self.searched_indication):
+            return ""
+        arms = []
+        if self.searched_intervention:
+            arms.append(f"{self.n_shown_intervention} of {self.n_intervention_total} "
+                        "stopped trial(s) of this compound in any indication")
+        if self.searched_indication:
+            arms.append(f"{self.n_shown_indication} of {self.n_indication_total} "
+                        "stopped trial(s) in this indication")
+        held = self.n_total - self.n_shown
+        line = f"Showing {self.n_shown} of {self.n_total}: " + "; ".join(arms) + "."
+        if held > 0:
+            line += (f" {held} stopped trial(s) are not listed — each arm has its own "
+                     "budget, so a large indication pool cannot crowd out a trial of "
+                     "the compound itself.")
+        return line
+
+
 def find_stopped_trials(
     store,
     intervention: str | None = None,
     condition: str | None = None,
     limit: int = 25,
-) -> list[StoppedTrial]:
+    query_set: str | None = None,
+) -> StoppedTrialSweep:
     """Deterministic half. Pure SQL over the registry.
 
-    Intervention and condition are searched as alternatives, never ANDed. A
+    Intervention and indication are searched as alternatives, never ANDed. A
     trial of the same compound terminated in a DIFFERENT indication is among the
     most valuable things a diligence pass can surface - the molecule failed
     somewhere, and requiring the indication to match would hide it. Widening to
     OR risks a few loosely related trials, which a reader can dismiss; narrowing
     to AND risks silence, which they cannot detect.
+
+    TWO ARMS, TWO BUDGETS, TWO DENOMINATORS
+
+    The indication arm selects by `query_set`, like every other consumer in this
+    codebase. It used to run `LOWER(conditions) LIKE '%<indication>%'`, which was
+    exempted from the three condition-matching fixes on the reasoning that a
+    substring is loose and this sweep only ever wants to widen. The measurement
+    says the opposite: on the live colorectal store the substring saw 557 of
+    1,336 stopped trials and missed 779 of them (58%), because "Colorectal
+    Neoplasms" does not contain "colorectal cancer". A sweep whose whole purpose
+    is exhaustiveness was the least exhaustive path in the tool.
+
+    Fixing that made the indication arm 2.4x larger, which is exactly the
+    condition under which a shared budget starts hiding the intervention arm, so
+    the arms no longer share one. See INTERVENTION_BUDGET.
     """
+    sweep = StoppedTrialSweep()
     if store is None:
-        return []
+        return sweep
 
-    records: list[TrialRecord] = []
-    seen: set[str] = set()
-    for key in ("intervention", "condition"):
-        value = intervention if key == "intervention" else condition
-        if not value:
-            continue
-        for r in store.stopped_trials(**{key: value}, limit=limit):
-            if r.nct_id not in seen:
-                seen.add(r.nct_id)
-                records.append(r)
+    sweep.searched_intervention = bool(intervention)
+    sweep.searched_indication = bool(query_set or condition)
 
-    if not intervention and not condition:
+    if not intervention and not (query_set or condition):
+        # No handle at all: report the registry-wide stopped set, unsplit.
         records = store.stopped_trials(limit=limit)
+        sweep.trials = [StoppedTrial(record=r, arms=()) for r in records]
+        sweep.n_total = len(records)
+        return sweep
 
-    # Trials with a stated reason first: they carry more information.
-    records.sort(key=lambda r: (not bool(r.why_stopped), r.nct_id))
-    return [StoppedTrial(record=r) for r in records[:limit]]
+    def arm(**kw) -> list[TrialRecord]:
+        return store.stopped_trials(limit=_CANDIDATE_WINDOW, **kw) if any(kw.values()) else []
+
+    iv_records = arm(intervention=intervention)
+    ind_records = arm(query_set=query_set) if query_set else arm(condition=condition)
+
+    if intervention:
+        sweep.n_intervention_total = store.stopped_trials_total(intervention=intervention)
+    if query_set or condition:
+        sweep.n_indication_total = store.stopped_trials_total(
+            query_set=query_set, condition=None if query_set else condition)
+
+    # A trial found by both arms belongs to the intervention arm: it answers
+    # "has this compound failed" as well as "what has failed here", and the
+    # first is the question that is harder to answer any other way.
+    iv_ids = {r.nct_id for r in iv_records}
+    ind_only = [r for r in ind_records if r.nct_id not in iv_ids]
+
+    # Stated reasons first, then most recently started, within each arm. Done per
+    # arm rather than over the merged pool, because a merged sort is what let the
+    # larger arm decide the order of both.
+    #
+    # The recency tiebreak is not cosmetic. NCT ID was the old tiebreak and 89%
+    # of the indication arm carries a stated reason, so the sort decayed to
+    # alphabetical — which for NCT IDs means OLDEST-registered first, the exact
+    # opposite of what a diligence reader wants, and it made "which 25 of 81"
+    # depend on how many candidates happened to be fetched. Ordering by the same
+    # key the SQL already uses makes the candidate window invisible: fetching 70
+    # and showing 25 yields the same 25 as fetching 25.
+    def by_information(records):
+        return sorted(records, key=lambda r: (not bool(r.why_stopped),
+                                              _recency_key(r.start_date), r.nct_id))
+
+    iv_sorted, ind_sorted = by_information(iv_records), by_information(ind_only)
+
+    # Fixed per-arm budgets, no spillover — see INTERVENTION_BUDGET for why the
+    # intervention arm keeps the whole original budget rather than a share of it.
+    iv_take = min(len(iv_sorted), INTERVENTION_BUDGET)
+    ind_take = min(len(ind_sorted), INDICATION_BUDGET)
+
+    both_ids = {r.nct_id for r in ind_records} & iv_ids
+    trials = [
+        StoppedTrial(record=r,
+                     arms=(INTERVENTION_ARM, INDICATION_ARM) if r.nct_id in both_ids
+                     else (INTERVENTION_ARM,))
+        for r in iv_sorted[:iv_take]
+    ] + [
+        StoppedTrial(record=r, arms=(INDICATION_ARM,)) for r in ind_sorted[:ind_take]
+    ]
+
+    # The union total counts each trial once, so the two arm totals overlapping
+    # cannot inflate it.
+    overlap = store.stopped_trials_total(
+        intervention=intervention, query_set=query_set,
+        condition=None if query_set else condition,
+    ) if (intervention and (query_set or condition)) else 0
+    sweep.n_total = (sweep.n_intervention_total + sweep.n_indication_total - overlap)
+
+    # Presentation order across the merged, already-budgeted list: stated reason
+    # first, then the compound's own trials, then NCT. This decides only how the
+    # already-selected rows READ, never which rows survive the cap.
+    sweep.trials = sorted(
+        trials, key=lambda t: (not t.reason_is_stated, not t.from_intervention,
+                               t.record.nct_id))
+    return sweep
 
 
 def _resolve_product_codes(fda_store, product_code, device_name) -> list[str]:
@@ -313,13 +513,20 @@ def run_negative_pass(
     product_code: str | None = None,
     device_name: str | None = None,
     max_events: int = 15,
+    query_set: str | None = None,
 ) -> NegativeEvidence:
     """Run every half and assemble the section.
 
     The deterministic halves — stopped trials, and (for a device) FDA recalls and
     adverse events — always run when their store is present. The FDA device_name
-    defaults to the trial intervention, since the asset name is the same string."""
-    stopped = find_stopped_trials(trial_store, intervention=intervention, condition=condition)
+    defaults to the trial intervention, since the asset name is the same string.
+
+    `query_set` selects the indication arm of the stopped-trial sweep. A caller
+    that passes only `condition` still works, but selects by substring and will
+    under-count badly — see `find_stopped_trials`."""
+    sweep = find_stopped_trials(trial_store, intervention=intervention,
+                                condition=condition, query_set=query_set)
+    stopped = sweep.trials
 
     device = device_name or intervention
     recalls = find_device_recalls(fda_store, product_code=product_code, device_name=device)
@@ -337,7 +544,7 @@ def run_negative_pass(
 
     return NegativeEvidence(
         claim=claim,
-        stopped_trials=stopped,
+        stopped=sweep,
         recalls=recalls,
         adverse_events=events,
         event_totals=event_totals,

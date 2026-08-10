@@ -1,0 +1,179 @@
+# Deterministic relevance ranking for aggregate trial-landscape sections.
+#
+# EDIT THIS FILE, NOT CODE — same principle as trial_queries.yaml and
+# markers.yaml. "What matters when triaging a landscape of trials" is an
+# analyst judgment, not an engineering one. Argue with these numbers.
+#
+# WRITTEN BEFORE THE SIX GROUND-TRUTH TRIALS WERE CHECKED AGAINST THIS SCHEME.
+# The weights below are justified on principle first; the six-trial check that
+# follows in CLAUDE.md is reported as measured, not tuned to produce it. If a
+# principled scheme still buries a real trial, that is a finding about which
+# signals are available, not a reason to add a special case for that trial.
+#
+# No model call anywhere in this file's evaluation (medrag/ranking.py). Every
+# printed row states which of these fired and for how many points, in one
+# line — a score nobody can reconstruct by reading this file is worse than no
+# ranking at all, because it looks considered when it is not.
+#
+# SIGNALS DELIBERATELY LEFT OUT
+#
+# sponsor_class is NOT a ranking signal. It answers "who is paying for this",
+# not "how urgently should this be read first" — a Phase 3 run by an NCI
+# cooperative group is not less important than an identical industry-run one;
+# if anything this codebase already treats non-industry evidence as MORE
+# trustworthy elsewhere (disclosures.py's independence axis). Folding it into
+# an urgency score would silently bias toward industry sponsors for a reason
+# that has nothing to do with urgency. It stays visible on its own —
+# by_sponsor_class is already a first-class breakdown table in every aggregate
+# section — which is the right place for "who's running this", separate from
+# "read this one first".
+#
+# WHY THE OTHER SEVEN EARN A WEIGHT, AND HOW MUCH
+#
+# Ordered by how much they should move a partner's attention, highest first:
+#
+# 1. phase (highest weight). The single densest signal available: later phase
+#    means a larger, more resourced, more clinically mature program, and is
+#    the strongest available proxy for "how close is this to changing the
+#    competitive picture". Phase 4 is a genuine judgment call — it means an
+#    already-approved drug, more mature than Phase 3 in one sense but a
+#    settled competitive race in another — ranked just under Phase 3 rather
+#    than above it, because an active Phase 3 race is usually the more urgent
+#    read for a landscape built around an investigational asset.
+#
+# 2. status. Whether a trial is still moving matters for a different reason
+#    here than on the patient-facing page (there it is "can I enrol"; here it
+#    is "is this program active or dead"). A currently-recruiting trial is
+#    more likely to produce new information soon; a long-stopped one is
+#    presumably already reflected in whatever is publicly known about it.
+#    Second-highest weight, close to phase, because both answer "should this
+#    be read now" more directly than any size or provenance signal does.
+#
+# 3. enrolment and 3. allocation (tied, moderate weight, deliberately not
+#    dominant). Enrolment is a real, if noisy (ESTIMATED counts can be
+#    aspirational — see enrollment_type on the record, not scored here),
+#    proxy for statistical seriousness. Allocation (randomised vs not) is the
+#    same PRINCIPLE this codebase already applies to literature —
+#    evidence_grade.py grades publication type into a study-design tier for
+#    exactly this reason — applied here to trial design instead. Both matter,
+#    neither should outweigh phase or status: a large single-arm Phase 1 is
+#    still a Phase 1.
+#
+# 4. sites (lower weight than enrolment). Site count is largely REDUNDANT
+#    with enrolment — both measure "how big is this program" — so weighting
+#    it comparably would double-count the same underlying fact. Kept as a
+#    secondary, smaller nudge, not a primary driver.
+#
+# 5. provenance bonus (modest, and a genuinely different KIND of signal from
+#    the rest). The others measure the trial's own seriousness; this one
+#    measures how confidently we know it belongs in this section at all. A
+#    trial that a narrow, topic-specific full-text search (query.term, e.g.
+#    "MSS colorectal") ALSO found, on top of the broad condition net, has
+#    independent corroboration beyond what the (regex-based, imperfect)
+#    biomarker-gating census inferred from eligibility text alone. Deliberately
+#    modest: in a biomarker-filtered section the gating census is already the
+#    authoritative relevance signal, and this is secondary corroboration, not
+#    a replacement for it.
+#
+# 6. recency (lowest weight, a tiebreaker, not a driver). A trial that started
+#    recently reflects current scientific thinking; one that started years ago
+#    might reflect a superseded approach. Real but weak on its own: a
+#    well-powered Phase 3 readout is still hugely relevant regardless of when
+#    it started, so this should nudge ties, not decide rankings.
+#
+# 7. proximity — SCORED ON THE PATIENT-FACING TRIAL LANDSCAPE ONLY, and only
+#    when the patient typed a location. It is the one signal here that answers
+#    a question a diligence section never asks: a partner triaging competitive
+#    assets does not care where a trial's sites are, and a patient deciding
+#    whether they can realistically enrol cares enormously. medrag/ranking.py
+#    evaluates it only when a caller passes proximity_tier, so it never
+#    appears in a diligence memo's explain() line.
+#
+#    Weighted below phase and status deliberately, and this is the arguable
+#    number in this file. Distance is the patient's hardest practical
+#    constraint, so an argument for weighting it ABOVE phase is available. It
+#    is not taken, for two reasons. First, the match is a substring test on
+#    city/state/country with no geocoding (landscape.py's _proximity is honest
+#    about this) — "same state" can mean a six-hour drive, so the signal is
+#    coarser than its apparent precision. Second, the point of the landscape
+#    is to show a patient and their clinician what exists, and a large open
+#    Phase 3 two states away is usually a more useful row than a Phase 1 in
+#    town. A city match still moves a trial past several phase tiers' worth of
+#    lesser trials, which is the intended balance.
+#
+#    NOTE that this signal never fires when the location box is left empty:
+#    every trial then scores 0 here and ordering falls back to the other six.
+
+signals:
+  phase:
+    label: "Phase"
+    # `phase` is stored POST-conversion (trials/client.py's parse_study turns
+    # the API's "PHASE3" into "Phase 3", "PHASE1/PHASE2" into
+    # "Phase 1/Phase 2", "EARLY_PHASE1" into "EARLY_Phase 1") — match against
+    # THAT format, not the raw API token. Matching is case-insensitive, so
+    # the exact casing here does not matter, but the wording does.
+    tiers:
+      - {match: ["PHASE 3", "PHASE 2/PHASE 3"], points: 30, label: "Phase 3"}
+      - {match: ["PHASE 4"], points: 25, label: "Phase 4"}
+      - {match: ["PHASE 2", "PHASE 1/PHASE 2"], points: 20, label: "Phase 2"}
+      - {match: ["PHASE 1"], points: 10, label: "Phase 1"}
+      - {match: ["EARLY_PHASE 1"], points: 5, label: "Early Phase 1"}
+    default: {points: 0, label: "phase not stated"}
+
+  status:
+    label: "Status"
+    tiers:
+      - {match: [RECRUITING, NOT_YET_RECRUITING], points: 20, label: "open to enrolment"}
+      - {match: [ACTIVE_NOT_RECRUITING, ENROLLING_BY_INVITATION], points: 12, label: "active, not recruiting"}
+      - {match: [COMPLETED], points: 6, label: "completed"}
+      - {match: [TERMINATED, WITHDRAWN, SUSPENDED], points: 0, label: "stopped early"}
+    default: {points: 3, label: "status not stated"}
+
+  enrollment:
+    label: "Enrolment"
+    # Bins checked largest-first; the first one the count clears wins.
+    bins:
+      - {min: 300, points: 15, label: "{count} enrolled"}
+      - {min: 100, points: 10, label: "{count} enrolled"}
+      - {min: 1, points: 4, label: "{count} enrolled"}
+    default: {points: 0, label: "enrolment not stated"}
+
+  allocation:
+    label: "Design"
+    tiers:
+      - {match: [RANDOMIZED], points: 10, label: "randomised"}
+      - {match: [NON_RANDOMIZED], points: 0, label: "non-randomised"}
+    default: {points: 0, label: "allocation not stated"}
+
+  sites:
+    label: "Sites"
+    bins:
+      - {min: 20, points: 8, label: "{count} sites"}
+      - {min: 5, points: 5, label: "{count} sites"}
+      - {min: 1, points: 2, label: "{count} site(s) on file"}
+    default: {points: 0, label: "no sites on file"}
+
+  provenance:
+    label: "Search provenance"
+    # A trial found by ANY query.term-based query in the set (a "term:" label
+    # in found_by), in addition to the broad condition net, gets this bonus.
+    term_query_bonus: 6
+    term_query_label: "matched a topic-specific search, not just the broad condition net"
+
+  recency:
+    label: "Start date"
+    bins:
+      - {within_days: 730, points: 8, label: "started within the last 2 years"}
+      - {within_days: 1825, points: 3, label: "started within the last 5 years"}
+    default: {points: 0, label: "start date not stated or over 5 years ago"}
+
+  proximity:
+    label: "Proximity"
+    # Tiers are landscape.py's _proximity match: 3 city, 2 state, 1 country.
+    # Tier 0 (no match, or no location typed) scores nothing and prints
+    # nothing, the same way an unmatched provenance bonus does.
+    tiers:
+      - {tier: 3, points: 12, label: "a site in the patient's city"}
+      - {tier: 2, points: 8, label: "a site in the patient's state"}
+      - {tier: 1, points: 4, label: "a site in the patient's country"}
+    default: {points: 0, label: ""}

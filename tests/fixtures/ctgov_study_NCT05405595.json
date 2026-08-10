@@ -1,0 +1,809 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT05405595",
+      "orgStudyIdInfo": {
+        "id": "ADG126-P001"
+      },
+      "secondaryIdInfos": [
+        {
+          "id": "KEYNOTE-C98, MK-3475-C98",
+          "type": "OTHER",
+          "domain": "Merck Sharp & Dohme LLC"
+        }
+      ],
+      "organization": {
+        "fullName": "Adagene Inc",
+        "class": "INDUSTRY"
+      },
+      "briefTitle": "ADG126 in Combination With Pembrolizumab in Patients With Advanced/Metastatic Solid Tumors",
+      "officialTitle": "A Phase 1b/2, Open-Label, Dose Escalation and Expansion Study of ADG126 in Combination With Pembrolizumab (Anti PD-1 Antibody) in Patients With Advanced/Metastatic Solid Tumors"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2026-01",
+      "overallStatus": "RECRUITING",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2022-06-15",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2026-10-31",
+        "type": "ESTIMATED"
+      },
+      "completionDateStruct": {
+        "date": "2027-04-30",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2022-05-16",
+      "studyFirstSubmitQcDate": "2022-06-02",
+      "studyFirstPostDateStruct": {
+        "date": "2022-06-06",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2026-01-06",
+      "lastUpdatePostDateStruct": {
+        "date": "2026-01-07",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "Adagene Inc",
+        "class": "INDUSTRY"
+      },
+      "collaborators": [
+        {
+          "name": "Merck Sharp & Dohme LLC",
+          "class": "INDUSTRY"
+        }
+      ]
+    },
+    "oversightModule": {
+      "oversightHasDmc": true,
+      "isFdaRegulatedDrug": true,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "This is a Phase 1b/2, open-label, dose escalation, dose expansion and dose optimization study to evaluate the safety, tolerability, PK, and immunogenicity of ADG126-pembrolizumab combination regimens in patients with advanced/metastatic solid tumors.\n\nThe study drug ADG126 is an anti-CTLA-4 fully human monoclonal antibody that specifically binds to human CTLA-4. Pembrolizumab is a PD-1 receptor-blocking antibody (a humanized IgG4 monoclonal antibody).",
+      "detailedDescription": "This is a Phase 1b/2, open-label, multicenter, dose escalation, dose expansion and dose optimization study to evaluate the safety, tolerability, PK, and preliminary efficacy of ADG126-Pembrolizumab or ADG126-Pembrolizumab in combination with trifluridine/tipiracil-bevacizumab or fruquintinib in patients with advanced/metastatic solid tumors, with a focus on MSS CRC.\n\nIn Phase 2, the study will use a randomized design to evaluate the dose optimization regimen in patients with MSS CRC for ADG126- Pembrolizumab doublet only."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Advanced/Metastatic Solid Tumors"
+      ],
+      "keywords": [
+        "ADG126-P001"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE1",
+        "PHASE2"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "SEQUENTIAL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 186,
+        "type": "ESTIMATED"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "ADG126 in combination with Pembrolizumab (Trade name KEYTRUDA\u00ae)",
+          "type": "EXPERIMENTAL",
+          "description": "An IV infusion of ADG126 over 60-90 minutes will be administered 30-60 minutes after administration of pembrolizumab (KEYTRUDA\u00ae) infusion. A treatment cycle will consist of 21 days. ADG126 and Pembrolizumab (KEYTRUDA\u00ae) combination treatment both will be dosed until progressive disease (PD), intolerable toxicities, withdrawals of consent, or up to 35 cycles.",
+          "interventionNames": [
+            "Drug: ADG126",
+            "Drug: Pembrolizumab (KEYTRUDA\u00ae)"
+          ]
+        },
+        {
+          "label": "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with Trifluridine/Tipiracil-Bevacizumab",
+          "type": "EXPERIMENTAL",
+          "description": "To evaluate the preliminary antitumor efficacy of ADG126 and Pembrolizumab (KEYTRUDA\u00ae) in combination with SOC (Trifluridine/Tipiracil-Bevacizumab) while assessing safety and tolerability. Standard of care treatment will be administered according to the specifications outlined in the Investigational Brochure. Will be dosed until progressive disease (PD), intolerable toxicities, withdrawals of consent, or up to 35 cycles.",
+          "interventionNames": [
+            "Drug: ADG126",
+            "Drug: Pembrolizumab (KEYTRUDA\u00ae)",
+            "Drug: Standard of Care (Trifluridine/Tipiracil-Bevacizumab)"
+          ]
+        },
+        {
+          "label": "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with fruquintinib",
+          "type": "EXPERIMENTAL",
+          "description": "To evaluate the preliminary antitumor efficacy of ADG126 and Pembrolizumab (KEYTRUDA\u00ae) in combination with SOC (Fruquintinib) while assessing safety and tolerability. The dose strength for treatment will be based on the IB and protocol. Fruquintinib (Fruzaqla) is orally given once daily for the first 21 days of each 28-day cycle. Each treatment cycle consists of 14 days. Will be dosed until progressive disease (PD), intolerable toxicities, withdrawals of consent, or up to 35 cycles.",
+          "interventionNames": [
+            "Drug: ADG126",
+            "Drug: Pembrolizumab (KEYTRUDA\u00ae)",
+            "Drug: Standard of care (Fruquintinib)"
+          ]
+        },
+        {
+          "label": "Dose Optimization",
+          "type": "EXPERIMENTAL",
+          "description": "The randomized phase 2 Dose Optimization arm is intended to test two dosing regimens of ADG126 in combination with pembrolizumab (KEYTRUDA\u00ae), which allows the selection of an optimal regimen. The study treatments may continue for up to 35 treatments for pembrolizumab (KEYTRUDA\u00ae) if given every 21 days and 18 treatments for pembrolizumab (KEYTRUDA\u00ae) if given every 42 days until PD, intolerable toxicities or withdrawal of consent.",
+          "interventionNames": [
+            "Drug: ADG126",
+            "Drug: Pembrolizumab (KEYTRUDA\u00ae)"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "ADG126",
+          "description": "ADG126 is an anti-CTLA-4 fully human monoclonal antibody that specifically binds to human CTLA-4.",
+          "armGroupLabels": [
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with Trifluridine/Tipiracil-Bevacizumab",
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with fruquintinib",
+            "ADG126 in combination with Pembrolizumab (Trade name KEYTRUDA\u00ae)",
+            "Dose Optimization"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Pembrolizumab (KEYTRUDA\u00ae)",
+          "description": "Pembrolizumab (KEYTRUDA\u00ae) is a PD-1 receptor-blocking antibody (a humanized IgG4 monoclonal antibody).",
+          "armGroupLabels": [
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with Trifluridine/Tipiracil-Bevacizumab",
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with fruquintinib",
+            "ADG126 in combination with Pembrolizumab (Trade name KEYTRUDA\u00ae)",
+            "Dose Optimization"
+          ],
+          "otherNames": [
+            "KEYTRUDA\u00ae"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Standard of Care (Trifluridine/Tipiracil-Bevacizumab)",
+          "description": "The standard of care therapies will include Trifluridine/Tipiracil-Bevacizumab, approved for treating metastatic colorectal cancer (CRC)and various solid tumors.",
+          "armGroupLabels": [
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with Trifluridine/Tipiracil-Bevacizumab"
+          ],
+          "otherNames": [
+            "Lonsurf and Avastin"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Standard of care (Fruquintinib)",
+          "description": "The standard of care therapy, Fruquintinib, is approved for treating metastatic colorectal cancer (CRC) and various solid tumors.",
+          "armGroupLabels": [
+            "ADG126 and pembrolizumab (KEYTRUDA\u00ae) in combination with fruquintinib"
+          ],
+          "otherNames": [
+            "Fruzaqla"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Maximum tolerated dose (MTD) and RP2D for ADG126 in combination with pembrolizumab.",
+          "description": "To determine the maximum tolerated dose (MTD) and recommended phase 2 dose (RP2D) for ADG126+ pembrolizumab in dose escalation levels",
+          "timeFrame": "9 months"
+        },
+        {
+          "measure": "the safety and tolerability of ADG126 at escalating dose level in combination with pembrolizumab in adults with advanced metastatic solid tumors",
+          "description": "Incidence rate of AEs as assessed by CTCAE v5.0",
+          "timeFrame": "9 months"
+        },
+        {
+          "measure": "Access the preliminary antitumor activity of ADG126-pembrolizumab combination regimens",
+          "description": "Number of Participants with preliminary antitumor activity",
+          "timeFrame": "9 months"
+        },
+        {
+          "measure": "Maximum tolerated dose (MTD) and/or RP2D for ADG126 with Trifluridine/Tipiracil-Bevacizumab",
+          "description": "To assess the safety and tolerability of ADG126 + pembrolizumab in combination with the following SOC therapies (Trifluridine/tipiracil-bevacizumab) in MSS CRC\n\nTo determine the MTD and/or RP2D for ADG126 + pembrolizumab in combination with the following SOC therapies in MSS CRC:",
+          "timeFrame": "6 months"
+        },
+        {
+          "measure": "Access the preliminary antitumor activity of ADG126 with Pembrolizumab in combination standard of care",
+          "description": "To assess the preliminary antitumor activity of ADG126 + pembrolizumab in combination with the following SOC therapies in MSS CRC (Trifluridine/tipiracil-bevacizumab)\n\nSOC (Fruquintinib)",
+          "timeFrame": "6 months"
+        },
+        {
+          "measure": "Access and characterize the optimal dose based on safety and efficacy parameters",
+          "description": "To characterize the optimal dose based on safety and efficacy parameters",
+          "timeFrame": "9 months"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Pharmacokinetic (PK) profile/parameters",
+          "description": "Area under the time concentration curve (AUC) from time zero to infinity (AUC0-inf)",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "Maximum (peak) plasma concentration (Cmax)",
+          "description": "Maximum (peak) plasma concentration (Cmax)",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "Time to maximum (peak) concentration (Tmax)",
+          "description": "Time to maximum (peak) concentration (Tmax)",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "Trough concentration (Ctrough)",
+          "description": "Trough concentration (Ctrough)",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "Incidence of ADAs",
+          "description": "this will be summarized for all patients who received at least 1 administration of ADG126. efficacy and safety will be evaluated.",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "To assess the disease control rate (DCR)",
+          "description": "this will be calculated as the proportion/percentage of patients with best overall response of CR,PR,SD or progressive disease will be calculated.",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "To assess the progression free survival (PFS)",
+          "description": "PFS will be censored at the time of the last evaluable tumor assessment (RECISTv1.1 and iRECIST)",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "To assess the overall survival (OS)",
+          "description": "This will be used to estimate median survival times where applicable.",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        },
+        {
+          "measure": "To assess the efficacy outcomes in the defined patient population",
+          "description": "The dose optimization arm will be used to access the efficacy outcome derived in the defined patient population",
+          "timeFrame": "From first dose (Cycle 1 Day 1,) until the last dose (up to 2 years)"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. \u226518 years of age at the time of informed consent.\n2. Eastern Cooperative Oncology Group (ECOG) performance status 0 or 1.\n3. Wash out period from previous antitumor therapies\n4. At least 1 measurable lesion at baseline according to the definition of RECIST v1.1.\n5. Adequate organ function.\n6. An archival tumor biopsy is required and should be taken within 2 years of enrollment. If not available, a fresh tumor biopsy is acceptable.\n7. For Dose Escalation Phase Only: Patients with histologically or cytologically confirmed, locally advanced or metastatic solid tumors, who have progressed after all standard therapies, or for whom no further standard therapy exists.\n8. Dose Expansion Phase Only: Tumor tissues (archived tissue) before treatment are required for all patients.\n\nExclusion Criteria:\n\n1. Pregnant or breastfeeding females.\n2. Childbearing potential who does not agree to the use of contraception during the treatment period.\n3. Treatment with any investigational drug within washout period.\n4. Prior treatment with a PD-1, PD-L1 targeting agent or a next-generation anti-CTLA-4 therapy with enhanced ADCC function.\n5. History of significant irAEs or irAE.\n6. Central nervous system (CNS) disease involvement.\n7. History or risk of autoimmune disease.\n8. Patients requiring systemic treatment with corticosteroids or other immunosuppressive medications (\\>10 mg/day prednisone or equivalent).\n9. Any uncontrolled active infections requiring systemic antimicrobial treatment (viral, bacterial, or other), or uncontrolled or poorly controlled, asthma, chronic obstructive pulmonary disease (COPD).\n10. Major surgery within 4 weeks prior to the first dose of the study drug.\n11. Has had an allogeneic tissue/solid organ transplant.\n12. Has received a COVID-19 vaccine within 7 days prior to the first dose of study treatment. Has received a live or live-attenuated vaccine within 30 days prior to the first dose of study treatment. Note: Administration of killed vaccines are allowed.\n13. A positive COVID-19 test within 14 days of Cycle 1 Day 1.\n14. History of Hypersensitivity or known to be allergic to protein drugs or recombinant protein.\n15. Active hemoptysis or central airway invasion by metastatic tumor.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "centralContacts": [
+        {
+          "name": "Xiaohong She, MS",
+          "role": "CONTACT",
+          "phone": "408-838-9296",
+          "email": "kristine_she@adagene.com"
+        },
+        {
+          "name": "Jiping Zha, MD, PhD",
+          "role": "CONTACT",
+          "phone": "650-785-9347",
+          "email": "jiping_zha@adagene.com"
+        }
+      ],
+      "overallOfficials": [
+        {
+          "name": "Jiping Zha, MD, PhD",
+          "affiliation": "Adagene Inc",
+          "role": "STUDY_DIRECTOR"
+        }
+      ],
+      "locations": [
+        {
+          "facility": "Honor Health Research Institute",
+          "status": "RECRUITING",
+          "city": "Scottsdale",
+          "state": "Arizona",
+          "zip": "85251",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "Sharma Sunil, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 33.50921,
+            "lon": -111.89903
+          }
+        },
+        {
+          "facility": "City of Hope National Medical Center",
+          "status": "RECRUITING",
+          "city": "Duarte",
+          "state": "California",
+          "zip": "91010",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "Daneng Li, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Marwan Fakih, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 34.13945,
+            "lon": -117.97729
+          }
+        },
+        {
+          "facility": "City of Hope Orange County",
+          "status": "RECRUITING",
+          "city": "Irvine",
+          "state": "California",
+          "zip": "92618",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "Pashtoon Kasi, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 33.66946,
+            "lon": -117.82311
+          }
+        },
+        {
+          "facility": "Florida cancer specialist/Sarah Cannon Research Institute",
+          "status": "ACTIVE_NOT_RECRUITING",
+          "city": "Sarasota",
+          "state": "Florida",
+          "zip": "34232",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 27.33643,
+            "lon": -82.53065
+          }
+        },
+        {
+          "facility": "The Cleveland Clinic",
+          "status": "RECRUITING",
+          "city": "Cleveland",
+          "state": "Ohio",
+          "zip": "44195-0001",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "Smitha Krishnamurthi, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 41.4995,
+            "lon": -81.69541
+          }
+        },
+        {
+          "facility": "MD Anderson Cancer Center",
+          "status": "RECRUITING",
+          "city": "Houston",
+          "state": "Texas",
+          "zip": "77030",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "David Hong, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Mary Trahan",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 29.76328,
+            "lon": -95.36327
+          }
+        },
+        {
+          "facility": "Fred Hutchinson Cancer Center",
+          "status": "RECRUITING",
+          "city": "Seattle",
+          "state": "Washington",
+          "zip": "98109",
+          "country": "United States",
+          "contacts": [
+            {
+              "name": "Rachael Safyan, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 47.60621,
+            "lon": -122.33207
+          }
+        },
+        {
+          "facility": "Fujian Cancer Hospital",
+          "status": "RECRUITING",
+          "city": "Fuzhou",
+          "state": "Fujian",
+          "country": "China",
+          "contacts": [
+            {
+              "name": "Yu Chen, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 26.06139,
+            "lon": 119.30611
+          }
+        },
+        {
+          "facility": "SunYat-Sen University Cancer Center",
+          "status": "RECRUITING",
+          "city": "Guangzhou",
+          "state": "Guangdong",
+          "country": "China",
+          "contacts": [
+            {
+              "name": "Ruihua Xu, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 23.11667,
+            "lon": 113.25
+          }
+        },
+        {
+          "facility": "Hong Kong Humanity & Health Clinical Trial Center",
+          "status": "RECRUITING",
+          "city": "Hong Kong",
+          "state": "Hong Kong",
+          "country": "China",
+          "contacts": [
+            {
+              "name": "George Lau, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 22.27832,
+            "lon": 114.17469
+          }
+        },
+        {
+          "facility": "Prince of Wales Hospital",
+          "status": "RECRUITING",
+          "city": "Hong Kong",
+          "state": "Hong Kong",
+          "country": "China",
+          "contacts": [
+            {
+              "name": "Brigette B.Y Ma, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 22.27832,
+            "lon": 114.17469
+          }
+        },
+        {
+          "facility": "Dong -A University Hospital",
+          "status": "TERMINATED",
+          "city": "Seogu",
+          "state": "Busan Gwangyeogsi",
+          "zip": "49201",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 36.14168,
+            "lon": 126.95444
+          }
+        },
+        {
+          "facility": "CHA Bundang Medical Center, CHA university",
+          "status": "RECRUITING",
+          "city": "Seongnam",
+          "state": "Gyeonggido",
+          "zip": "13496",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Hing Jae Chon, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Song I Kang",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 36.4052,
+            "lon": 127.7548
+          }
+        },
+        {
+          "facility": "The Catholic University of Korea Street. Vincent Hospital",
+          "status": "TERMINATED",
+          "city": "Suwon",
+          "state": "Gyeonggido",
+          "zip": "16247",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.29111,
+            "lon": 127.00889
+          }
+        },
+        {
+          "facility": "Chungbuk National University Hospital",
+          "status": "RECRUITING",
+          "city": "Cheongju-si",
+          "state": "North Chungcheong",
+          "zip": "28644",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Ki Hyeong Lee, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Hee Kyung Kim, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 36.63722,
+            "lon": 127.48972
+          }
+        },
+        {
+          "facility": "Samsung Medical Center",
+          "status": "RECRUITING",
+          "city": "Seoul",
+          "state": "Seoul Teugbyeolsi",
+          "zip": "06351",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Byoung Yong Shim, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Jee Yun Lee, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Keimyung University Dongsan Hospital",
+          "status": "TERMINATED",
+          "city": "Daegu",
+          "zip": "41931",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 35.87028,
+            "lon": 128.59111
+          }
+        },
+        {
+          "facility": "Seoul National University Hospital",
+          "status": "RECRUITING",
+          "city": "Seoul",
+          "zip": "03080",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Seock -Ah Im, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Sae Won Han, MD",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "KangBuk Samsung Hospital",
+          "status": "TERMINATED",
+          "city": "Seoul",
+          "zip": "03081",
+          "country": "South Korea",
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Asan Medical Center",
+          "status": "RECRUITING",
+          "city": "Seoul",
+          "zip": "05505",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Sun Young Kim, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Ko Eun- Young",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        },
+        {
+          "facility": "Severance Hospital Yonsei University Health System",
+          "status": "RECRUITING",
+          "city": "Seoul",
+          "zip": "3722",
+          "country": "South Korea",
+          "contacts": [
+            {
+              "name": "Sang Joon Shin, MD",
+              "role": "CONTACT"
+            },
+            {
+              "name": "Da Seul Lee",
+              "role": "CONTACT"
+            }
+          ],
+          "geoPoint": {
+            "lat": 37.566,
+            "lon": 126.9784
+          }
+        }
+      ]
+    },
+    "ipdSharingStatementModule": {
+      "ipdSharing": "NO"
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-08-03"
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "C582435",
+          "term": "pembrolizumab"
+        },
+        {
+          "id": "D059039",
+          "term": "Standard of Care"
+        },
+        {
+          "id": "D014271",
+          "term": "Trifluridine"
+        },
+        {
+          "id": "C000613803",
+          "term": "trifluridine tipiracil drug combination"
+        },
+        {
+          "id": "D000068258",
+          "term": "Bevacizumab"
+        },
+        {
+          "id": "C000591844",
+          "term": "HMPL-013"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D019984",
+          "term": "Quality Indicators, Health Care"
+        },
+        {
+          "id": "D011787",
+          "term": "Quality of Health Care"
+        },
+        {
+          "id": "D006298",
+          "term": "Health Services Administration"
+        },
+        {
+          "id": "D017530",
+          "term": "Health Care Quality, Access, and Evaluation"
+        },
+        {
+          "id": "D013936",
+          "term": "Thymidine"
+        },
+        {
+          "id": "D011741",
+          "term": "Pyrimidine Nucleosides"
+        },
+        {
+          "id": "D011743",
+          "term": "Pyrimidines"
+        },
+        {
+          "id": "D006573",
+          "term": "Heterocyclic Compounds, 1-Ring"
+        },
+        {
+          "id": "D006571",
+          "term": "Heterocyclic Compounds"
+        },
+        {
+          "id": "D003853",
+          "term": "Deoxyribonucleosides"
+        },
+        {
+          "id": "D009705",
+          "term": "Nucleosides"
+        },
+        {
+          "id": "D009706",
+          "term": "Nucleic Acids, Nucleotides, and Nucleosides"
+        },
+        {
+          "id": "D061067",
+          "term": "Antibodies, Monoclonal, Humanized"
+        },
+        {
+          "id": "D000911",
+          "term": "Antibodies, Monoclonal"
+        },
+        {
+          "id": "D000906",
+          "term": "Antibodies"
+        },
+        {
+          "id": "D007136",
+          "term": "Immunoglobulins"
+        },
+        {
+          "id": "D007162",
+          "term": "Immunoproteins"
+        },
+        {
+          "id": "D001798",
+          "term": "Blood Proteins"
+        },
+        {
+          "id": "D011506",
+          "term": "Proteins"
+        },
+        {
+          "id": "D000602",
+          "term": "Amino Acids, Peptides, and Proteins"
+        },
+        {
+          "id": "D012712",
+          "term": "Serum Globulins"
+        },
+        {
+          "id": "D005916",
+          "term": "Globulins"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

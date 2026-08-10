@@ -21,6 +21,7 @@ from .vectorstore import VectorStore
 CORPUS_FILE = "corpus.jsonl"
 TRIALS_DB = "trials.db"
 FDA_DB = "fda.db"
+DRUGS_DB = "drugs.db"
 
 PHI_WARNING = """
 ┌─ PRIVACY NOTICE ─────────────────────────────────────────────────────────────┐

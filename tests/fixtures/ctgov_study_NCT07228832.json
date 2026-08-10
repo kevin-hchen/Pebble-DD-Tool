@@ -1,0 +1,2001 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT07228832",
+      "orgStudyIdInfo": {
+        "id": "SMT112-3005"
+      },
+      "organization": {
+        "fullName": "Summit Therapeutics",
+        "class": "INDUSTRY"
+      },
+      "briefTitle": "Phase III Study of Ivonescimab or Bevacizumab Combined With FOLFOX in Patients With Metastatic Colorectal Cancer",
+      "officialTitle": "A Randomized, Active-Controlled, Double-blind, Multicenter, Phase 3 Clinical Study of Ivonescimab in Combination With FOLFOX Versus Bevacizumab in Combination With FOLFOX for the First-line Treatment of Metastatic Colorectal Cancer",
+      "acronym": "HARMONi-GI3"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2026-07",
+      "overallStatus": "RECRUITING",
+      "startDateStruct": {
+        "date": "2025-11-18",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2028-05-31",
+        "type": "ESTIMATED"
+      },
+      "completionDateStruct": {
+        "date": "2029-11-30",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2025-11-10",
+      "studyFirstSubmitQcDate": "2025-11-13",
+      "studyFirstPostDateStruct": {
+        "date": "2025-11-14",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2026-07-01",
+      "lastUpdatePostDateStruct": {
+        "date": "2026-07-06",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "Summit Therapeutics",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "oversightHasDmc": true,
+      "isFdaRegulatedDrug": true,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "A Randomized, Active-Controlled, Double-blind, Multicenter, Phase 3 Clinical Study of Ivonescimab in Combination with mFOLFOX6 (Oxaliplatin, Leucovorin and 5-Fluorouracil) versus Bevacizumab in Combination with FOLFOX for the First-line Treatment of Metastatic Colorectal Cancer(HARMONi-GI3)",
+      "detailedDescription": "This trial will be performed as a phase 3, randomized, active-controlled, double-blind, multiregional study comparing Ivonescimab in combination with mFOLFOX6 (Oxaliplatin, Leucovorin and 5-Fluorouracil) versus Bevacizumab in combination with mFOLFOX6 in patients with metastatic colorectal cancer who have not previously received systemic therapy for metastatic disease. Approximately 600 patients will be randomly assigned to the 2 treatment groups in a 1:1 ratio. Each enrolled subject will receive an intravenous infusion of the Ivonescimab/Bevacizumab Plus mFOLFOX6 (Q2W, up to 8 cycles) in treatment periods per the randomization schedule. Afterward, Ivonescimab/ Bevacizumab Plus 5-Fluorouracil and Leucovorin will be used for maintenance treatment (administered on Day 1 of each cycle, Q2W) for up to 2 years."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Metastatic Colorectal Cancer (CRC)"
+      ],
+      "keywords": [
+        "mCRC",
+        "Ivonescimab"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE3"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "QUADRUPLE",
+          "whoMasked": [
+            "PARTICIPANT",
+            "CARE_PROVIDER",
+            "INVESTIGATOR",
+            "OUTCOMES_ASSESSOR"
+          ]
+        }
+      },
+      "enrollmentInfo": {
+        "count": 600,
+        "type": "ESTIMATED"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Arm A: Ivonescimab in combination with mFOLFOX6",
+          "type": "EXPERIMENTAL",
+          "description": "Subjects will receive Ivonescimab Plus mFOLFOX6 via intravenous infusion (IV) Q2W, up to 8 cycles. Afterward, Ivonescimab plus Leucovorin and 5-FU will be used for maintenance treatment (administered on Day 1 of each cycle, Q2W) up to 2 years.",
+          "interventionNames": [
+            "Drug: Drug: Ivonescimab Injection"
+          ]
+        },
+        {
+          "label": "Arm B: Bevacizumab in combination with mFOLFOX6",
+          "type": "ACTIVE_COMPARATOR",
+          "description": "Subjects will receive bevacizumab Plus mFOLFOX6 (Oxaliplatin, Leucovorin and 5-Fluorouracil) via intravenous infusion (IV) Q2W, up to 8 cycles in treatment periods per the randomization schedule. Afterward, bevacizumab Plus 5-FU and Leucovorin will be used for maintenance treatment (administered on Day 1 of each cycle, Q2W) up to 2 years.",
+          "interventionNames": [
+            "Drug: Drug: Bevacizumab Injection"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Drug: Ivonescimab Injection",
+          "description": "Subjects will receive Ivonescimab Plus mFOLFOX6 (Oxaliplatin, Leucovorin and 5-Fluorouracil) via intravenous infusion (IV) Q2W, up to 8 cycles. Afterward, Ivonescimab plus Leucovorin and 5-Fluorouracil will be used for maintenance treatment (administered on Day 1 of each cycle, Q2W) for up to 2 years.",
+          "armGroupLabels": [
+            "Arm A: Ivonescimab in combination with mFOLFOX6"
+          ],
+          "otherNames": [
+            "Oxaliplatin",
+            "Leucovorin",
+            "5-Fluorouracil"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Drug: Bevacizumab Injection",
+          "description": "Subjects will receive bevacizumab Plus mFOLFOX6 (Oxaliplatin, Leucovorin and 5-Fluorouracil) via intravenous infusion (IV) Q2W, up to 8 cycles in treatment periods per the randomization schedule. Afterward, bevacizumab Plus 5-FU and Leucovorin will be used for maintenance treatment (administered on Day 1 of each cycle, Q2W) up to 2 years.",
+          "armGroupLabels": [
+            "Arm B: Bevacizumab in combination with mFOLFOX6"
+          ],
+          "otherNames": [
+            "Oxaliplatin",
+            "Leucovorin",
+            "5-Fluorouracil"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "PFS by IRRC based on RECIST v1.1",
+          "description": "Progression-free survival (PFS) assessed by IRRC per RECIST v1.1",
+          "timeFrame": "Up to approximately 2.5 years"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Overall Survival (OS) in the population",
+          "description": "Overall Survival (OS) in the mCRC population",
+          "timeFrame": "Up to approximately 4 years"
+        },
+        {
+          "measure": "ORR",
+          "description": "Efficacy measures such as overall response rate (ORR), which is the proportion of subjects with CR or PR by IRRC based on RECIST v1.1",
+          "timeFrame": "Up to approximately 2.5 years"
+        },
+        {
+          "measure": "Adverse Events (AE)",
+          "description": "incidence and severity of adverse events (AEs) and clinically significant abnormal laboratory test results \\[From the time subject signs the ICF to 30 days (AE) and 90 days (SAE related to ivonescimab/bevacizumab) after the last dose of study treatment or initiation of other anticancer therapy, whichever occurs first\\]",
+          "timeFrame": "Up to approximately 4 years"
+        },
+        {
+          "measure": "DoR",
+          "description": "Efficacy measures such as duration of response (DoR), which is the proportion of subjects with CR or PR by IRRC based on RECIST v1.1",
+          "timeFrame": "up to approximately 2.5 years"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. ECOG performance status score of 0 or 1\n2. Expected life expectancy \u2265 6 months\n3. Patients with histologically or cytologically confirmed metastatic CRC\n4. No prior systemic therapy for metastatic CRC\n5. At least 1 measurable noncerebral lesion\n\nExclusion Criteria:\n\n1. Microsatellite instability-high (MSI-H) or mismatch repair deficient (dMMR) disease\n2. Known BRAF V600E mutant status\n3. Current presence of significant radiographic or clinical manifestations of gastrointestinal (GI) obstruction\n4. Ascites requiring paracentesis within last 30 days\n5. Patients who have received prior immunotherapy or anti-angiogenic therapy for colorectal cancer\n6. Active or prior history of inflammatory bowel disease (eg, Crohn's disease, ulcerative colitis, or chronic diarrhea)\n7. Resectable disease",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "centralContacts": [
+        {
+          "name": "Ning Chang, MD",
+          "role": "CONTACT",
+          "phone": "1-833-256-0522",
+          "email": "medicalaffairs@summitplc.com"
+        }
+      ],
+      "locations": [
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Mobile",
+          "state": "Alabama",
+          "zip": "36604",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 30.69436,
+            "lon": -88.04305
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tuscaloosa",
+          "state": "Alabama",
+          "zip": "35487",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.20984,
+            "lon": -87.56917
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Goodyear",
+          "state": "Arizona",
+          "zip": "85338",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.43532,
+            "lon": -112.35821
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Beverly Hills",
+          "state": "California",
+          "zip": "90211",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.07362,
+            "lon": -118.40036
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Beverly Hills",
+          "state": "California",
+          "zip": "90212",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.07362,
+            "lon": -118.40036
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Cerritos",
+          "state": "California",
+          "zip": "90703",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.85835,
+            "lon": -118.06479
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Corona",
+          "state": "California",
+          "zip": "92882",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.87529,
+            "lon": -117.56644
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Duarte",
+          "state": "California",
+          "zip": "91010",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.13945,
+            "lon": -117.97729
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Fountain Valley",
+          "state": "California",
+          "zip": "92708",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.70918,
+            "lon": -117.95367
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Huntington Beach",
+          "state": "California",
+          "zip": "92648",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.6603,
+            "lon": -117.99923
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Irvine",
+          "state": "California",
+          "zip": "92612",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.66946,
+            "lon": -117.82311
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Irvine",
+          "state": "California",
+          "zip": "92618",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.66946,
+            "lon": -117.82311
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90027",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90067",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90404",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Murrieta",
+          "state": "California",
+          "zip": "92562",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.55391,
+            "lon": -117.21392
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Orange",
+          "state": "California",
+          "zip": "92868",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.78779,
+            "lon": -117.85311
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Pasadena",
+          "state": "California",
+          "zip": "91030",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.14778,
+            "lon": -118.14452
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Torrance",
+          "state": "California",
+          "zip": "90503",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.83585,
+            "lon": -118.34063
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Upland",
+          "state": "California",
+          "zip": "91786",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.09751,
+            "lon": -117.64839
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "West Hollywood",
+          "state": "California",
+          "zip": "90048",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.09001,
+            "lon": -118.36174
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hartford",
+          "state": "Connecticut",
+          "zip": "06106",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.76371,
+            "lon": -72.68509
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "New Haven",
+          "state": "Connecticut",
+          "zip": "06520-8028",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.30815,
+            "lon": -72.92816
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Norwich",
+          "state": "Connecticut",
+          "zip": "06360",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.52426,
+            "lon": -72.07591
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Newark",
+          "state": "Delaware",
+          "zip": "19713",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.68372,
+            "lon": -75.74966
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hialeah",
+          "state": "Florida",
+          "zip": "33013",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 25.8576,
+            "lon": -80.27811
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Miami",
+          "state": "Florida",
+          "zip": "33176",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 25.77427,
+            "lon": -80.19366
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Orlando",
+          "state": "Florida",
+          "zip": "32806",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 28.53834,
+            "lon": -81.37924
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Plantation",
+          "state": "Florida",
+          "zip": "33322",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 26.13421,
+            "lon": -80.23184
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Port Saint Lucie",
+          "state": "Florida",
+          "zip": "34952",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 27.29393,
+            "lon": -80.35033
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "St. Petersburg",
+          "state": "Florida",
+          "zip": "33705",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 27.77086,
+            "lon": -82.67927
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tamarac",
+          "state": "Florida",
+          "zip": "33321",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 26.21286,
+            "lon": -80.24977
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Atlanta",
+          "state": "Georgia",
+          "zip": "30303",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.749,
+            "lon": -84.38798
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Atlanta",
+          "state": "Georgia",
+          "zip": "30322",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.749,
+            "lon": -84.38798
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Newnan",
+          "state": "Georgia",
+          "zip": "30265",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.38067,
+            "lon": -84.79966
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Chicago",
+          "state": "Illinois",
+          "zip": "60611",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.85003,
+            "lon": -87.65005
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Elmhurst",
+          "state": "Illinois",
+          "zip": "60540",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.89947,
+            "lon": -87.94034
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "O'Fallon",
+          "state": "Illinois",
+          "zip": "62269",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.59227,
+            "lon": -89.91121
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Fort Wayne",
+          "state": "Indiana",
+          "zip": "46804",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.1306,
+            "lon": -85.12886
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Indianapolis",
+          "state": "Indiana",
+          "zip": "46202",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.76838,
+            "lon": -86.15804
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Westwood",
+          "state": "Kansas",
+          "zip": "66205",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.04056,
+            "lon": -94.6169
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Edgewood",
+          "state": "Kentucky",
+          "zip": "41017",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.01867,
+            "lon": -84.58189
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "New Orleans",
+          "state": "Louisiana",
+          "zip": "70121",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 29.95465,
+            "lon": -90.07507
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Baltimore",
+          "state": "Maryland",
+          "zip": "21201",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.29038,
+            "lon": -76.61219
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Detroit",
+          "state": "Michigan",
+          "zip": "48201",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 42.33143,
+            "lon": -83.04575
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Saint Louis Park",
+          "state": "Minnesota",
+          "zip": "55426",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 44.9483,
+            "lon": -93.34801
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Springfield",
+          "state": "Missouri",
+          "zip": "65804",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 37.21533,
+            "lon": -93.29824
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Billings",
+          "state": "Montana",
+          "zip": "59102",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.78329,
+            "lon": -108.50069
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Lincoln",
+          "state": "Nebraska",
+          "zip": "68506",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.8,
+            "lon": -96.66696
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Lebanon",
+          "state": "New Hampshire",
+          "zip": "03766",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 43.64229,
+            "lon": -72.25176
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "New Brunswick",
+          "state": "New Jersey",
+          "zip": "08901",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.48622,
+            "lon": -74.45182
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Mineola",
+          "state": "New York",
+          "zip": "11501",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.74927,
+            "lon": -73.64068
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10016",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Rochester",
+          "state": "New York",
+          "zip": "14642",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 43.15478,
+            "lon": -77.61556
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Syracuse",
+          "state": "New York",
+          "zip": "13210",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 43.04812,
+            "lon": -76.14742
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "The Bronx",
+          "state": "New York",
+          "zip": "10461",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.84985,
+            "lon": -73.86641
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "White Plains",
+          "state": "New York",
+          "zip": "10601-5000",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.03399,
+            "lon": -73.76291
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Akron",
+          "state": "Ohio",
+          "zip": "44032",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.08144,
+            "lon": -81.51901
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Canton",
+          "state": "Ohio",
+          "zip": "44703",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.79895,
+            "lon": -81.37845
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Cincinnati",
+          "state": "Ohio",
+          "zip": "45219",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.12711,
+            "lon": -84.51439
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Cincinnati",
+          "state": "Ohio",
+          "zip": "45220",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.12711,
+            "lon": -84.51439
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Cleveland",
+          "state": "Ohio",
+          "zip": "44111",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.4995,
+            "lon": -81.69541
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Cleveland",
+          "state": "Ohio",
+          "zip": "44195",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.4995,
+            "lon": -81.69541
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Mayfield Heights",
+          "state": "Ohio",
+          "zip": "44124",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.51922,
+            "lon": -81.4579
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Oklahoma City",
+          "state": "Oklahoma",
+          "zip": "73120",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 35.46756,
+            "lon": -97.51643
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Lebanon",
+          "state": "Pennsylvania",
+          "zip": "17042",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.34093,
+            "lon": -76.41135
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Philadelphia",
+          "state": "Pennsylvania",
+          "zip": "19111",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.95238,
+            "lon": -75.16362
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Philadelphia",
+          "state": "Pennsylvania",
+          "zip": "19140",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.95238,
+            "lon": -75.16362
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Pittsburgh",
+          "state": "Pennsylvania",
+          "zip": "15212",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.44062,
+            "lon": -79.99589
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Providence",
+          "state": "Rhode Island",
+          "zip": "02903",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.82399,
+            "lon": -71.41283
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Greenville",
+          "state": "South Carolina",
+          "zip": "29605",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.85262,
+            "lon": -82.39401
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hermitage",
+          "state": "Tennessee",
+          "zip": "37129",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 36.19617,
+            "lon": -86.6225
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Dallas",
+          "state": "Texas",
+          "zip": "75235",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.78306,
+            "lon": -96.80667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Dallas",
+          "state": "Texas",
+          "zip": "75390",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.78306,
+            "lon": -96.80667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Fort Worth",
+          "state": "Texas",
+          "zip": "76104",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.72541,
+            "lon": -97.32085
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tyler",
+          "state": "Texas",
+          "zip": "75701",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.35126,
+            "lon": -95.30106
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Salt Lake City",
+          "state": "Utah",
+          "zip": "84106",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.76078,
+            "lon": -111.89105
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Charlottesville",
+          "state": "Virginia",
+          "zip": "22908",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.02931,
+            "lon": -78.47668
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Fairfax",
+          "state": "Virginia",
+          "zip": "22031",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.84622,
+            "lon": -77.30637
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Spokane",
+          "state": "Washington",
+          "zip": "99208",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.65966,
+            "lon": -117.42908
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tacoma",
+          "state": "Washington",
+          "zip": "98405",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.25288,
+            "lon": -122.44429
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Charleston",
+          "state": "West Virginia",
+          "zip": "25304",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.34982,
+            "lon": -81.63262
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Madison",
+          "state": "Wisconsin",
+          "zip": "53792",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 43.07305,
+            "lon": -89.40123
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Brussels",
+          "zip": "1000",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.85045,
+            "lon": 4.34878
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Ghent",
+          "zip": "9000",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 51.05,
+            "lon": 3.71667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Haine-Saint-Paul",
+          "zip": "7100",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.45544,
+            "lon": 4.1885
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Kortrijk",
+          "zip": "8500",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.82803,
+            "lon": 3.26487
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Toronto",
+          "state": "Ontario",
+          "zip": "M4N 3M5",
+          "country": "Canada",
+          "geoPoint": {
+            "lat": 43.70643,
+            "lon": -79.39864
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Montreal",
+          "state": "Quebec",
+          "zip": "H4A 3J1",
+          "country": "Canada",
+          "geoPoint": {
+            "lat": 45.50884,
+            "lon": -73.58781
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Regina",
+          "state": "Saskatchewan",
+          "zip": "S4T7T1",
+          "country": "Canada",
+          "geoPoint": {
+            "lat": 50.45008,
+            "lon": -104.6178
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hradec Kr\u00e1lov\u00e9",
+          "zip": "50005",
+          "country": "Czechia",
+          "geoPoint": {
+            "lat": 50.20923,
+            "lon": 15.83277
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Prague",
+          "zip": "14059",
+          "country": "Czechia",
+          "geoPoint": {
+            "lat": 50.08804,
+            "lon": 14.42076
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Lyon",
+          "zip": "69374",
+          "country": "France",
+          "geoPoint": {
+            "lat": 45.74906,
+            "lon": 4.84789
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Montpellier",
+          "zip": "34298",
+          "country": "France",
+          "geoPoint": {
+            "lat": 43.61093,
+            "lon": 3.87635
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Nantes",
+          "zip": "44000",
+          "country": "France",
+          "geoPoint": {
+            "lat": 47.21725,
+            "lon": -1.55336
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Paris",
+          "zip": "75015",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.85341,
+            "lon": 2.3488
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Paris",
+          "zip": "75020",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.85341,
+            "lon": 2.3488
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Pierre-B\u00e9nite",
+          "zip": "69495",
+          "country": "France",
+          "geoPoint": {
+            "lat": 45.70359,
+            "lon": 4.82424
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Poitiers",
+          "zip": "86000",
+          "country": "France",
+          "geoPoint": {
+            "lat": 46.58261,
+            "lon": 0.34348
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Strasbourg",
+          "zip": "67033",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.58392,
+            "lon": 7.74553
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Bonn",
+          "zip": "53113",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 50.73438,
+            "lon": 7.09549
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hamburg",
+          "zip": "20249",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.55073,
+            "lon": 9.99302
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hamburg",
+          "zip": "22763",
+          "country": "Germany",
+          "geoPoint": {
+            "lat": 53.55073,
+            "lon": 9.99302
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Meldola",
+          "zip": "47014",
+          "country": "Italy",
+          "geoPoint": {
+            "lat": 44.12775,
+            "lon": 12.0626
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Osaka",
+          "state": "Ontario",
+          "zip": "565-0871",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 34.69379,
+            "lon": 135.50107
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Aichi",
+          "zip": "464-8681",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 32.51879,
+            "lon": 130.62158
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Chiba",
+          "zip": "260-8717",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.6,
+            "lon": 140.11667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Ehime",
+          "zip": "791-0280",
+          "country": "Japan"
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Fukuoka",
+          "zip": "812-8582",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 33.6,
+            "lon": 130.41667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Gifu",
+          "zip": "501-1194",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.42291,
+            "lon": 136.76039
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hiroshima",
+          "zip": "734-8551",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 34.4,
+            "lon": 132.45
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Hokkaido",
+          "zip": "060-8648",
+          "country": "Japan"
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Kawasaki",
+          "zip": "216-8511",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.52056,
+            "lon": 139.71722
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Osaka",
+          "zip": "541-8567",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 34.69379,
+            "lon": 135.50107
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Saitama",
+          "zip": "362-0806",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.90807,
+            "lon": 139.65657
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Sendai",
+          "zip": "980-0872",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 38.26667,
+            "lon": 140.86667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Shizuoka",
+          "zip": "411-8777",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 34.98333,
+            "lon": 138.38333
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tokyo",
+          "zip": "104-0045",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.6895,
+            "lon": 139.69171
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Tokyo",
+          "zip": "135-8550",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.6895,
+            "lon": 139.69171
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Toyama",
+          "zip": "930-0194",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 36.7,
+            "lon": 137.21667
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Yokohama",
+          "zip": "241-8515",
+          "country": "Japan",
+          "geoPoint": {
+            "lat": 35.43333,
+            "lon": 139.65
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Rzesz\u00f3w",
+          "state": "Podkarpackie Voivodeship",
+          "zip": "35-021",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 50.04132,
+            "lon": 21.99901
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Warsaw",
+          "zip": "04-141",
+          "country": "Poland",
+          "geoPoint": {
+            "lat": 52.22977,
+            "lon": 21.01178
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Rio Piedras",
+          "zip": "00935",
+          "country": "Puerto Rico",
+          "geoPoint": {
+            "lat": 18.39745,
+            "lon": -66.04989
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "A Coru\u00f1a",
+          "zip": "15006",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 43.37135,
+            "lon": -8.396
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Barcelona",
+          "zip": "08035",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Barcelona",
+          "zip": "08908",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Madrid",
+          "zip": "28009",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Madrid",
+          "zip": "28046",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Madrid",
+          "zip": "28050",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Palma de Mallorca",
+          "zip": "07198",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 39.56939,
+            "lon": 2.65024
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Santander",
+          "zip": "39008",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 43.46589,
+            "lon": -3.80493
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Valencia",
+          "zip": "46010",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 39.47391,
+            "lon": -0.37966
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Valencia",
+          "zip": "46014",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 39.47391,
+            "lon": -0.37966
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Valencia",
+          "zip": "46026",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 39.47391,
+            "lon": -0.37966
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Canterbury",
+          "state": "England",
+          "zip": "CT13NS",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.27904,
+            "lon": 1.07992
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "London",
+          "state": "England",
+          "zip": "EC1M 6BQ",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 51.50853,
+            "lon": -0.12574
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Aberdeen",
+          "state": "Scotland",
+          "zip": "AB25 2ZN",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 57.14369,
+            "lon": -2.09814
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Edinburgh",
+          "zip": "EH4 2XU",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 55.95206,
+            "lon": -3.19648
+          }
+        },
+        {
+          "facility": "Clinical Study Site",
+          "status": "RECRUITING",
+          "city": "Manchester",
+          "zip": "M20 4BX",
+          "country": "United Kingdom",
+          "geoPoint": {
+            "lat": 53.48095,
+            "lon": -2.23743
+          }
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-08-03"
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D015179",
+          "term": "Colorectal Neoplasms"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D007414",
+          "term": "Intestinal Neoplasms"
+        },
+        {
+          "id": "D005770",
+          "term": "Gastrointestinal Neoplasms"
+        },
+        {
+          "id": "D004067",
+          "term": "Digestive System Neoplasms"
+        },
+        {
+          "id": "D009371",
+          "term": "Neoplasms by Site"
+        },
+        {
+          "id": "D009369",
+          "term": "Neoplasms"
+        },
+        {
+          "id": "D004066",
+          "term": "Digestive System Diseases"
+        },
+        {
+          "id": "D005767",
+          "term": "Gastrointestinal Diseases"
+        },
+        {
+          "id": "D003108",
+          "term": "Colonic Diseases"
+        },
+        {
+          "id": "D007410",
+          "term": "Intestinal Diseases"
+        },
+        {
+          "id": "D012002",
+          "term": "Rectal Diseases"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D000077150",
+          "term": "Oxaliplatin"
+        },
+        {
+          "id": "D002955",
+          "term": "Leucovorin"
+        },
+        {
+          "id": "D005472",
+          "term": "Fluorouracil"
+        },
+        {
+          "id": "D000068258",
+          "term": "Bevacizumab"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D056831",
+          "term": "Coordination Complexes"
+        },
+        {
+          "id": "D009930",
+          "term": "Organic Chemicals"
+        },
+        {
+          "id": "D005575",
+          "term": "Formyltetrahydrofolates"
+        },
+        {
+          "id": "D013763",
+          "term": "Tetrahydrofolates"
+        },
+        {
+          "id": "D005492",
+          "term": "Folic Acid"
+        },
+        {
+          "id": "D011622",
+          "term": "Pterins"
+        },
+        {
+          "id": "D011621",
+          "term": "Pteridines"
+        },
+        {
+          "id": "D006574",
+          "term": "Heterocyclic Compounds, 2-Ring"
+        },
+        {
+          "id": "D000072471",
+          "term": "Heterocyclic Compounds, Fused-Ring"
+        },
+        {
+          "id": "D006571",
+          "term": "Heterocyclic Compounds"
+        },
+        {
+          "id": "D003067",
+          "term": "Coenzymes"
+        },
+        {
+          "id": "D045762",
+          "term": "Enzymes and Coenzymes"
+        },
+        {
+          "id": "D014498",
+          "term": "Uracil"
+        },
+        {
+          "id": "D011744",
+          "term": "Pyrimidinones"
+        },
+        {
+          "id": "D011743",
+          "term": "Pyrimidines"
+        },
+        {
+          "id": "D006573",
+          "term": "Heterocyclic Compounds, 1-Ring"
+        },
+        {
+          "id": "D061067",
+          "term": "Antibodies, Monoclonal, Humanized"
+        },
+        {
+          "id": "D000911",
+          "term": "Antibodies, Monoclonal"
+        },
+        {
+          "id": "D000906",
+          "term": "Antibodies"
+        },
+        {
+          "id": "D007136",
+          "term": "Immunoglobulins"
+        },
+        {
+          "id": "D007162",
+          "term": "Immunoproteins"
+        },
+        {
+          "id": "D001798",
+          "term": "Blood Proteins"
+        },
+        {
+          "id": "D011506",
+          "term": "Proteins"
+        },
+        {
+          "id": "D000602",
+          "term": "Amino Acids, Peptides, and Proteins"
+        },
+        {
+          "id": "D012712",
+          "term": "Serum Globulins"
+        },
+        {
+          "id": "D005916",
+          "term": "Globulins"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

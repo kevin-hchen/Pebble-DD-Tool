@@ -104,6 +104,12 @@ class QueryYield:
     fetched: int = 0
     new: int = 0
     error: str = ""
+    # How many times this query's requests had to be repeated, and how long was
+    # spent waiting. A query that succeeded on the ninth attempt is a different
+    # observation from one that succeeded first time, and only this number tells
+    # them apart afterwards.
+    retries: int = 0
+    retry_seconds: float = 0.0
 
 
 @dataclass
@@ -121,8 +127,42 @@ class CoverageReport:
 
     @property
     def complete(self) -> bool:
-        """Every query in the set ran and returned its full reported total."""
+        """Every query in the set ran and returned its full reported total.
+
+        NOTE: this is the WEAK check — it sees errors only. Whether a query
+        actually reached its `reported_total` is decided by
+        `store.verify_ingest`, which is what grades a family COMPLETE. Do not
+        use this property to decide whether an ingest finished; a capped or
+        short fetch passes it.
+        """
         return not self.errors and all(not y.error for y in self.yields)
+
+    @property
+    def total_retries(self) -> int:
+        return sum(y.retries for y in self.yields)
+
+    @property
+    def total_retry_seconds(self) -> float:
+        return sum(y.retry_seconds for y in self.yields)
+
+    def retry_line(self) -> str:
+        """What retrying cost this ingest, or "" when it cost nothing.
+
+        Printed on every ingest that retried at all, including one that
+        ultimately succeeded — a source that needs forty retries to answer is
+        degrading whether or not this run got its data, and a wall-clock number
+        with no explanation hides exactly that.
+        """
+        if not self.total_retries:
+            return ""
+        noisy = [(y.query.label, y.retries) for y in self.yields if y.retries]
+        noisy.sort(key=lambda t: -t[1])
+        worst = ", ".join(f"{lab} x{n}" for lab, n in noisy[:3])
+        more = f" and {len(noisy) - 3} other quer{'y' if len(noisy) == 4 else 'ies'}" \
+            if len(noisy) > 3 else ""
+        return (f"retried {self.total_retries} time(s) across {len(noisy)} quer"
+                f"{'y' if len(noisy) == 1 else 'ies'}, {self.total_retry_seconds:.0f}s "
+                f"spent waiting — {worst}{more}")
 
     def marginal_yield_table(self) -> list[tuple[str, int, int, int | None]]:
         return [(y.query.label, y.fetched, y.new, y.reported_total) for y in self.yields]
@@ -223,12 +263,18 @@ def fetch_query_set(
             )
         except Exception as exc:
             y.error = f"{type(exc).__name__}: {exc}"
+            # A query that failed AFTER exhausting its retries still says so:
+            # the retry count belongs to the attempt, not to the success.
+            budget = getattr(exc, "retry_budget", None)
+            if budget is not None:
+                y.retries, y.retry_seconds = budget.retries, budget.slept
             report.errors.append(f"{query.label} failed — {y.error}")
             report.yields.append(y)
             continue
 
         y.reported_total = result.reported_total
         y.fetched = len(result.records)
+        y.retries, y.retry_seconds = result.retries.retries, result.retries.slept
         for rec in result.records:
             if rec.nct_id not in by_id:
                 by_id[rec.nct_id] = rec

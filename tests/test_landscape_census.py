@@ -103,13 +103,110 @@ def test_not_mentioned_is_never_folded_into_a_required_set():
         _trial("NCT03", "Exclusion Criteria:\n* MSS tumors"),           # MSS EXCLUDED
     ])
     census = store.landscape(condition="colorectal cancer")
-    assert census["by_biomarker"]["MSS"] == {"REQUIRED": 1, "EXCLUDED": 1, "NOT_MENTIONED": 1}
+    assert census["by_biomarker"]["MSS"] == {
+        "REQUIRED": 1, "ELIGIBLE_BY_EXCLUSION": 0, "EXCLUDED": 1, "NOT_MENTIONED": 1,
+    }
 
     required = store.landscape(condition="colorectal cancer", biomarker_filters=[("MSS", "REQUIRED")])
     ids = {r.nct_id for r in required["sample"]}
     assert ids == {"NCT01"}, "NOT_MENTIONED and EXCLUDED trials must not appear in the REQUIRED set"
     assert required["total"] == 1
     store.close()
+
+
+# --------------------------------------- OR-within-marker biomarker filters
+
+
+def test_multi_status_filter_for_one_marker_ors_rather_than_ands():
+    """A marker can only ever have ONE status. Filtering on
+    [("MSS", "REQUIRED")] AND-ed with a second ("MSS", "ELIGIBLE_BY_EXCLUSION")
+    filter would be unsatisfiable and silently zero the count — the regression
+    this task exists to catch: the shipped config's MSS-specific section used
+    to filter REQUIRED only, which excluded 3 of the 4 real MSS mCRC trials
+    that reach a user (STELLAR-303, C-800-25, HARMONi-GI3 all state MSS only
+    by excluding MSI-H)."""
+    store = _store([
+        _trial("NCT_REQ", "Inclusion Criteria:\n* MSS tumors"),
+        _trial("NCT_EXCL_OPP", "Exclusion Criteria:\n* Known MSI-H or dMMR"),
+        _trial("NCT_NEITHER", "Inclusion Criteria:\n* Age 18+"),
+    ])
+    single = store.landscape(condition="colorectal cancer", biomarker_filters=[("MSS", "REQUIRED")])
+    assert single["total"] == 1, "sanity: REQUIRED alone must still find just the direct trial"
+
+    combined = store.landscape(
+        condition="colorectal cancer",
+        biomarker_filters=[("MSS", ["REQUIRED", "ELIGIBLE_BY_EXCLUSION"])],
+    )
+    assert combined["total"] == 2, (
+        "an OR-ed multi-status filter for one marker must UNION the statuses, "
+        "not silently return zero the way ANDing two exclusive statuses would"
+    )
+    assert {r.nct_id for r in combined["sample"]} == {"NCT_REQ", "NCT_EXCL_OPP"}
+    # by_biomarker, computed over the ALREADY-filtered population, must still
+    # show the exact split — the memo's distinct-breakdown line depends on this.
+    assert combined["by_biomarker"]["MSS"]["REQUIRED"] == 1
+    assert combined["by_biomarker"]["MSS"]["ELIGIBLE_BY_EXCLUSION"] == 1
+    store.close()
+
+
+def test_biomarker_filters_for_different_markers_still_and():
+    """Multi-status OR is scoped to ONE marker; two DIFFERENT markers must
+    still AND together (a trial matching both, not either)."""
+    store = _store([
+        _trial("NCT_BOTH", "Inclusion Criteria:\n* MSS tumors\n* BRAF V600E mutation"),
+        _trial("NCT_MSS_ONLY", "Inclusion Criteria:\n* MSS tumors"),
+    ])
+    census = store.landscape(
+        condition="colorectal cancer",
+        biomarker_filters=[("MSS", "REQUIRED"), ("BRAF_V600E", "REQUIRED")],
+    )
+    assert {r.nct_id for r in census["sample"]} == {"NCT_BOTH"}
+    store.close()
+
+
+def test_diligence_biomarker_filters_groups_same_marker_tokens():
+    from medrag.diligence import DiligenceRunner
+
+    grouped = DiligenceRunner._biomarker_filters(["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"])
+    assert grouped == [("MSS", ["REQUIRED", "ELIGIBLE_BY_EXCLUSION"])]
+
+    single = DiligenceRunner._biomarker_filters(["MSS:REQUIRED"])
+    assert single == [("MSS", ["REQUIRED"])]
+
+    two_markers = DiligenceRunner._biomarker_filters(["MSS:REQUIRED", "BRAF_V600E:REQUIRED"])
+    assert two_markers == [("MSS", ["REQUIRED"]), ("BRAF_V600E", ["REQUIRED"])]
+
+
+def test_memo_renders_the_two_states_distinctly_not_merged():
+    """The memo section must say the exact split, the same way the
+    trial-landscape page shows each trial's exact status per row — not one
+    combined total that hides how many qualified which way."""
+    store = _store([
+        _trial("NCT_REQ", "Inclusion Criteria:\n* MSS tumors"),
+        _trial("NCT_EXCL_OPP", "Exclusion Criteria:\n* Known MSI-H or dMMR"),
+    ])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="mss", section="MSS specifically", question="{indication}?",
+                          aggregate=True, biomarker=["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"], k=10)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="colorectal cancer", question_set="landscape", sections=[result]))
+    assert "2 trials" in md
+    assert "REQUIRED or ELIGIBLE BY EXCLUSION" in md, "the scope line must name both states, not merge them"
+    assert "1 REQUIRED, 1 ELIGIBLE BY EXCLUSION" in md, (
+        "the exact split must be stated, not just a combined total"
+    )
+    runner.close()
+
+
+def test_shipped_landscape_yaml_includes_eligible_by_exclusion_for_mss():
+    """Guards the config itself: someone reverting mss-required's filter back
+    to REQUIRED-only would silently drop 3 of the 4 MSS mCRC trials that
+    reach a user, with no code change to catch it."""
+    qs = load_question_set("config/landscape.yaml")
+    mss_q = next(q for q in qs.questions if q.id == "mss-required")
+    assert set(mss_q.biomarker) >= {"MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"}
 
 
 # ------------------------------------------------------------- SQL aggregates
@@ -296,7 +393,7 @@ def test_aggregate_section_states_denominator_and_labels_the_sample():
         __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
             asset="", indication="colorectal cancer", question_set="landscape", sections=[result]))
     assert "24 trials" in md
-    assert "showing 5 of 24" in md
+    assert "showing the 5 highest-ranked of 24" in md
     assert "19 matching trial(s) are NOT listed" in md
     runner.close()
 

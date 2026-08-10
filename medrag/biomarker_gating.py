@@ -1,145 +1,131 @@
 """Trial-side biomarker gating census over eligibility text.
 
 This is the indication-first counterpart to `biomarker.py`. That module asks a
-patient-side question — "does an MSS patient qualify for this trial?" and answers
-ELIGIBLE / EXCLUDED / UNCLEAR. This one asks a landscape question — "what does
-this trial gate on?" — and, for each marker that gates colorectal trials, returns
-exactly one of:
+patient-side question — "does an MSS patient qualify for this trial?" and
+answers ELIGIBLE / ELIGIBLE BY EXCLUSION / EXCLUDED / UNCLEAR / NOT MENTIONED.
+This one asks a landscape question — "what does this trial gate on?" — and, for
+each marker that gates colorectal trials, returns exactly one of:
 
-    REQUIRED       the marker is named as an inclusion criterion
-    EXCLUDED       the marker is named as an exclusion criterion (or negated in
-                   an inclusion line, e.g. "non-MSI-H")
-    NOT_MENTIONED  the eligibility text does not name the marker at all
+    REQUIRED                the marker is named as an inclusion criterion (or
+                             the paired opposite is excluded — see below)
+    ELIGIBLE_BY_EXCLUSION    the trial excludes the paired opposite marker
+                             without directly naming this one (only meaningful
+                             for a marker with an `opposite`, like MSS/MSI-H)
+    EXCLUDED                 the marker is named as an exclusion criterion, or
+                             negated in an inclusion line ("non-MSI-H", "RAS
+                             wild-type"), or the paired opposite is required
+    NOT_MENTIONED             the eligibility text does not name the marker,
+                             directly or via its opposite, at all
 
 NOT_MENTIONED is the load-bearing state. It is NOT "eligible", it is "we could
 not read a gate off the text" — the same distinction as ValidationReport.assessed
 and NegativeEvidence.searched. Nothing downstream may fold a NOT_MENTIONED marker
-into a REQUIRED (or EXCLUDED) set; a landscape that quietly counts unparsed trials
-as matching is worse than one that reports the gap. There is a regression test.
+into a REQUIRED (or EXCLUDED, or ELIGIBLE_BY_EXCLUSION) set; a landscape that
+quietly counts unparsed trials as matching is worse than one that reports the
+gap. There is a regression test.
+
+The vocabulary, negation grammar, and signal collection are shared with
+`biomarker.py` via `markers.py`. This module owns only the REDUCTION of that
+shared signal set into the four states above, and its precedence on a genuine
+conflict is REQUIRED-wins — see `markers.py`'s module docstring ("THE TWO
+POLICIES") for why that is the correct, and deliberately different, choice from
+`biomarker.py`'s UNCLEAR-on-conflict.
 
 It is regex and keyword matching only, deliberately. The output is a filter that
 narrows a count, and a hallucinated eligibility flag is unauditable — so the
-matched span is stored beside every REQUIRED/EXCLUDED call and a human can check
-it. Section detection (Inclusion vs Exclusion) reuses `biomarker.py` so there is
-one implementation of that.
+matched span is stored beside every non-NOT_MENTIONED call and a human can check
+it.
 """
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
-from .biomarker import _iter_criteria  # one implementation of section splitting
-
-REQUIRED = "REQUIRED"
-EXCLUDED = "EXCLUDED"
-NOT_MENTIONED = "NOT_MENTIONED"
-
-# The markers that actually gate colorectal-cancer trials. The key is a SQL- and
-# token-safe identifier (no spaces or colons); `label` is what a human reads.
-# `patterns` name the marker; they do not encode direction — REQUIRED vs EXCLUDED
-# is decided from the section and from an in-line negation.
-
-
-@dataclass(frozen=True)
-class MarkerDef:
-    key: str
-    label: str
-    patterns: tuple[str, ...]
-
-
-MARKERS: tuple[MarkerDef, ...] = (
-    MarkerDef("MSS", "MSS / pMMR", (
-        r"\bMSS\b", r"microsatellite[\s\-]?stable", r"\bpMMR\b",
-        r"proficient\s+mismatch[\s\-]?repair", r"mismatch[\s\-]?repair[\s\-]?proficient",
-    )),
-    MarkerDef("MSI_H", "MSI-H / dMMR", (
-        r"\bMSI[\s\-]?H(?:igh)?\b", r"microsatellite\s+instabilit\w*[\s\-]?high",
-        r"\bdMMR\b", r"deficient\s+mismatch[\s\-]?repair", r"mismatch[\s\-]?repair[\s\-]?deficient",
-    )),
-    MarkerDef("RAS", "RAS (KRAS/NRAS)", (
-        r"\bK?RAS\b", r"\bNRAS\b",
-    )),
-    MarkerDef("BRAF_V600E", "BRAF V600E", (
-        r"BRAF[\s\-]?V600E?", r"\bV600E\b",
-    )),
-    MarkerDef("HER2_AMP", "HER2 amplification", (
-        r"HER2[\s\-]?(?:amplif\w*|positive|\bpos\b|\+)", r"ERBB2[\s\-]?amplif\w*",
-    )),
-    MarkerDef("KRAS_G12C", "KRAS G12C", (
-        r"KRAS[\s\-]?G12C", r"\bG12C\b",
-    )),
-    MarkerDef("KRAS_G12D", "KRAS G12D", (
-        r"KRAS[\s\-]?G12D", r"\bG12D\b",
-    )),
+from . import markers as _m
+from .markers import (  # noqa: F401  (re-exported for existing importers)
+    ELIGIBLE_BY_EXCLUSION,
+    EXCLUDED,
+    MARKER_KEYS,
+    MARKER_LABELS,
+    MARKERS,
+    NOT_MENTIONED,
+    REQUIRED,
+    MarkerDef,
 )
 
-MARKER_KEYS = tuple(m.key for m in MARKERS)
-MARKER_LABELS = {m.key: m.label for m in MARKERS}
-
-_COMPILED = {m.key: re.compile("|".join(m.patterns), re.IGNORECASE) for m in MARKERS}
-
-# A negation immediately before the marker flips an inclusion mention to
-# EXCLUDED: "non-MSI-H" required means MSI-H is what the trial does NOT want.
-_NEGATION = re.compile(r"(?:\bnon[\s\-]?|\bnot\s+|\bno\s+|\bwithout\s+|\babsence of\s+)$",
-                       re.IGNORECASE)
+EXPLICIT = "EXPLICIT"
+SYNONYM = "SYNONYM"
+NO_BASIS = "NONE"   # basis does not apply — status is not REQUIRED
 
 
 @dataclass
 class MarkerFlag:
     marker: str          # key, e.g. "MSI_H"
-    status: str          # REQUIRED | EXCLUDED | NOT_MENTIONED
+    status: str          # REQUIRED | ELIGIBLE_BY_EXCLUSION | EXCLUDED | NOT_MENTIONED
     span: str = ""       # the criterion sentence that decided it, for auditing
+    source: str = ""     # which text field the span came from
+    # Only meaningful when status == REQUIRED: did the winning sentence name
+    # the marker by its own literal name (EXPLICIT) or only a synonym
+    # (SYNONYM)? Read by the coverage statement (coverage.py), never by any
+    # status decision. NO_BASIS otherwise, including for ELIGIBLE_BY_EXCLUSION
+    # — "by exclusion" is already its own reported category, distinct from
+    # this explicit/synonym split of REQUIRED.
+    basis: str = NO_BASIS
 
     @property
     def label(self) -> str:
         return MARKER_LABELS.get(self.marker, self.marker)
 
 
-def _negated(sentence: str, match_start: int) -> bool:
-    """Is the marker match negated by the words right before it?"""
-    return bool(_NEGATION.search(sentence[:match_start]))
+def _reduce(mdef: MarkerDef, signals: list) -> MarkerFlag:
+    """The trial-side precedence: REQUIRED wins on any conflict. A census feeds
+    a count a human will narrow by reading the sample, so a false negative
+    here hides a possibly relevant trial from that review entirely, while a
+    false positive costs one extra glance — undercounting is the worse
+    failure. `own_required` beats everything; `opp_excluded` (the paired
+    opposite explicitly excluded — MSS's read of "excludes MSI-H") beats
+    `own_excluded`/`opp_required` even on genuine conflict. See markers.py's
+    module docstring for the full reasoning and how this differs from
+    biomarker.py's UNCLEAR-on-conflict policy."""
+    own_req, own_exc, opp_req, opp_exc = _m.split_signals(signals)
+    if own_req:
+        s = own_req[0]
+        basis = EXPLICIT if _m.is_explicit_match(mdef, s.span) else SYNONYM
+        return MarkerFlag(mdef.key, REQUIRED, s.span, s.source, basis)
+    if opp_exc:
+        s = opp_exc[0]
+        return MarkerFlag(mdef.key, ELIGIBLE_BY_EXCLUSION, s.span, s.source)
+    if own_exc or opp_req:
+        s = (own_exc or opp_req)[0]
+        return MarkerFlag(mdef.key, EXCLUDED, s.span, s.source)
+    return MarkerFlag(mdef.key, NOT_MENTIONED)
 
 
-def gate_markers(eligibility_text: str) -> dict[str, MarkerFlag]:
+def gate_markers(
+    eligibility_text: str,
+    *,
+    detailed_description: str = "",
+    brief_summary: str = "",
+    keywords=(),
+    markers: dict[str, MarkerDef] | None = None,
+) -> dict[str, MarkerFlag]:
     """Classify every registered marker for one trial's eligibility text.
 
     Always returns all markers — a marker the text never names comes back
     NOT_MENTIONED, never omitted, so a caller cannot mistake absence for a miss.
-    On a genuine conflict (a marker named as both required and excluded) REQUIRED
-    wins, because for "which trials require marker X" a false negative hides a real
-    trial; the span records which sentence was chosen.
+
+    The supplementary fields are consulted only when the formal eligibility
+    text (and each field before them) carries no signal for a given marker (see
+    `markers.collect_signals`) — a trial's prose or keyword tags can fill a real
+    gap (ADG126-P001 states MSS only in its detailed description) but never
+    override a clear eligibility-criteria statement.
     """
-    signals: dict[str, list[tuple[str, str]]] = {m.key: [] for m in MARKERS}
-
-    for section, sentence in _iter_criteria(eligibility_text):
-        for mkey, rx in _COMPILED.items():
-            m = rx.search(sentence)
-            if not m:
-                continue
-            negated = _negated(sentence, m.start())
-            if section == "exclusion" or negated:
-                status = EXCLUDED
-            elif section == "inclusion":
-                status = REQUIRED
-            else:
-                # No heading and no negation: a bare marker mention in eligibility
-                # is overwhelmingly a requirement. Recorded with its span so it is
-                # auditable rather than hidden.
-                status = REQUIRED
-            signals[mkey].append((status, sentence.strip()))
-
+    registry = MARKERS if markers is None else markers
+    texts = _m.record_texts(eligibility_text, detailed_description, brief_summary, keywords)
     out: dict[str, MarkerFlag] = {}
-    for mkey in MARKER_KEYS:
-        hits = signals[mkey]
-        if not hits:
-            out[mkey] = MarkerFlag(mkey, NOT_MENTIONED)
-            continue
-        required = next((s for st, s in hits if st == REQUIRED), None)
-        if required is not None:
-            out[mkey] = MarkerFlag(mkey, REQUIRED, required)
-        else:
-            out[mkey] = MarkerFlag(mkey, EXCLUDED, hits[0][1])
+    for key, mdef in registry.items():
+        signals = _m.collect_signals(mdef, texts, registry)
+        out[key] = _reduce(mdef, signals)
     return out
 
 
@@ -147,10 +133,23 @@ def gate_markers(eligibility_text: str) -> dict[str, MarkerFlag]:
 # markers (e.g. RAS vs KRAS_G12C). The string is space-padded on both ends.
 def gating_tokens(flags: dict[str, MarkerFlag]) -> str:
     """A space-delimited, space-padded token string for SQL LIKE filtering:
-    ' MSS:REQUIRED MSI_H:EXCLUDED RAS:NOT_MENTIONED ... '."""
+    ' MSS:ELIGIBLE_BY_EXCLUSION MSI_H:EXCLUDED RAS:NOT_MENTIONED ... '."""
     return " " + " ".join(f"{k}:{flags[k].status}" for k in MARKER_KEYS) + " "
 
 
 def gating_token(marker: str, status: str) -> str:
     """The exact substring a landscape filter matches against `gating_tokens`."""
     return f" {marker}:{status} "
+
+
+def gating_basis_tokens(flags: dict[str, MarkerFlag]) -> str:
+    """Same LIKE-token scheme as `gating_tokens`, one level down: only
+    meaningful for a REQUIRED marker, whether the winning sentence used the
+    marker's own name (EXPLICIT) or a synonym (SYNONYM). Stored so the
+    coverage statement's 'N explicit, M by synonym' split is a SQL COUNT over
+    a stored column, never a live re-scan of eligibility text."""
+    return " " + " ".join(f"{k}:{flags[k].basis}" for k in MARKER_KEYS) + " "
+
+
+def gating_basis_token(marker: str, basis: str) -> str:
+    return f" {marker}:{basis} "

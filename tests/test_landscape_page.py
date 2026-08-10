@@ -134,6 +134,18 @@ def test_page_names_the_basket_trial_gap_rather_than_leaving_it_to_inference():
         )
 
 
+def test_page_shows_the_coverage_statement_prominently():
+    """The single most defensible line this tool produces must be on the page
+    itself, not a footnote — searched/not-searched/what-matched, with real
+    stored numbers, not the count of rows that happened to render."""
+    with _seeded_app() as app:
+        at = _submit(app.run())
+        text = _rendered(at)
+        assert "Searched:" in text and "ClinicalTrials.gov" in text
+        assert "Not searched:" in text and "WHO ICTRP" in text
+        assert "fetched" in text.lower()
+
+
 def test_page_finds_nothing_when_the_query_set_was_never_ingested():
     """Selecting by a set that does not exist must read as 'not ingested', not as
     'searched and found nothing' — offline, the page cannot go and get it."""

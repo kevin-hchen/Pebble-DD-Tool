@@ -17,6 +17,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from . import coverage
 from .biomarker_gating import MARKER_LABELS
 from .context import TRIAL_LABEL
 from .crypto import harden_outputs, write_secure
@@ -70,6 +71,44 @@ def _scope_label(filt: dict) -> str:
     return filt.get("condition") or "the indication"
 
 
+def _humanize_status(status: str) -> str:
+    return status.replace("_", " ")
+
+
+def _biomarker_scope(filt: dict) -> str:
+    """Human-readable description of the biomarker filter(s) applied, e.g.
+    'MSS REQUIRED or ELIGIBLE BY EXCLUSION'. `filt["biomarker"]` entries are
+    (marker, status_or_statuses) — statuses is a bare string for a
+    single-status filter or a list when multiple tokens for the same marker
+    were ORed together (see diligence._biomarker_filters)."""
+    parts = []
+    for marker, statuses in filt.get("biomarker") or []:
+        sts = [statuses] if isinstance(statuses, str) else list(statuses)
+        parts.append(f"{marker} " + " or ".join(_humanize_status(s) for s in sts))
+    return ", ".join(parts)
+
+
+def _biomarker_breakdown(filt: dict, by_biomarker: dict) -> str | None:
+    """When a biomarker filter spans more than one status for a marker, state
+    the exact split rather than reporting one merged total. The trial-landscape
+    PAGE shows each trial's exact status per row; a memo denominator that
+    silently combines REQUIRED and ELIGIBLE_BY_EXCLUSION into one number hides
+    the same distinction the page makes visible. `by_biomarker` is already
+    computed over this section's filtered population (store.landscape ANDs the
+    per-status scalar onto the same WHERE clause), so no extra query is needed
+    — it already IS the breakdown, just not yet said out loud."""
+    lines = []
+    for marker, statuses in filt.get("biomarker") or []:
+        sts = [statuses] if isinstance(statuses, str) else list(statuses)
+        if len(sts) < 2:
+            continue
+        counts = by_biomarker.get(marker, {})
+        bits = ", ".join(f"{counts.get(s, 0)} {_humanize_status(s)}" for s in sts)
+        label = MARKER_LABELS.get(marker, marker)
+        lines.append(f"Of these, for {label}: {bits}.")
+    return " ".join(lines) if lines else None
+
+
 def _empty_census_note(agg: dict) -> str:
     """Zero because nothing was fetched, and zero because nothing matched, are
     different findings. Reporting the first as the second is the same class of
@@ -98,26 +137,43 @@ def _aggregate_md(agg: dict | None) -> list[str]:
     total, readable = agg["total"], agg["eligibility_readable"]
     filt = agg["filters"]
     scope = _scope_label(filt)
-    bm = ", ".join(f"{m} {st}" for m, st in filt["biomarker"]) if filt["biomarker"] else ""
+    bm = _biomarker_scope(filt)
     stat = ", ".join(filt["statuses"]) if filt["statuses"] else "all statuses"
+
+    out: list[str] = []
+    cs = agg.get("coverage_statement")
+    if cs is not None:
+        out.append("**Coverage**")
+        out.append("")
+        for line in coverage.render_lines(cs):
+            out.append(f"> {line}")
+        out.append("")
 
     noun = "trial" if total == 1 else "trials"
     verb = "matches" if total == 1 else "match"
-    out = [
+    out += [
         f"**{total} {noun}** {verb} {scope}"
         + (f", gated to {bm}" if bm else "")
         + f" ({stat}). Every count below is computed over all {total} matching records "
           "in the store, not the sample listed at the end.",
-        "",
-        f"Eligibility text was present and screenable on {readable} of {total} "
-        f"({_pct(readable, total)}). The rest are still counted; their biomarker gating "
-        "is recorded as NOT_MENTIONED, never assumed eligible.",
         "",
     ]
     if total == 0:
         out.append(_empty_census_note(agg))
         out.append("")
         return out
+
+    breakdown = _biomarker_breakdown(filt, agg["by_biomarker"])
+    if breakdown:
+        out.append(breakdown)
+        out.append("")
+
+    out.append(
+        f"Eligibility text was present and screenable on {readable} of {total} "
+        f"({_pct(readable, total)}). The rest are still counted; their biomarker gating "
+        "is recorded as NOT_MENTIONED, never assumed eligible."
+    )
+    out.append("")
 
     for title, data in (("phase", agg["by_phase"]), ("status", agg["by_status"]),
                         ("sponsor class", agg["by_sponsor_class"]),
@@ -133,28 +189,32 @@ def _aggregate_md(agg: dict | None) -> list[str]:
                "not a statement of eligibility)")
     out.append("")
     out.extend(markdown_table(
-        ["Marker", "Required", "Excluded", "Not mentioned"],
-        [[MARKER_LABELS.get(mk, mk), str(c["REQUIRED"]), str(c["EXCLUDED"]), str(c["NOT_MENTIONED"])]
+        ["Marker", "Required", "Eligible by exclusion", "Excluded", "Not mentioned"],
+        [[MARKER_LABELS.get(mk, mk), str(c["REQUIRED"]), str(c.get("ELIGIBLE_BY_EXCLUSION", 0)),
+          str(c["EXCLUDED"]), str(c["NOT_MENTIONED"])]
          for mk, c in agg["by_biomarker"].items()]))
     out.append("")
 
     shown, dropped = agg["shown"], agg["dropped"]
-    out.append(f"**Trials — showing {shown} of {total}**")
+    out.append(f"**Trials — showing the {shown} highest-ranked of {total}**")
     out.append("")
     if dropped:
-        out.append(f"> {dropped} matching trial(s) are NOT listed below: this is a sample "
-                   f"capped at {shown}. The counts above cover all {total}.")
+        out.append(f"> {dropped} matching trial(s) are NOT listed below: this is the "
+                   f"top-{shown} by the relevance score in the last column — see "
+                   "`config/ranking.yaml` for the weights, no model involved. "
+                   f"The counts above cover all {total}, not just what is listed.")
         out.append("")
     rows = []
-    for rec, flags in zip(agg["sample"], agg["sample_flags"]):
+    for rec, flags, rank in zip(agg["sample"], agg["sample_flags"], agg["sample_rankings"]):
         gated = ", ".join(
             f"{MARKER_LABELS.get(m, m)}:{f['status']}"
             for m, f in (flags or {}).items() if f.get("status") != "NOT_MENTIONED"
         ) or "—"
         rows.append([f"`{rec.nct_id}`", rec.brief_title or "(untitled)",
                      rec.phase or "—", rec.overall_status or "—",
-                     rec.lead_sponsor or "—", gated])
-    out.extend(markdown_table(["NCT", "Title", "Phase", "Status", "Sponsor", "Gating"], rows))
+                     rec.lead_sponsor or "—", gated, rank.explain()])
+    out.extend(markdown_table(
+        ["NCT", "Title", "Phase", "Status", "Sponsor", "Gating", "Why ranked here"], rows))
     out.append("")
     return out
 
@@ -163,6 +223,16 @@ def _section_md(s: SectionResult) -> list[str]:
     out = [f"## {s.question.section}", ""]
     out.append(f"*{s.rendered_question}*")
     out.append("")
+    if s.approval is not None:
+        # Generated in code from the ApprovalAnswer and inserted verbatim, BEFORE
+        # the model's prose so a reader meets the deterministic statement first.
+        # `render_lines` is the only thing that writes it — see its docstring.
+        out.append("### Regulatory status — generated from openFDA, not written by a model")
+        out.append("")
+        for line in s.approval.render_lines():
+            out.append(f"> {line}")
+            out.append(">")
+        out.append("")
     if s.aggregate is not None:
         out.extend(_aggregate_md(s.aggregate))
     else:
@@ -175,6 +245,13 @@ def _section_md(s: SectionResult) -> list[str]:
         if s.negative.stopped_trials:
             out.append("**Trials stopped early**")
             out.append("")
+            # The split and both denominators, from the one function the PDF
+            # also calls. A capped sample that does not say what it is capped
+            # from reads as a complete answer.
+            cov = s.negative.stopped.coverage_line()
+            if cov:
+                out.append(f"> {cov}")
+                out.append("")
             for st in s.negative.stopped_trials:
                 r = st.record
                 bits = [f"`{r.nct_id}`", r.overall_status]
@@ -184,6 +261,10 @@ def _section_md(s: SectionResult) -> list[str]:
                     bits.append(f"n={r.enrollment_count}")
                 if r.lead_sponsor:
                     bits.append(r.lead_sponsor)
+                # Which arm found it: "this compound failed elsewhere" and "this
+                # disease is hard" are different findings and a reader must not
+                # have to guess which one a row is.
+                bits.append("this compound" if st.from_intervention else "this indication")
                 out.append(f"- {' · '.join(bits)} — **{st.reason}**")
             out.append("")
         # FDA recalls and adverse events are database facts like the stopped
@@ -329,6 +410,14 @@ def render_markdown(memo: MemoResult, generated: datetime | None = None) -> str:
 
 _MD_INLINE = re.compile(r"\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`")
 
+# Page geometry, stated once. The doc template and every column budget below
+# read these, so a margin change cannot leave a table wider than the frame it
+# has to print inside — the failure mode reportlab does NOT raise on, it just
+# draws the last column off the right edge of the paper.
+PAGE_SIZE_IN = (8.5, 11.0)          # LETTER portrait
+SIDE_MARGIN_IN = 0.9
+AVAILABLE_WIDTH_IN = PAGE_SIZE_IN[0] - 2 * SIDE_MARGIN_IN
+
 
 def _inline_to_rl(text: str) -> str:
     """Convert the small Markdown subset used above into ReportLab markup.
@@ -349,9 +438,17 @@ def _aggregate_pdf(agg, story, styles, Paragraph, Spacer, inch) -> None:
     if agg is None:
         story.append(Paragraph("No trial store available — census not computed.", styles["body"]))
         return
+
+    cs = agg.get("coverage_statement")
+    if cs is not None:
+        story.append(Paragraph("Coverage", styles["h3"]))
+        for line in coverage.render_lines(cs):
+            story.append(Paragraph(_inline_to_rl(line), styles["body"]))
+        story.append(Spacer(1, 6))
+
     total, readable = agg["total"], agg["eligibility_readable"]
     filt = agg["filters"]
-    bm = ", ".join(f"{m} {st}" for m, st in filt["biomarker"]) if filt["biomarker"] else ""
+    bm = _biomarker_scope(filt)
     stat = ", ".join(filt["statuses"]) if filt["statuses"] else "all statuses"
     story.append(Paragraph(_inline_to_rl(
         f"<b>{total} trials</b> match {_scope_label(filt)}"
@@ -360,6 +457,9 @@ def _aggregate_pdf(agg, story, styles, Paragraph, Spacer, inch) -> None:
     if total == 0:
         story.append(Paragraph(_inline_to_rl(_empty_census_note(agg)), styles["small"]))
         return
+    breakdown = _biomarker_breakdown(filt, agg["by_biomarker"])
+    if breakdown:
+        story.append(Paragraph(_inline_to_rl(breakdown), styles["small"]))
     story.append(Paragraph(_inline_to_rl(
         f"Eligibility text screenable on {readable}/{total} ({_pct(readable, total)}); "
         "the rest are counted with NOT_MENTIONED gating, never assumed eligible."), styles["small"]))
@@ -370,29 +470,35 @@ def _aggregate_pdf(agg, story, styles, Paragraph, Spacer, inch) -> None:
         story.append(Paragraph(_inline_to_rl(f"<b>{title}</b> — {summary}"), styles["small"]))
 
     story.append(Paragraph("Biomarker gating (NOT_MENTIONED is a gap, not eligibility)", styles["h3"]))
-    rows = [[MARKER_LABELS.get(mk, mk), str(c["REQUIRED"]), str(c["EXCLUDED"]), str(c["NOT_MENTIONED"])]
+    rows = [[MARKER_LABELS.get(mk, mk), str(c["REQUIRED"]), str(c.get("ELIGIBLE_BY_EXCLUSION", 0)),
+             str(c["EXCLUDED"]), str(c["NOT_MENTIONED"])]
             for mk, c in agg["by_biomarker"].items()]
-    story.append(pdf_table(["Marker", "Required", "Excluded", "Not mentioned"],
+    story.append(pdf_table(["Marker", "Required", "Elig. by exclusion", "Excluded", "Not mentioned"],
                            [[_inline_to_rl(str(x)) for x in r] for r in rows],
-                           [1.9 * inch, 1.1 * inch, 1.1 * inch, 1.3 * inch], styles["small"]))
+                           [1.6 * inch, 0.9 * inch, 1.15 * inch, 0.9 * inch, 1.15 * inch],
+                           styles["small"], available_width=AVAILABLE_WIDTH_IN * inch))
     story.append(Spacer(1, 8))
 
     shown, dropped = agg["shown"], agg["dropped"]
-    story.append(Paragraph(f"Trials — showing {shown} of {total}", styles["h3"]))
+    story.append(Paragraph(f"Trials — showing the {shown} highest-ranked of {total}", styles["h3"]))
     if dropped:
         story.append(Paragraph(_inline_to_rl(
-            f"{dropped} matching trial(s) not listed: this is a sample capped at {shown}. "
-            f"The counts above cover all {total}."), styles["note"]))
+            f"{dropped} matching trial(s) not listed: this is the top-{shown} by the "
+            "relevance score in the last column (config/ranking.yaml, no model "
+            f"involved). The counts above cover all {total}."), styles["note"]))
     srows = []
-    for rec, flags in zip(agg["sample"], agg["sample_flags"]):
+    for rec, flags, rank in zip(agg["sample"], agg["sample_flags"], agg["sample_rankings"]):
         gated = ", ".join(f"{MARKER_LABELS.get(m, m)}:{f['status']}"
                           for m, f in (flags or {}).items() if f.get("status") != "NOT_MENTIONED") or "—"
         srows.append([_inline_to_rl(rec.nct_id), _inline_to_rl(rec.brief_title or "(untitled)"),
                       _inline_to_rl(rec.phase or "—"), _inline_to_rl(rec.overall_status or "—"),
-                      _inline_to_rl(rec.lead_sponsor or "—"), _inline_to_rl(gated)])
-    story.append(pdf_table(["NCT", "Title", "Phase", "Status", "Sponsor", "Gating"], srows,
-                           [0.9 * inch, 2.0 * inch, 0.6 * inch, 1.0 * inch, 1.3 * inch, 1.4 * inch],
-                           styles["small"]))
+                      _inline_to_rl(rec.lead_sponsor or "—"), _inline_to_rl(gated),
+                      _inline_to_rl(rank.explain())])
+    # These sum to 6.5in against the 6.7in AVAILABLE_WIDTH_IN budget.
+    story.append(pdf_table(
+        ["NCT", "Title", "Phase", "Status", "Sponsor", "Gating", "Why ranked here"], srows,
+        [0.7 * inch, 1.3 * inch, 0.45 * inch, 0.65 * inch, 0.85 * inch, 0.95 * inch, 1.6 * inch],
+        styles["small"], available_width=AVAILABLE_WIDTH_IN * inch))
     story.append(Spacer(1, 8))
 
 
@@ -484,6 +590,14 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
         story.append(Paragraph(_inline_to_rl(s.question.section), styles["h2"]))
         story.append(Paragraph(_inline_to_rl(s.rendered_question), styles["q"]))
 
+        if s.approval is not None:
+            # Same fixed string the Markdown prints, from the same function.
+            story.append(Paragraph(
+                "Regulatory status — generated from openFDA, not written by a model",
+                styles["h3"]))
+            for line in s.approval.render_lines():
+                story.append(Paragraph(_inline_to_rl(line), styles["note"]))
+
         if s.aggregate is not None:
             _aggregate_pdf(s.aggregate, story, styles, Paragraph, Spacer, inch)
         else:
@@ -494,6 +608,9 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
         if s.negative is not None:
             story.append(Paragraph("Contradicting or unsupportive evidence", styles["h3"]))
             if s.negative.stopped_trials:
+                cov = s.negative.stopped.coverage_line()
+                if cov:
+                    story.append(Paragraph(_inline_to_rl(cov), styles["note"]))
                 items = []
                 for st in s.negative.stopped_trials:
                     r = st.record
@@ -502,6 +619,8 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
                         head += f", {r.phase}"
                     if r.lead_sponsor:
                         head += f" ({_inline_to_rl(r.lead_sponsor)})"
+                    head += (" · this compound" if st.from_intervention
+                             else " · this indication")
                     items.append(
                         ListItem(Paragraph(f"{head}<br/>Reason: {_inline_to_rl(st.reason)}",
                                            styles["body"]))
@@ -598,8 +717,8 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
     SimpleDocTemplate(
         str(path),
         pagesize=LETTER,
-        leftMargin=0.9 * inch,
-        rightMargin=0.9 * inch,
+        leftMargin=SIDE_MARGIN_IN * inch,
+        rightMargin=SIDE_MARGIN_IN * inch,
         topMargin=0.9 * inch,
         bottomMargin=0.9 * inch,
         title=_memo_title(memo),

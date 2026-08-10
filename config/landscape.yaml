@@ -18,8 +18,14 @@
 #   aggregate  true -> a landscape census: counts are SQL COUNT(*) over the FULL
 #              match set, and the listed trials are labelled a sample of the total
 #   status     overall_status filter, e.g. [RECRUITING, NOT_YET_RECRUITING]
-#   biomarker  gating filter(s) "MARKER:STATUS", e.g. ["MSS:REQUIRED"] — narrows the
-#              denominator; NOT_MENTIONED trials are never folded in
+#   biomarker  gating filter(s) "MARKER:STATUS". Multiple tokens for the SAME
+#              marker are ORed together, e.g. ["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"]
+#              counts a trial that states MSS directly OR excludes MSI-H without
+#              naming MSS — leaving out ELIGIBLE_BY_EXCLUSION silently drops
+#              every trial that states the marker only by excluding its
+#              opposite, which was most of them on the real colorectal store.
+#              Tokens for DIFFERENT markers AND together. NOT_MENTIONED trials
+#              are never folded in.
 #   negative   run the deterministic stopped-trial pass against this section
 
 version: 1
@@ -47,10 +53,15 @@ questions:
 
   - id: mss-required
     section: "MSS / pMMR trials specifically"
-    question: "Which recruiting trials in {indication} require MSS or proficient mismatch repair?"
+    question: "Which recruiting trials in {indication} state MSS or proficient mismatch repair — directly, or by excluding MSI-H/dMMR?"
     aggregate: true
     status: [RECRUITING, NOT_YET_RECRUITING]
-    biomarker: ["MSS:REQUIRED"]
+    # Both tokens name the SAME marker (MSS), so they OR together rather than
+    # ANDing (see the field note above). REQUIRED-only used to exclude every
+    # trial that states MSS indirectly by excluding MSI-H — on the real
+    # colorectal store that was 3 of the 4 trials this section exists to
+    # surface: STELLAR-303, C-800-25 and HARMONi-GI3 all state it that way.
+    biomarker: ["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"]
     k: 30
 
   - id: already-stopped

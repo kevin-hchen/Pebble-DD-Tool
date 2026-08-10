@@ -833,11 +833,24 @@ class ClaimVerifier:
     def notice(self, claims: list) -> TransmissionNotice:
         return transmission_notice(self.cfg, [_claim_text(c) for c in claims], kind="claims")
 
+    def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
+        """See `agents.collapsed_combination_notes` — one message, both callers."""
+        from . import agents
+
+        if not asset or self.trial_store is None:
+            return
+        for note in agents.collapsed_combination_notes(
+            self.trial_store.intervention_terms(asset, query_set=query_set), asset
+        ):
+            if note not in self.warnings:
+                self.warnings.append(note)
+
     def _retrieve(self, claim: str, asset: str, indication: str, k: int) -> list[Evidence]:
         from .trials.queries import resolve_query_set
 
         trials = []
         if self.trial_store is not None:
+            qset = resolve_query_set(indication).key if indication else None
             trials = self.trial_store.query(
                 intervention=asset or None,
                 # The population the fetch defined, not a substring re-match over
@@ -845,13 +858,17 @@ class ClaimVerifier:
                 # ("microsatellite stable metastatic colorectal cancer") is almost
                 # never a substring of what a sponsor registered. Same rule as the
                 # landscape and the census; see CLAUDE.md.
-                query_set=resolve_query_set(indication).key if indication else None,
+                query_set=qset,
                 limit=k,
             )
             # Structured filters can legitimately return nothing; fall back to
             # free text so a checkable claim is not silently starved of registry
-            # context.
+            # context. A combination that collapsed because ONE of its agents is
+            # unknown to the registry (or to config/agents.yaml) is a different
+            # fact from "there are no trials", so it is named rather than hidden
+            # behind a fallback that then succeeds.
             if not trials:
+                self._warn_collapsed_combination(asset, qset)
                 trials = self.trial_store.search(f"{asset} {indication} {claim}".strip(), limit=k)
 
         passages = self.rag.retriever.retrieve(claim, k=k) if self.rag else []

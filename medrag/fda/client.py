@@ -275,6 +275,27 @@ def _fetch(endpoint: str, search: str, max_records: int, page_size: int,
             return
 
 
+def _fetch_json(endpoint: str, params: dict, timeout: int = 45) -> dict | None:
+    """One arbitrary openFDA request through the shared throttle.
+
+    Exists for `count=` aggregations, which return buckets rather than a
+    `results` array of records and so do not fit `_fetch`. Kept here rather than
+    in faers.py so every openFDA call in this package passes the same 240/min
+    per-IP throttle — two independent throttles would each think they had the
+    whole budget.
+    """
+    key = _api_key()
+    query = dict(params)
+    if key:
+        query["api_key"] = key
+    _throttle()
+    resp = requests.get(f"{API_BASE}/{endpoint}.json", params=query, timeout=timeout)
+    if resp.status_code == 404:      # openFDA's "no matches"
+        return None
+    resp.raise_for_status()
+    return resp.json()
+
+
 def _total(endpoint: str, search: str, timeout: int, offline: bool) -> int | None:
     """The openFDA-reported total for a search — one cheap request that reads
     meta.results.total, so the caller can say 'N of M' without paging everything."""

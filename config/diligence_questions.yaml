@@ -76,6 +76,20 @@ questions:
     k: 10
     negative: false
 
+  # The regulatory-status question. Worded as "what is on file", not "is it
+  # approved", on purpose: openFDA can only ever report what the FDA has
+  # published, and a question phrased as a yes/no invites an answer that treats
+  # an empty database as a no. The approval block in this section is generated
+  # in code from the drugsFDA record (submission status, marketing status,
+  # application mix, label history) and inserted verbatim — the model writes
+  # around it and never writes it. See CLAUDE.md.
+  - id: regulatory-status
+    section: "US regulatory status"
+    question: "What does the FDA record show for {asset} — approved, tentatively approved, or marketed under any application — and for which indications and routes?"
+    route: structured
+    k: 8
+    negative: false
+
   - id: development-stage
     section: "Development stage and timelines"
     question: "What phase has {asset} reached, what is the enrollment, and what are the stated primary completion dates?"

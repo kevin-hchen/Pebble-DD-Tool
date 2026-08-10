@@ -47,6 +47,59 @@ on the old snapshot.
 
 ---
 
+## When an ingest is interrupted
+
+A trial ingest killed partway — a crash, a closed laptop, Ctrl-C — leaves the
+query set it was working on marked `IN_PROGRESS`. Nothing raises when a process
+dies, so this marker is the only evidence.
+
+```bash
+python -m medrag trials --incomplete
+```
+
+Every ingested query set with its state and two numbers: what the store holds,
+and what the last fetch recorded. Exits non-zero if any set is unverified. Re-run
+those, and only those:
+
+```bash
+python -m medrag trials --condition "<set key from the list>"
+```
+
+Re-running is safe and idempotent — records upsert by NCT ID, and query
+provenance merges rather than overwrites.
+
+Two things this command does **not** tell you. It lists sets that were *started*;
+a set in `config/trial_queries.yaml` that was never ingested at all has no row
+and does not appear, so compare against that file to find those. And a set marked
+`PARTIAL` rather than `IN_PROGRESS` finished its fetch but failed verification —
+the reason is printed by the ingest itself, and is usually either a query that
+errored or a `--max-records` cap, which is truncation by intent and grades
+PARTIAL for exactly that reason.
+
+Until a set verifies, every memo and page that uses it prints `PARTIAL INGEST`
+with the count as a stated lower bound. That is the intended behaviour, not a
+bug to work around: the number is real, it is just not the whole population.
+
+**If the ingest prints `registry was unreliable: retried N time(s)`,** the fetch
+succeeded but ClinicalTrials.gov made it work for the data. A handful of retries
+is normal. Dozens, or the same query retrying every run, means the registry is
+degrading — check status.clinicaltrials.gov before assuming the problem is here.
+The counts are stored per query in `query_coverage.yields`, so you can compare
+against previous ingests rather than relying on memory:
+
+```bash
+sqlite3 data/raw/trials.db \
+  "select set_key, json_extract(value,'\$.query'), json_extract(value,'\$.retries')
+   from query_coverage, json_each(yields)
+   where json_extract(value,'\$.retries') > 0;"
+```
+
+Retries never turn a failure into a success — a query that exhausts its attempts
+still errors, and its family still records PARTIAL. If you see no retry line and
+no PARTIAL, the fetch was genuinely clean.
+
+---
+
 ## When a test fails
 
 ```bash

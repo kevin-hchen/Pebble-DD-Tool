@@ -187,7 +187,7 @@ def test_old_chunks_without_grades_still_load():
 
 
 def test_deterministic_half_finds_stopped_trials():
-    stopped = find_stopped_trials(_trial_store(), intervention="Compound X")
+    stopped = find_stopped_trials(_trial_store(), intervention="Compound X").trials
     assert {s.record.nct_id for s in stopped} == {"NCT01234567", "NCT07654321"}
 
 
@@ -197,25 +197,26 @@ def test_stopped_trial_in_other_indication_is_not_hidden():
     filters were ANDed, which silently hid it."""
     stopped = find_stopped_trials(
         _trial_store(), intervention="Compound X", condition="solid tumor"
-    )
+    ).trials
     ids = {s.record.nct_id for s in stopped}
     assert "NCT07654321" in ids, "renal-impairment trial must survive an oncology query"
     assert "NCT01234567" in ids
 
 
 def test_trials_with_a_stated_reason_come_first():
-    stopped = find_stopped_trials(_trial_store(), intervention="Compound X")
+    stopped = find_stopped_trials(_trial_store(), intervention="Compound X").trials
     assert stopped[0].reason_is_stated
 
 
 def test_missing_reason_is_reported_not_omitted():
-    stopped = find_stopped_trials(_trial_store(), intervention="Compound X")
+    stopped = find_stopped_trials(_trial_store(), intervention="Compound X").trials
     silent = next(s for s in stopped if not s.reason_is_stated)
     assert silent.reason == "not stated by sponsor"
 
 
 def test_no_trial_store_returns_empty_not_error():
-    assert find_stopped_trials(None, intervention="X") == []
+    sweep = find_stopped_trials(None, intervention="X")
+    assert sweep.trials == [] and sweep.n_total == 0
 
 
 def test_contradiction_hunter_parses_findings():

@@ -16,7 +16,7 @@ from .pipeline import CORPUS_FILE, TRIALS_DB, MedRAG, build_index, ingest_pdfs, 
 from .router import Router
 from .trials.client import run_query
 from .trials.queries import fetch_query_set, resolve_query_set
-from .trials.store import TrialStore
+from .trials.store import INGEST_COMPLETE, STORE_VERSION, TrialStore
 
 
 def _config_from(args) -> "object":
@@ -74,6 +74,45 @@ def cmd_trials(args) -> int:
     cfg.ensure_dirs()
     db = cfg.raw_dir / TRIALS_DB
 
+    if getattr(args, "migrate", False):
+        from .trials.store import migrate_derived_columns
+
+        if not db.exists():
+            print(f"[medrag] no trial database at {db} — nothing to migrate.")
+            return 1
+        result = migrate_derived_columns(db)
+        if result["migrated"]:
+            print(f"[medrag] migrated v{result['from_version']} -> v{STORE_VERSION}, "
+                  f"{result['rows']} record(s) recomputed in place. No records re-fetched.")
+            for key, status in result.get("graded") or []:
+                print(f"[medrag]   {key:<32} {status}")
+        else:
+            print(f"[medrag] nothing to do — {result['reason']}.")
+        return 0
+
+    if getattr(args, "incomplete", False):
+        if not db.exists():
+            print(f"[medrag] no trial database at {db} — nothing has been ingested.")
+            return 1
+        with TrialStore(db) as store:
+            states = store.ingest_states()
+        pending = [s for s in states if s["status"] != INGEST_COMPLETE]
+        for s in states:
+            mark = "ok " if s["status"] == INGEST_COMPLETE else "!! "
+            print(f"[medrag] {mark}{s['set_key']:<32}{s['status']:<12}"
+                  f"holds {s['held']:>7,}  recorded {s['total_unique'] or 0:>7,}")
+        if not pending:
+            print(f"[medrag] all {len(states)} ingested query set(s) verified complete.")
+            return 0
+        # A family with no row at all is absent from this list on purpose: the
+        # store cannot tell "never searched" from "does not exist" without the
+        # config, and inventing the difference is the error this whole change
+        # is about. Say so rather than let the list read as the full backlog.
+        print(f"[medrag] {len(pending)} of {len(states)} ingested set(s) need a re-run. "
+              "Query sets never ingested at all do not appear here — compare against "
+              "config/trial_queries.yaml for those.")
+        return 1
+
     if args.condition:
         qset = resolve_query_set(args.condition)
         if not qset.curated:
@@ -81,6 +120,13 @@ def cmd_trials(args) -> int:
                   f"that one phrase only. Add a set to config/trial_queries.yaml to widen it.")
         else:
             print(f"[medrag] query set “{qset.key}” ({len(qset.queries)} queries)")
+
+        with TrialStore(db) as store:
+            # Written before the first network call. A process killed anywhere
+            # after this leaves the family visibly IN_PROGRESS; without it, a
+            # half-fetched family is indistinguishable from a finished one,
+            # because nothing raises when a process is killed.
+            store.begin_ingest(qset)
 
         records, provenance, coverage = fetch_query_set(
             qset, status=args.status, max_records=args.max_records, offline=cfg.offline,
@@ -91,24 +137,36 @@ def cmd_trials(args) -> int:
         for label, fetched, new, reported in coverage.marginal_yield_table():
             print(f"[medrag]   {label:46} {fetched:6} {new:6}  of {reported}")
         print(f"[medrag] {coverage.summary()}")
+        # Printed whenever anything was retried, including a run that then
+        # succeeded: retry converts a visible failure into an invisible delay,
+        # and an unexplained four-minute ingest is how a degrading source hides.
+        retry_line = coverage.retry_line()
+        if retry_line:
+            print(f"[medrag] registry was unreliable: {retry_line}")
         for err in coverage.errors:
             print(f"[medrag] WARNING: {err}", file=sys.stderr)
 
         with TrialStore(db) as store:
             store.upsert(records, provenance=provenance, set_key=qset.key)
-            store.record_coverage(coverage)
-            held = store.count(query_set=qset.key)
+            # Grades the ingest by counting the store back, which is what clears
+            # the in-progress marker. The population the fetch defined must
+            # equal the population the store holds — a gap means records were
+            # dropped between the two, the silent narrowing this ingest exists
+            # to stop.
+            outcome = store.record_coverage(coverage)
             stats = store.stats()
 
-        # The population the fetch defined must equal the population the store
-        # holds. A gap here means records were dropped between the two, which is
-        # exactly the silent narrowing this ingest exists to stop.
-        if held != coverage.total_unique:
-            print(f"[medrag] ERROR: fetched {coverage.total_unique} unique trials for "
-                  f"“{qset.key}” but the store holds {held}. Records were lost on write.",
-                  file=sys.stderr)
+        if outcome.status != INGEST_COMPLETE:
+            print(f"[medrag] ERROR: “{qset.key}” did NOT complete — marked "
+                  f"{outcome.status}, store holds {outcome.held} of "
+                  f"{outcome.total_unique}:", file=sys.stderr)
+            for why in outcome.reasons:
+                print(f"[medrag]   - {why}", file=sys.stderr)
+            print(f"[medrag] re-run to complete: python -m medrag trials "
+                  f'--condition "{qset.key}"', file=sys.stderr)
             return 1
-        print(f"[medrag] store holds {held} trials for “{qset.key}”")
+        print(f"[medrag] store holds {outcome.held} trials for “{qset.key}” "
+              f"(verified complete)")
     else:
         result = run_query(
             intervention=args.intervention,
@@ -176,6 +234,205 @@ def cmd_fda(args) -> int:
     print(f"[medrag] FDA store now holds {stats['clearances']} clearances, "
           f"{stats['recalls']} recalls, {stats['events']} events "
           f"across {stats['product_codes']} product code(s)")
+    return 0
+
+
+def cmd_drugs(args) -> int:
+    """Ingest openFDA DRUG data (applications, labels, recalls) for an asset.
+
+    Matched on active ingredient through the SAME alias table the trial store
+    uses (config/agents.yaml), so a brand name or development code reaches the
+    same application the generic does.
+    """
+    from .fda.drug_store import DrugStore
+    from .fda.drugs import (
+        count_applications,
+        search_applications,
+        search_drug_recalls,
+        search_labels,
+    )
+    from .pipeline import DRUGS_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    if not args.asset:
+        print("error: pass --asset", file=sys.stderr)
+        return 2
+
+    apps = search_applications(args.asset, max_records=args.max_records, offline=cfg.offline)
+    # openFDA's own total for the same search, so the memo can state a
+    # denominator rather than implying the local store is the whole picture.
+    reported = count_applications(args.asset, offline=cfg.offline)
+    labels = search_labels(args.asset, max_records=args.max_labels, offline=cfg.offline)
+    recalls = search_drug_recalls(args.asset, max_records=args.max_records, offline=cfg.offline)
+
+    approved = sum(1 for a in apps if a.is_approved)
+    tentative = sum(1 for a in apps if not a.is_approved)
+    of = f" (openFDA reports {reported})" if reported is not None else ""
+    print(f"[medrag] fetched {len(apps)} application(s){of}: {approved} approved, "
+          f"{tentative} not approved or status not stated")
+    print(f"[medrag] {len(labels)} label(s), {len(recalls)} recall(s)")
+    if not apps:
+        # An empty result is never an approval finding. Say what it can mean.
+        from .fda.drugs import ABSENCE_MEANINGS
+
+        print(f"[medrag] nothing matched \u201c{args.asset}\u201d. This says nothing either "
+              "way about approval status \u2014 it is equally consistent with: "
+              + "; ".join(ABSENCE_MEANINGS) + ".")
+
+    with DrugStore(cfg.raw_dir / DRUGS_DB) as store:
+        store.upsert_applications(apps)
+        store.upsert_labels(labels)
+        store.upsert_recalls(recalls)
+        store.record_search(args.asset, reported_total=reported, n_applications=len(apps),
+                            n_labels=len(labels), n_recalls=len(recalls))
+        stats = store.stats()
+
+    print(f"[medrag] drug store now holds {stats['applications']} application(s) "
+          f"({stats['approved']} approved), {stats['labels']} label(s), "
+          f"{stats['drug_recalls']} recall(s) across {stats['assets_searched']} asset(s)")
+    return 0
+
+
+def cmd_pma(args) -> int:
+    """Ingest openFDA device/pma from the BULK export, and flag De Novo.
+
+    Bulk rather than the API on purpose: openFDA caps `skip` at 25,000 against
+    56,853 PMA records, so the API can reach at most 44% of the source and can
+    never state a complete denominator. See medrag/fda/bulk.py.
+    """
+    from .fda.bulk import http_fetch, load_export
+    from .fda.pma import parse_pma
+    from .fda.store import FDAStore
+    from .pipeline import FDA_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    load = load_export("device/pma", fetch=http_fetch, fetch_catalogue=http_fetch,
+                       offline=cfg.offline,
+                       progress=lambda m: print(f"[medrag]   {m}"))
+    records = [p for p in (parse_pma(r) for r in load.records) if p]
+    originals = sum(1 for r in records if r.is_original)
+    print(f"[medrag] parsed {len(records)} PMA record(s): {originals} original "
+          f"application(s), {len(records) - originals} supplement(s)")
+
+    with FDAStore(cfg.raw_dir / FDA_DB) as store:
+        store.upsert_pma(records)
+        store.record_bulk_freshness(load.freshness)
+        stats = store.stats()
+    for line in (load.freshness.render_lines() if load.freshness else []):
+        print(f"[medrag] {line}")
+    print(f"[medrag] device store now holds {stats['pma']} PMA record(s) "
+          f"({stats['pma_originals']} originals), {stats['clearances']} clearance(s) "
+          f"of which {stats['de_novo']} are De Novo")
+    return 0
+
+
+def cmd_orangebook(args) -> int:
+    """Ingest the Orange Book from its bulk export (2.33 MB, one partition).
+
+    Reuses the bulk path built for PMA — download, unzip, parse, assert the
+    declared record count, record freshness.
+    """
+    from .fda.bulk import http_fetch, load_export
+    from .fda.drug_store import DrugStore
+    from .fda.orangebook import parse_entries
+    from .pipeline import DRUGS_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+    load = load_export("drug/orangebook", fetch=http_fetch, fetch_catalogue=http_fetch,
+                       offline=cfg.offline,
+                       progress=lambda m: print(f"[medrag]   {m}"))
+    entries = [e for r in load.records for e in parse_entries(r)]
+    with_patents = sum(1 for e in entries if e.patents)
+    generics = sum(1 for e in entries if e.is_generic)
+    print(f"[medrag] parsed {len(entries)} product entries from {len(load.records)} "
+          f"records: {with_patents} with listed patents, {generics} generic (ANDA)")
+    with DrugStore(cfg.raw_dir / DRUGS_DB) as store:
+        store.upsert_orange_book(entries)
+        n = store.conn.execute("SELECT COUNT(*) FROM orange_book").fetchone()[0]
+    for line in (load.freshness.render_lines() if load.freshness else []):
+        print(f"[medrag] {line}")
+    print(f"[medrag] Orange Book table now holds {n} entries")
+    return 0
+
+
+def cmd_purplebook(args) -> int:
+    """Ingest the Purple Book from the FDA's monthly CSV.
+
+    Not an openFDA source and not a zipped JSON export, so this uses
+    bulk.load_delimited rather than load_export — same freshness handling, but
+    the FDA publishes no record count for this file and the coverage line says
+    so rather than implying a checked total.
+    """
+    from datetime import date
+
+    from .fda.bulk import http_fetch, load_delimited
+    from .fda.drug_store import DrugStore
+    from .fda.purplebook import (
+        DOWNLOAD_URL,
+        FULL_DATABASE_SECTION,
+        HEADER_MARKER,
+        check_layout,
+        parse_row,
+    )
+    from .pipeline import DRUGS_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+
+    today = date.today()
+    year = args.year or today.year
+    month = args.month or today.strftime("%B")
+    url = DOWNLOAD_URL.format(year=year, month=month)
+    print(f"[medrag] downloading the Purple Book file for {month} {year}")
+
+    load = load_delimited(
+        "purplebook", url, fetch=http_fetch, export_label=f"{month} {year}",
+        header_marker=HEADER_MARKER, section=FULL_DATABASE_SECTION,
+        offline=cfg.offline)
+    check_layout(load.header)
+    products = [p for p in (parse_row(r) for r in load.rows) if p]
+    bios = sum(1 for p in products if p.is_biosimilar)
+    inter = sum(1 for p in products if p.is_interchangeable)
+    print(f"[medrag] parsed {len(products)} product row(s) ({load.section_note}): "
+          f"{bios} biosimilar, of which {inter} interchangeable")
+
+    with DrugStore(cfg.raw_dir / DRUGS_DB) as store:
+        store.upsert_purple_book(products)
+        n = store.conn.execute("SELECT COUNT(*) FROM purple_book").fetchone()[0]
+    for line in (load.freshness.render_lines() if load.freshness else []):
+        print(f"[medrag] {line}")
+    print(f"[medrag] Purple Book table now holds {n} product row(s)")
+    return 0
+
+
+def cmd_faers(args) -> int:
+    """Fetch and cache FAERS aggregate counts for an asset.
+
+    Aggregates, not reports: FAERS is 20.7M reports and 113 GB, so nothing is
+    mirrored. --offline reads the cache and refuses to fetch.
+    """
+    from .fda.drug_store import DrugStore
+    from .pipeline import DRUGS_DB
+
+    cfg = _config_from(args)
+    cfg.ensure_dirs()
+    if not args.asset:
+        print("error: pass --asset", file=sys.stderr)
+        return 2
+
+    with DrugStore(cfg.raw_dir / DRUGS_DB) as store:
+        answer = store.faers_answer(args.asset, offline=cfg.offline)
+        if answer.offline_miss:
+            print(f"[medrag] offline: no cached FAERS aggregate for \u201c{args.asset}\u201d. "
+                  "Run once without --offline to cache it.", file=sys.stderr)
+            return 1
+        for line in answer.render_lines():
+            print(f"[medrag] {line}")
     return 0
 
 
@@ -345,6 +602,11 @@ def cmd_landscape(args) -> int:
     paths = export_landscape(landscape, args.out_dir, stem=args.stem)
 
     print()
+    if landscape.coverage_statement is not None:
+        from .coverage import render_lines as render_coverage_lines
+        for line in render_coverage_lines(landscape.coverage_statement):
+            print(f"[coverage] {line}")
+        print()
     for w in landscape.warnings:
         print(f"[warn] {w}")
     print(f"[medrag] {landscape.counts_line()}")
@@ -533,7 +795,44 @@ def main(argv: list[str] | None = None) -> int:
     p_tr.add_argument("--max-records", "-n", type=int, default=None,
                       help="TESTING ONLY: stop after N records per query. Omit to fetch "
                            "everything the query matches, which is the point.")
+    p_tr.add_argument("--migrate", action="store_true",
+                      help="recompute columns a newer schema derives from records "
+                           "already stored, in place, with no network. Refuses any "
+                           "schema gap that needs a re-fetch.")
+    p_tr.add_argument("--incomplete", action="store_true",
+                      help="list every ingested query set with its state, and exit "
+                           "non-zero if any was started and never verified. This is "
+                           "where a run interrupted by a crash resumes from.")
     p_tr.set_defaults(func=cmd_trials)
+
+    p_dr = sub.add_parser("drugs", parents=[common],
+                          help="ingest openFDA drug approvals, labels and recalls")
+    p_dr.add_argument("--asset", "-a", required=False,
+                      help='drug name, brand or development code, e.g. "pembrolizumab"')
+    p_dr.add_argument("--max-records", "-n", type=int, default=100,
+                      help="cap on applications and recalls fetched (default 100)")
+    p_dr.add_argument("--max-labels", type=int, default=5,
+                      help="cap on SPL labels fetched; they are large (default 5)")
+    p_dr.set_defaults(func=cmd_drugs)
+
+    p_pb = sub.add_parser("purplebook", parents=[common],
+                          help="ingest the Purple Book (licensed biologics, biosimilars)")
+    p_pb.add_argument("--year", type=int, help="published year (default: this year)")
+    p_pb.add_argument("--month", help="published month name (default: this month)")
+    p_pb.set_defaults(func=cmd_purplebook)
+
+    p_ob = sub.add_parser("orangebook", parents=[common],
+                          help="ingest the Orange Book (listed patents and exclusivity)")
+    p_ob.set_defaults(func=cmd_orangebook)
+
+    p_fa = sub.add_parser("faers", parents=[common],
+                          help="fetch and cache FAERS aggregate counts for an asset")
+    p_fa.add_argument("--asset", "-a", help='drug name, e.g. "pembrolizumab"')
+    p_fa.set_defaults(func=cmd_faers)
+
+    p_pma = sub.add_parser("pma", parents=[common],
+                           help="ingest openFDA premarket approvals (bulk download)")
+    p_pma.set_defaults(func=cmd_pma)
 
     p_fda = sub.add_parser("fda", parents=[common],
                            help="ingest openFDA device clearances, recalls and adverse events")

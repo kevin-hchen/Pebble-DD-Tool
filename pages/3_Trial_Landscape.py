@@ -16,6 +16,7 @@ import streamlit as st
 
 import theme
 from medrag.config import load_config
+from medrag.coverage import render_lines as render_coverage_lines
 from medrag.crypto import read_secure
 from medrag.landscape import build_landscape
 from medrag.landscape_memo import export as export_landscape
@@ -87,8 +88,11 @@ with st.form("landscape"):
     col1, col2, col3 = st.columns([2, 1.4, 1.4])
     condition = col1.text_input("Condition", placeholder="e.g. colorectal cancer")
     biomarker = col2.text_input("Biomarker", placeholder="e.g. MSS",
-                                help="Microsatellite status is supported: MSS, microsatellite "
-                                     "stable, pMMR, proficient mismatch repair, non-MSI-H.")
+                                help="Reviewed with synonyms and negation handling: MSS, "
+                                     "MSI-H, RAS, BRAF V600E, HER2 amplification, KRAS G12C, "
+                                     "KRAS G12D (see config/markers.yaml). Anything else falls "
+                                     "back to a generic text search that can only ever say "
+                                     "UNCLEAR or NOT MENTIONED, never a confident verdict.")
     location = col3.text_input("Location (optional)", placeholder="e.g. Boston")
     refresh = st.checkbox("Re-download trials for this condition even if some are stored")
     submitted = st.form_submit_button("Build landscape", type="primary")
@@ -120,6 +124,9 @@ if submitted:
         st.error(f"Could not build the landscape. {type(exc).__name__}: {exc}")
         st.stop()
 
+    if landscape.coverage_statement is not None:
+        theme.coverage_box(render_coverage_lines(landscape.coverage_statement))
+
     for w in landscape.warnings:
         st.warning(w)
 
@@ -131,15 +138,21 @@ if submitted:
         st.stop()
 
     _badge("good", "TRIALS FOUND",
-           f"{landscape.n_eligible} eligible and {landscape.n_unclear} unclear trial(s) shown. "
-           f"{landscape.n_excluded} require the opposite biomarker and "
+           f"{landscape.n_eligible} eligible, {landscape.n_eligible_by_exclusion} eligible by "
+           f"exclusion of the opposite biomarker, and {landscape.n_unclear} unclear trial(s) "
+           f"admit this patient. {landscape.n_excluded} require the opposite biomarker and "
            f"{landscape.n_not_mentioned} do not mention it — those are not listed.")
 
     st.markdown("## Trials a patient could enter")
+    # What is printed out of what, from the one function the Markdown and the
+    # PDF also call — the page cannot show a different sample from the export
+    # it offers two clicks below.
+    for line in landscape.sample_lines():
+        st.caption(line)
     theme.legend(sorted({t.match.status for t in landscape.trials}))
     theme.data_table(
         ["NCT ID", "Title", "Phase", "Status", "Biomarker", "Nearest site", "PI",
-         "Contact", "Matched eligibility criterion"],
+         "Contact", "Matched eligibility criterion", "Why ranked here"],
         [
             [
                 t.record.nct_id,
@@ -153,6 +166,7 @@ if submitted:
                 (t.record.principal_investigator or {}).get("name", "—"),
                 (t.contact or {}).get("email") or (t.contact or {}).get("phone") or "—",
                 t.match.evidence or "—",
+                t.ranking.explain() if t.ranking else "not ranked",
             ]
             for t in landscape.trials
         ],
@@ -161,9 +175,12 @@ if submitted:
     )
 
     st.caption(
-        "UNCLEAR means the biomarker is referenced but eligibility could not be read "
-        "off it — often a trial that excludes the opposite biomarker. It is kept here, "
-        "flagged, rather than dropped."
+        "ELIGIBLE BY EXCLUSION means the trial excludes the opposite biomarker rather than "
+        "naming this one directly — an indirect statement, not an uncertain one. UNCLEAR "
+        "means the source text genuinely contradicts itself. Both are kept here, flagged, "
+        "and ranked alongside the trials that name the biomarker directly: how a trial "
+        "states its eligibility is information about the trial, not a reason to read it "
+        "later."
     )
 
     paths = export_landscape(landscape, OUT_DIR, passphrase=cfg.passphrase)

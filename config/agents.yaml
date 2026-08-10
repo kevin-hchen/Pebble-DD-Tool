@@ -1,0 +1,239 @@
+# Drug/agent alias table — generic, brand, and development code name.
+#
+# EDIT THIS FILE, NOT CODE — same principle as trial_queries.yaml, markers.yaml
+# and ranking.yaml. Which names denote the same molecule is a pharmacological
+# fact someone with domain knowledge should be able to correct by editing one
+# line, and it is never model-generated at query time: an alias list that
+# changes run to run makes two diligence memos incomparable.
+#
+# WHY THIS TABLE EXISTS AT ALL
+#
+# The same molecule reaches this tool under three unrelated names depending on
+# who is writing. A deck says "Erbitux", a sponsor registers "Cetuximab", an
+# early trial registers "IMC-C225". Measured on the live colorectal store
+# (12,095 trials), the brand and code forms are not rare and not decorative:
+#
+#     "Erbitux (Cetuximab)"                    brand named alongside generic
+#     "bevacizumab [Avastin]"                  brand in brackets
+#     "Vectibix®"                              brand ALONE, generic absent
+#     "Regorafenib (Stivarga, BAY73-4506)"     brand AND code in one aside
+#     "AGEN2034"                               code ALONE, generic absent
+#     "XL092"                                  code ALONE, generic absent
+#
+# The rows where the generic name never appears are the ones that matter: no
+# amount of string cleverness recovers "balstilimab" from "AGEN2034". That is a
+# fact about the world, so it lives in a reviewed file.
+#
+# HOW IT IS APPLIED
+#
+# Forms are ORed within an agent and the agents of a combination are ANDed
+# (medrag/agents.py). Expansion happens at QUERY time, so adding an alias here
+# takes effect against the database already on disk — no re-ingest. That is a
+# deliberate difference from markers.yaml, whose verdicts are baked in at
+# ingest.
+#
+# WHAT DOES NOT BELONG HERE
+#
+# Regimen acronyms (FOLFOX, FOLFIRI, CAPEOX) are listed as agents in their own
+# right where sponsors register them that way, but they are NEVER expanded into
+# their component drugs. Aliases are ORed, so listing "oxaliplatin" as a form of
+# "FOLFOX" would make a search for FOLFOX return every oxaliplatin trial — a
+# silent widening of the population, which is the same class of error as the
+# substring match this table replaces. A regimen and its components are
+# different queries and stay different.
+#
+# An agent with no entry here still matches on the name as typed; it just gets
+# no cross-reference, and `AssetQuery.uncurated_terms` reports it so an
+# uncurated guess is never presented with the confidence of a reviewed one.
+
+agents:
+
+  # ---- checkpoint inhibitors and immuno-oncology
+  botensilimab:
+    codes: [AGEN1181]
+  balstilimab:
+    codes: [AGEN2034]
+  pembrolizumab:
+    brands: [Keytruda]
+    codes: [MK-3475, lambrolizumab]
+  nivolumab:
+    brands: [Opdivo]
+    codes: [BMS-936558, ONO-4538]
+  ipilimumab:
+    brands: [Yervoy]
+    codes: [BMS-734016, MDX-010]
+  atezolizumab:
+    brands: [Tecentriq]
+    codes: [MPDL3280A]
+  durvalumab:
+    brands: [Imfinzi]
+    codes: [MEDI4736]
+  tremelimumab:
+    brands: [Imjudo]
+    codes: [CP-675206]
+  retifanlimab:
+    brands: [Zynyz]
+    codes: [INCMGA00012, MGA012]
+  ivonescimab:
+    codes: [AK112, SMT112]
+  muzastotug:
+    codes: [ADG126]
+
+  # ---- EGFR / HER2
+  cetuximab:
+    brands: [Erbitux]
+    codes: [IMC-C225]
+  panitumumab:
+    brands: [Vectibix]
+    codes: [ABX-EGF]
+  trastuzumab:
+    brands: [Herceptin, Herzuma, Ogivri, Kanjinti]
+  # Distinct molecule from trastuzumab — an antibody-drug conjugate, not the
+  # bare antibody. Listed separately so a search for one does not return the
+  # other; the shared word "trastuzumab" is what makes this worth stating.
+  trastuzumab deruxtecan:
+    brands: [Enhertu]
+    codes: [DS-8201, fam-trastuzumab deruxtecan]
+  tucatinib:
+    brands: [Tukysa]
+    codes: [ONT-380, ARRY-380]
+  lapatinib:
+    brands: [Tykerb, Tyverb]
+    codes: [GW572016]
+  pertuzumab:
+    brands: [Perjeta]
+    codes: [2C4]
+
+  # ---- RAS / RAF / MEK
+  sotorasib:
+    brands: [Lumakras, Lumykras]
+    codes: [AMG 510]
+  adagrasib:
+    brands: [Krazati]
+    codes: [MRTX849]
+  divarasib:
+    codes: [GDC-6036]
+  encorafenib:
+    brands: [Braftovi]
+    codes: [LGX818, NVP-LGX818]
+  binimetinib:
+    brands: [Mektovi]
+    codes: [MEK162, ARRY-162, ARRY-438162]
+  vemurafenib:
+    brands: [Zelboraf]
+    codes: [PLX4032, RO5185426]
+  dabrafenib:
+    brands: [Tafinlar]
+    codes: [GSK2118436]
+
+  # ---- angiogenesis and multikinase
+  bevacizumab:
+    brands: [Avastin, Mvasi, Zirabev]
+  regorafenib:
+    brands: [Stivarga]
+    codes: [BAY 73-4506]
+  fruquintinib:
+    brands: [Fruzaqla]
+    codes: [HMPL-013]
+  zanzalintinib:
+    codes: [XL092]
+  cabozantinib:
+    brands: [Cabometyx, Cometriq]
+    codes: [XL184]
+  ramucirumab:
+    brands: [Cyramza]
+    codes: [IMC-1121B]
+  aflibercept:
+    brands: [Zaltrap, Eylea]
+    synonyms: [ziv-aflibercept]
+
+  # ---- cytotoxics and the oral fluoropyrimidines
+  fluorouracil:
+    synonyms: [5-FU, 5FU]
+    brands: [Adrucil]
+  capecitabine:
+    brands: [Xeloda]
+    codes: [RO 09-1978]
+  oxaliplatin:
+    brands: [Eloxatin]
+    # Non-English spelling, registered as such by several European sponsors.
+    synonyms: [oxaliplatine]
+  irinotecan:
+    brands: [Camptosar, Onivyde]
+    codes: [CPT-11]
+  # Registered under the brand at least as often as the ingredient pair.
+  trifluridine tipiracil:
+    brands: [Lonsurf]
+    codes: [TAS-102, FTD/TPI]
+  leucovorin:
+    synonyms: [folinic acid, calcium folinate, levoleucovorin]
+
+  # ---- regimens, as registered. Deliberately NOT expanded into components:
+  # see "WHAT DOES NOT BELONG HERE" above.
+  FOLFOX:
+    synonyms: [mFOLFOX6, FOLFOX6, FOLFOX4, FOLFOX7, mFOLFOX7, mFOLFOX]
+  FOLFIRI:
+    synonyms: [mFOLFIRI, FOLFIRI-3]
+  FOLFOXIRI:
+    synonyms: [FOLFIRINOX, mFOLFIRINOX]
+  CAPEOX:
+    synonyms: [XELOX, CAPOX]
+
+# ---------------------------------------------------------------------------
+# SALT, ESTER AND COUNTERION FORMS
+#
+# drugsFDA writes the salt into the ingredient name — "IRINOTECAN HYDROCHLORIDE",
+# "LEUCOVORIN CALCIUM", "HYDROCODONE BITARTRATE". This list is what
+# medrag/agents.py treats as a TRAILING counterion, so a name ending in one also
+# answers to its base ("leucovorin calcium" finds bare "LEUCOVORIN", and the
+# reverse).
+#
+# DERIVED FROM THE DATA, NOT FROM MEMORY. Measured against the live
+# `products.active_ingredients.name` vocabulary (the 1,000 most-used ingredient
+# names, 2026-08-05): 568 of them are multi-word, and these are the trailing
+# words that recurred, with their counts. Anything rarer was left out rather
+# than guessed at — an over-long list starts stripping real name parts.
+#
+#     HYDROCHLORIDE 181   SODIUM 63   SULFATE 27   ACETATE 23   TARTRATE 13
+#     ACID 11   CHLORIDE 10   MALEATE 10   FUMARATE 10   CITRATE 10
+#     SUCCINATE 10   PHOSPHATE 9   CALCIUM 9   MESYLATE 9   BROMIDE 7
+#     POTASSIUM 5   HYDROBROMIDE 5   BITARTRATE 4   PROPIONATE 4   LACTATE 4
+#     GLUCONATE 4   DISODIUM 4   BESYLATE 3   DIPROPIONATE 3   TROMETHAMINE 3
+#     CARBONATE 3   VALERATE 3   DIHYDROCHLORIDE 3
+#
+# The base is ADDED as an alternative reading, never substituted, because the
+# trailing word is not always a counterion: "POTASSIUM CHLORIDE" and "SODIUM
+# CHLORIDE" ARE the drug, and stripping would turn one into a different
+# substance. Both readings are emitted and whichever a query names is the one
+# that matches. `ACID` is included because "…IC ACID" is an ester/free-acid form
+# ("ZOLEDRONIC ACID"), and the base alone is still a real handle.
+salt_forms:
+  - hydrochloride
+  - dihydrochloride
+  - hydrobromide
+  - sodium
+  - disodium
+  - potassium
+  - calcium
+  - sulfate
+  - acetate
+  - tartrate
+  - bitartrate
+  - chloride
+  - maleate
+  - fumarate
+  - citrate
+  - succinate
+  - phosphate
+  - mesylate
+  - besylate
+  - bromide
+  - propionate
+  - dipropionate
+  - lactate
+  - gluconate
+  - tromethamine
+  - carbonate
+  - valerate
+  - acetonide
+  - acid

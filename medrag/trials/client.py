@@ -10,6 +10,7 @@ against v1 will silently return nothing here.
 
 from __future__ import annotations
 
+import random
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Iterator
@@ -59,6 +60,179 @@ DEFAULT_FIELDS = [
 _LAST_CALL = {"t": 0.0}
 _MIN_GAP = 0.25  # be a polite API citizen; there is no published hard limit
 
+# --------------------------------------------------------------------- retry
+#
+# Measured, not anticipated: a 74-family ingest hit 41 HTTP 500s and 12 dropped
+# connections across three passes, and every one of them downgraded an entire
+# query set. A family is only as complete as its least lucky query — one blip
+# anywhere in `breast`'s nine queries blocks the whole family — so a transient
+# server error was costing a 14-minute re-fetch of thousands of studies that
+# had already arrived intact.
+#
+# WHAT IS RETRYED IS DELIBERATELY NARROW. A 500, a 429, a timeout and a reset
+# connection are the server declining to answer right now. A 400 or a 404 IS an
+# answer — the query is malformed, or there is nothing there — and repeating it
+# cannot change it, only make this tool look like something hammering an
+# endpoint it does not understand.
+_RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+
+# Attempts, not retries: 4 means one try and three further goes. Capped because
+# an unbounded retry converts "the registry is down" into "the ingest hangs
+# forever", and an ingest nobody can wait out is its own silent failure.
+_MAX_ATTEMPTS = 4
+
+# Deliberately slow. openFDA's Purple Book taught this lesson expensively: three
+# consecutive HTTP 404s that were really Akamai bot-detection, triggered by
+# request rate, and nearly recorded as "this source does not exist". Backing off
+# in fractions of a second is what a scraper does; these are chosen so a run of
+# failures reads as a client waiting its turn.
+#
+# 2s, 8s, 32s (x4 growth), each with up to 50% jitter ADDED — never subtracted,
+# so a backoff can only ever be longer than the floor, and concurrent clients
+# spread out rather than retrying in lockstep.
+_BACKOFF_BASE = 2.0
+_BACKOFF_FACTOR = 4.0
+_BACKOFF_JITTER = 0.5
+
+# A server that says how long to wait outranks any local schedule. Capped so a
+# stray Retry-After header cannot park an ingest for an hour; past the cap this
+# gives up and lets the family record PARTIAL, which is a state the tool can
+# report rather than one an operator has to sit and watch.
+_MAX_RETRY_AFTER = 120.0
+
+
+class RetryBudget:
+    """Counts what retrying cost, so a slow ingest can say why it was slow.
+
+    A source degrading quietly is the thing this codebase keeps guarding
+    against, and retry is precisely a mechanism for converting a visible failure
+    into an invisible delay. Without a count, "this took four minutes" and "this
+    took four minutes because we retried forty times" are the same observation,
+    and the second one is a source in trouble.
+
+    Deliberately a plain counter with no success/failure verdict on it: whether
+    the fetch as a whole was complete is `run_query`'s and `verify_ingest`'s
+    call, and a retry budget that started grading outcomes would be a second
+    opinion on completeness competing with the one place that owns it.
+    """
+
+    def __init__(self) -> None:
+        self.attempts = 0        # total HTTP requests issued, including first tries
+        self.retries = 0         # requests that were a repeat of a failed one
+        self.slept = 0.0         # seconds spent waiting on backoff
+        self.by_reason: dict[str, int] = {}
+        self.exhausted = 0       # requests that used every attempt and still failed
+
+    def record_retry(self, reason: str, slept: float) -> None:
+        self.retries += 1
+        self.slept += slept
+        self.by_reason[reason] = self.by_reason.get(reason, 0) + 1
+
+    def merge(self, other: "RetryBudget") -> None:
+        self.attempts += other.attempts
+        self.retries += other.retries
+        self.slept += other.slept
+        self.exhausted += other.exhausted
+        for k, v in other.by_reason.items():
+            self.by_reason[k] = self.by_reason.get(k, 0) + v
+
+    @property
+    def clean(self) -> bool:
+        return self.retries == 0 and self.exhausted == 0
+
+    def summary(self) -> str:
+        """One line, printed only when there is something to report."""
+        if self.clean:
+            return ""
+        reasons = ", ".join(f"{k} x{v}" for k, v in sorted(self.by_reason.items()))
+        line = (f"{self.retries} retry/retries over {self.attempts} request(s), "
+                f"{self.slept:.0f}s waiting ({reasons})")
+        if self.exhausted:
+            line += f"; {self.exhausted} request(s) exhausted every attempt and failed"
+        return line
+
+
+def _retry_after_seconds(resp) -> float | None:
+    """The server's own instruction, when it sends one. Only the delta-seconds
+    form is honoured — the HTTP-date form is legal but needs clock-skew handling
+    to be safe, and guessing at a date the server meant is worse than falling
+    back to the local schedule."""
+    raw = (resp.headers.get("Retry-After") or "").strip() if resp is not None else ""
+    if not raw:
+        return None
+    try:
+        secs = float(raw)
+    except ValueError:
+        return None
+    if secs < 0:
+        return None
+    return min(secs, _MAX_RETRY_AFTER)
+
+
+def _backoff_seconds(attempt: int) -> float:
+    """Jitter is ADDED to the floor, never subtracted: the point of the floor is
+    to be polite, and a jitter that can shorten it undoes that on exactly the
+    retries that matter most."""
+    base = _BACKOFF_BASE * (_BACKOFF_FACTOR ** (attempt - 1))
+    return base + random.uniform(0, base * _BACKOFF_JITTER)
+
+
+def _get_with_retry(url: str, params: dict, timeout: int,
+                    budget: "RetryBudget | None" = None):
+    """One GET, retried on transient failure only. Returns the response.
+
+    Raises the ORIGINAL exception when attempts run out, rather than a wrapper:
+    the caller's error handling, the coverage report and the operator all
+    already read those, and burying a 500 inside a RetryExhausted would mean
+    every consumer needed teaching about a new type to say the same thing.
+
+    A failure that exhausts the budget is still a failure — it propagates, the
+    query records an error, and the family records PARTIAL. Retry shortens the
+    odds; it never launders a failure into a success.
+    """
+    budget = budget if budget is not None else RetryBudget()
+    last_exc: Exception | None = None
+
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        _throttle()
+        budget.attempts += 1
+        reason = ""
+        wait: float | None = None
+        try:
+            resp = requests.get(url, params=params, timeout=timeout)
+            if resp.status_code in _RETRY_STATUSES:
+                reason = f"HTTP {resp.status_code}"
+                wait = _retry_after_seconds(resp)
+                resp.raise_for_status()
+            # Any other status — including 400 and 404 — is the server's answer.
+            # raise_for_status turns a 4xx into an exception the caller handles,
+            # and we do not retry it.
+            resp.raise_for_status()
+            return resp
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            reason, last_exc = type(exc).__name__, exc
+        except requests.HTTPError as exc:
+            status = exc.response.status_code if exc.response is not None else None
+            if status not in _RETRY_STATUSES:
+                exc.retry_budget = budget
+                raise
+            reason, last_exc = reason or f"HTTP {status}", exc
+
+        if attempt == _MAX_ATTEMPTS:
+            budget.exhausted += 1
+            # The count travels WITH the failure. A query that died after three
+            # retries and one that died immediately both record an error, and
+            # only this distinguishes "the registry is struggling" from "the
+            # registry said no".
+            last_exc.retry_budget = budget
+            raise last_exc
+
+        delay = wait if wait is not None else _backoff_seconds(attempt)
+        budget.record_retry(reason, delay)
+        time.sleep(delay)
+
+    raise last_exc  # pragma: no cover - loop always returns or raises above
+
 
 @dataclass
 class TrialRecord:
@@ -69,6 +243,12 @@ class TrialRecord:
     why_stopped: str = ""
     enrollment_count: int | None = None
     enrollment_type: str = ""          # ACTUAL vs ESTIMATED - an unmet estimate is a signal
+    # designModule.designInfo.allocation. Same class of gap as
+    # detailed_description/keywords: designModule is already fetched whole
+    # (part of DEFAULT_FIELDS) but this field was never parsed out. Used by
+    # ranking.py as an evidence-quality signal, the same principle
+    # evidence_grade.py applies to literature.
+    allocation: str = ""               # RANDOMIZED | NON_RANDOMIZED | "" (not stated)
     lead_sponsor: str = ""
     sponsor_class: str = ""            # INDUSTRY, NIH, OTHER
     start_date: str = ""
@@ -76,11 +256,23 @@ class TrialRecord:
     completion_date: str = ""
     study_type: str = ""
     conditions: list[str] = field(default_factory=list)
+    # conditionsModule's other field. Already fetched (whole module requested)
+    # and never parsed. Registry-chosen tags, not prose, so treated as the
+    # least reliable of the biomarker-matching text sources — but real: C-800-25
+    # carries "MSS" and "Microsatellite stable" here verbatim.
+    keywords: list[str] = field(default_factory=list)
     interventions: list[str] = field(default_factory=list)
     collaborators: list[str] = field(default_factory=list)
 
     # --- patient-perspective fields (trial landscape) ---
     brief_summary: str = ""
+    # descriptionModule's other field. Fetched all along (it is inside
+    # DEFAULT_FIELDS' descriptionModule) but never parsed out — ADG126-P001
+    # states its MSS focus only here ("...with a focus on MSS CRC"), nowhere in
+    # eligibility_criteria or brief_summary. Consulted by the biomarker matchers
+    # only when eligibility_criteria itself carries no signal for a marker; see
+    # markers.collect_signals.
+    detailed_description: str = ""
     eligibility_criteria: str = ""     # the full inclusion/exclusion text
     minimum_age: str = ""              # "18 Years" as the registry states it
     maximum_age: str = ""
@@ -220,6 +412,7 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
         why_stopped=status.get("whyStopped", "").strip(),
         enrollment_count=enrollment.get("count"),
         enrollment_type=enrollment.get("type", ""),
+        allocation=(design.get("designInfo") or {}).get("allocation", ""),
         lead_sponsor=lead.get("name", ""),
         sponsor_class=lead.get("class", ""),
         start_date=_first(status.get("startDateStruct") or {}, "date"),
@@ -227,11 +420,13 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
         completion_date=_first(status.get("completionDateStruct") or {}, "date"),
         study_type=design.get("studyType", ""),
         conditions=list(conds.get("conditions") or []),
+        keywords=list(conds.get("keywords") or []),
         interventions=[
             i.get("name", "") for i in (arms.get("interventions") or []) if i.get("name")
         ],
         collaborators=[c.get("name", "") for c in (sponsor.get("collaborators") or []) if c.get("name")],
         brief_summary=(desc.get("briefSummary") or "").strip(),
+        detailed_description=(desc.get("detailedDescription") or "").strip(),
         eligibility_criteria=(elig.get("eligibilityCriteria") or "").strip(),
         minimum_age=elig.get("minimumAge", ""),
         maximum_age=elig.get("maximumAge", ""),
@@ -255,6 +450,11 @@ class QueryResult:
     pages: int = 0
     truncated: bool = False       # a max_records override stopped us early
     skipped_no_id: int = 0        # studies the API returned with no NCT ID
+    # What retrying cost. Carried on the result rather than logged and forgotten
+    # so the ingest can report it: a query that took a minute because it was
+    # retried eight times and a query that took a minute because it is large are
+    # different facts about the registry's health.
+    retries: RetryBudget = field(default_factory=RetryBudget)
 
     @property
     def complete(self) -> bool:
@@ -317,9 +517,10 @@ def iter_studies(
     while max_records is None or seen < max_records:
         if page_token:
             params["pageToken"] = page_token
-        _throttle()
-        resp = requests.get(API_URL, params=params, timeout=timeout)
-        resp.raise_for_status()
+        # Retried per PAGE, which is the useful granularity: a 10,000-study
+        # query is eleven requests, and losing the eleventh to a transient 500
+        # used to discard the ten that had already succeeded.
+        resp = _get_with_retry(API_URL, params, timeout, budget=out.retries)
         payload = resp.json()
 
         if out.reported_total is None:
@@ -385,17 +586,15 @@ def fetch_trials(nct_ids: list[str], timeout: int = 45, offline: bool = False) -
     batch = 50
     for i in range(0, len(nct_ids), batch):
         ids = nct_ids[i : i + batch]
-        _throttle()
-        resp = requests.get(
+        resp = _get_with_retry(
             API_URL,
-            params={
+            {
                 "filter.ids": "|".join(ids),
                 "pageSize": len(ids),
                 "fields": "|".join(DEFAULT_FIELDS),
             },
-            timeout=timeout,
+            timeout,
         )
-        resp.raise_for_status()
         for study in resp.json().get("studies") or []:
             record = parse_study(study)
             if record:

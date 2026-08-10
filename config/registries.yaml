@@ -1,0 +1,28 @@
+# Which trial registries this tool can and cannot see.
+#
+# EDIT THIS FILE, NOT CODE. Same principle as trial_queries.yaml and
+# markers.yaml: which registries exist and which of them we search is a fact
+# about the world and about this tool's build, not something to infer from
+# the absence of a line of code. If openFDA-style integration for another
+# registry is ever built, move its name from `not_searched` to `searched`
+# here — that is the whole change coverage.py needs to see it.
+#
+# `searched` entries are rendered as "Searched: <name> — <numbers>", the
+# numbers coming from query_coverage at fetch time. `not_searched` entries are
+# rendered as one line naming all of them, so a reader sees exactly what this
+# tool cannot see, not just what it can. `caveat` is the one-line consequence
+# a reader should draw from the gap between the two lists — it is not neutral
+# to omit which population is over- or under-represented by only searching
+# ClinicalTrials.gov.
+
+searched:
+  - key: ctgov
+    name: "ClinicalTrials.gov"
+
+not_searched:
+  - "WHO ICTRP"
+  - "ChiCTR"
+  - "EU CTIS"
+  - "jRCT"
+
+caveat: "Coverage is therefore US-weighted."
