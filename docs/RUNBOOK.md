@@ -93,6 +93,99 @@ without naming it in the terms breaks the build. That is deliberate.
 
 ---
 
+## The data artifact: build, verify, swap, roll back
+
+Written for someone who was not here. You need a checkout, a Python 3.11+ venv,
+and the stores under `data/raw/` (build those with `python -m medrag trials`).
+
+### Build
+
+```bash
+python scripts/build_artifact.py --out dist/artifact
+```
+
+One command. It compacts each store with `VACUUM INTO` (read-only on the source,
+so this is safe to run while the tool is in use), stamps the snapshot date and
+content version **inside** each database, and writes `manifest.json` and
+`SHA256SUMS`. Takes about 30 seconds and produces roughly 1.9 GB.
+
+The snapshot date lives inside the file, in a `snapshot_meta` table, **not in
+the filename**. Renaming `trials.db` changes nothing about what the app believes
+its age to be — which is the point, because a filename is a label anyone can
+change with `mv`.
+
+Confirm the build is a pure function of its inputs:
+
+```bash
+python scripts/build_artifact.py --verify-reproducible   # builds twice, compares
+```
+
+### Verify — do this on the machine that will serve it, after copying
+
+```bash
+cd /srv/artifact && shasum -a 256 -c SHA256SUMS
+```
+
+Every line must say `OK`. This is the check that catches a truncated upload,
+which is the most common way a deployment ends up serving half a database.
+
+### Swap
+
+The service verifies the artifact **at startup** and refuses to run on one that
+is missing, corrupt, or older than `PUBLIC_MAX_SNAPSHOT_AGE_DAYS`. So a swap is:
+put the new artifact beside the old one, point at it, restart, confirm.
+
+```bash
+# 1. Copy the NEW artifact to a new directory — never overwrite the live one.
+rsync -a --checksum dist/artifact/ /srv/artifacts/2026-08-10/
+
+# 2. Verify it in place.
+cd /srv/artifacts/2026-08-10 && shasum -a 256 -c SHA256SUMS
+
+# 3. Repoint and restart.
+ln -sfn /srv/artifacts/2026-08-10 /srv/artifact-current
+systemctl restart trialfinder     # or: docker compose up -d
+
+# 4. Confirm what is actually live — do not skip this.
+curl -s https://YOUR-REAL-HOST/healthz | python -m json.tool
+```
+
+Step 4 should show the new `snapshot_date`, `artifact_verified: true`,
+`snapshot_stale: false`, and `checksums_verified: true`. If it shows the old
+date, the restart did not pick up the new directory.
+
+**Never overwrite the live artifact in place.** A partially-copied 1.9 GB file
+is a broken deployment, and it is broken for as long as the copy takes.
+
+### Roll back
+
+Because each artifact is its own directory, rollback is repointing:
+
+```bash
+ln -sfn /srv/artifacts/2026-08-01 /srv/artifact-current
+systemctl restart trialfinder
+curl -s https://YOUR-REAL-HOST/healthz | python -m json.tool   # confirm the date moved back
+```
+
+Keep the previous two artifacts on disk (≈4 GB) so this is always available.
+Rolling back to an artifact older than the staleness threshold **will not
+start** — that is deliberate. If you need it anyway, raise
+`PUBLIC_MAX_SNAPSHOT_AGE_DAYS` explicitly and knowingly.
+
+### After ANY infrastructure change
+
+New host, new CDN, new proxy, new WAF, changed logging config, new error
+tracker — all of these reintroduce layers that log URLs by default.
+
+1. Re-read the URL-logging table below and re-check every layer.
+2. **Re-run the sentinel test against the real hostname. This is mandatory, not
+   advisory** — passing locally proves the application layer only and says
+   nothing about what now sits in front of it.
+3. `curl /healthz` and confirm the snapshot date, terms version and provider are
+   what you expect.
+
+---
+
 ## Deployment checklist: every layer that can log a URL
 
 **The application cannot keep this promise alone.** Silencing `uvicorn.access`
@@ -142,6 +235,110 @@ which has already done what it can.
 
 **Do this again after any infrastructure change.** Adding a CDN, moving hosts, or
 turning on a WAF each reintroduce a layer that logs URLs by default.
+
+---
+
+## What it costs to run
+
+Measured on the real 241,298-trial artifact (2026-08-10), Python 3.9 on macOS,
+single core per worker. Numbers, not estimates.
+
+### Disk
+
+| | |
+|---|---|
+| `trials.db` | **1,860.6 MB** |
+| `fda.db` | 39.1 MB |
+| `drugs.db` | 16.9 MB |
+| **artifact total** | **1,916.6 MB** (2.01 GB as the filesystem reports it) |
+| Keep 2 previous artifacts for rollback | **≈6 GB** provisioned |
+
+The trial store is 80% text, and it cannot be trimmed without changing what the
+tool answers: `eligibility_criteria` 416 MB (27%), `locations` 361 MB (23%),
+`detailed_description` 302 MB (20%), `brief_summary` 155 MB (10%). The two
+description fields look like dead weight and are not — `build_landscape`
+screens them live, which is how ADG126-P001 is found at all (it states its MSS
+focus only in its detailed description).
+
+### Memory
+
+| | |
+|---|---|
+| Python + imports | 26 MB |
+| After opening the 1.9 GB store | 26 MB — SQLite is paged, not loaded |
+| Peak during a colorectal search | **167 MB** |
+| Steady state after several searches | ~167 MB |
+
+**512 MB per worker is comfortable; 1 GB for two workers plus headroom.** The
+artifact does not need to fit in RAM, but the OS page cache will use whatever is
+spare, and a box with 2 GB free will serve noticeably faster than one with 256 MB.
+
+### Latency — the number that matters
+
+A search costs **a fixed ~3 seconds plus ~0.8 ms per trial screened**:
+
+| Search | Trials screened | Time |
+|---|---|---|
+| `rett syndrome` | 104 | **3.1 s** |
+| `gaucher disease` | 214 | 3.3 s |
+| `colorectal cancer` | 12,095 | **12.8 s** |
+| `breast cancer` (projected, not isolated) | 17,089 | ~17 s |
+
+Both halves are understood:
+
+- **The fixed ~3 s** is six full-table scans over 241,298 rows. Every one is
+  `WHERE query_sets LIKE '% key %'`, and a leading-wildcard LIKE cannot use an
+  index, so each scan reads the table. `biomarker_counts` alone is 1.4 s (five
+  scans, one per status).
+- **The per-trial cost** is `build_landscape` re-screening every record in the
+  family with `match_biomarker`, in Python, at ~0.8 ms each.
+
+### Concurrency
+
+Two workers, `rett syndrome` (the cheap case):
+
+| Concurrency | Wall | Throughput |
+|---|---|---|
+| 1 | 3.1 s | 0.32 req/s |
+| 2 | 6.1 s | 0.33 req/s |
+| 4 | 9.5 s | 0.42 req/s |
+| 8 | 27.2 s | 0.29 req/s |
+
+**Throughput is flat at roughly 0.3 req/s and does not improve with
+concurrency** — the work is CPU-bound, so it degrades linearly: each additional
+concurrent visitor adds their full service time to everyone's wait. With two
+workers this is **usable at about 2 concurrent searchers and unusable beyond
+about 8**, and that is on the cheapest family. On `colorectal` a single request
+occupies a worker for 13 seconds.
+
+**Be honest with whoever is paying: this will not survive a campaign in its
+current shape.** A launch that puts a hundred people on the page at once will
+queue them for minutes. Sizing up helps only linearly — throughput is
+`workers ÷ 3 s` at best, so serving 10 req/s of cheap searches needs ~30 cores,
+and colorectal-sized searches need four times that.
+
+One defect was found and fixed during this measurement: the route handlers were
+`async def` while doing blocking SQLite and CPU work, which runs them **on the
+event loop** and serialises everything in a worker — including `/healthz`. A
+concurrency test against them did not finish in ten minutes. As plain `def`
+handlers Starlette runs them in a threadpool; the health check now answers in
+1.4 ms during a heavy search.
+
+**Two changes would move the numbers a lot, and neither is done** — both touch
+core modules and neither was in scope:
+
+1. **Prefilter with the stored biomarker census.** The gating tokens are already
+   computed at ingest, so a curated marker could narrow colorectal from 12,095
+   screened to ~826 before any Python runs. Needs care: `biomarker.py` and
+   `biomarker_gating.py` have deliberately different conflict policies (see
+   CLAUDE.md), so the prefilter must be proven not to drop a trial the live
+   matcher would admit.
+2. **Index the query-set membership.** Replacing the `query_sets LIKE '% key %'`
+   token column with an indexed `(nct_id, set_key)` join table would remove most
+   of the fixed 3 seconds. That is a schema change and a migration.
+
+Until then, the honest operating envelope is: **fine for a link shared with a
+handful of people; not fine for a campaign.**
 
 ---
 

@@ -15,13 +15,13 @@ from .ingest.pdf import load_pdf_dir
 from .ingest.pubmed import fetch_pubmed, search_pubmed
 from .ingest.store import load_corpus, save_corpus, stash_pending
 from .retriever import Retriever
+
+# Re-exported from a leaf module so the public service can learn a filename
+# without importing this one — see medrag/storenames.py. One definition, two
+# import paths, no drift.
+from .storenames import CORPUS_FILE, DRUGS_DB, FDA_DB, TRIALS_DB  # noqa: F401
 from .validation import ValidationReport, validate_answer
 from .vectorstore import VectorStore
-
-CORPUS_FILE = "corpus.jsonl"
-TRIALS_DB = "trials.db"
-FDA_DB = "fda.db"
-DRUGS_DB = "drugs.db"
 
 PHI_WARNING = """
 ┌─ PRIVACY NOTICE ─────────────────────────────────────────────────────────────┐

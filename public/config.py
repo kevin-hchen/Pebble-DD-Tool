@@ -77,6 +77,21 @@ class PublicConfig:
 
     # --- data ---
     data_dir: Path = field(default_factory=lambda: Path(os.getenv("MEDRAG_DATA_DIR", "data")))
+    #: The verified artifact directory. When set, it is the ONLY source of data
+    #: and it is checked at startup (see public/artifact.py). When unset the app
+    #: falls back to `data_dir` for local development, which is why the fallback
+    #: is not silent — `startup_report()` says so.
+    artifact_dir: Path | None = field(
+        default_factory=lambda: Path(os.environ["PUBLIC_ARTIFACT_DIR"])
+        if os.getenv("PUBLIC_ARTIFACT_DIR") else None)
+    #: Refuse to start on a snapshot older than this.
+    max_snapshot_age_days: int = field(
+        default_factory=lambda: int(os.getenv("PUBLIC_MAX_SNAPSHOT_AGE_DAYS", "90")))
+    #: A named, reported downgrade for a large artifact on slow storage — never
+    #: a silent skip. The health endpoint reports that verification was skipped.
+    verify_checksums: bool = field(
+        default_factory=lambda: os.getenv("PUBLIC_SKIP_CHECKSUM_VERIFY", "").strip().lower()
+        not in {"1", "true", "yes", "on"})
 
     # --- limits ---
     #: Requests per IP per window. A cap, not a business rule — the service is

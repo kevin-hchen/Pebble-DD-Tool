@@ -32,7 +32,7 @@ from medrag.coverage import render_lines
 from medrag.dbopen import MissingDatabaseError
 from medrag.freshness import _mtime  # snapshot date, read-only, never raises
 from medrag.landscape import build_landscape
-from medrag.pipeline import TRIALS_DB
+from medrag.storenames import TRIALS_DB
 from medrag.trials.store import TrialStore, TrialStoreSchemaError
 
 
@@ -66,7 +66,25 @@ def public_config(data_dir: Path) -> Config:
 
 
 def trials_path(data_dir: Path) -> Path:
-    return Path(data_dir) / "raw" / TRIALS_DB
+    """Locate the trial store under either supported layout.
+
+    A built artifact holds the databases at its root (`<artifact>/trials.db`) —
+    a deployment artefact should not carry a `raw/` level that means nothing to
+    a deployer. A development checkout holds them under `data/raw/`, the layout
+    the CLI writes.
+
+    Both are checked, artifact layout first, and the ROOT one wins when both
+    exist: a verified artifact must never be shadowed by a stray `raw/` copy
+    somebody left in the same directory. Returns the artifact-layout path when
+    neither exists, so the error names the file a deployer expects.
+    """
+    root = Path(data_dir)
+    flat, nested = root / TRIALS_DB, root / "raw" / TRIALS_DB
+    if flat.exists():
+        return flat
+    if nested.exists():
+        return nested
+    return flat
 
 
 def snapshot_date(data_dir: Path) -> str:

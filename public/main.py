@@ -40,6 +40,7 @@ from fastapi.templating import Jinja2Templates
 from medrag.config import Config
 
 from . import data as public_data
+from .artifact import verify
 from .config import load_public_config
 from .consent import ConsentRequired, require_consent
 from .ratelimit import RateLimiter, client_address
@@ -55,6 +56,23 @@ BASE_DIR = Path(__file__).resolve().parent
 silence_server_access_logs()
 
 CFG = load_public_config()
+
+# VERIFIED AT IMPORT, so a bad artifact stops the process rather than producing a
+# page that returns 200 while serving nothing. A public site has no analyst to
+# notice that the answers went thin — the failure has to be at startup, where a
+# container restart loop and a log line make it impossible to miss.
+#
+# `DATA_ROOT` is what the service reads from afterwards: the artifact when one is
+# configured, `data_dir` otherwise. The fallback exists for local development and
+# is REPORTED, never silent, because an unverified deployment that looks like a
+# verified one is the thing this module exists to prevent.
+ARTIFACT = None
+DATA_ROOT = CFG.data_dir
+if CFG.artifact_dir is not None:
+    ARTIFACT = verify(CFG.artifact_dir, max_age_days=CFG.max_snapshot_age_days,
+                      check_checksums=CFG.verify_checksums)
+    DATA_ROOT = CFG.artifact_dir
+
 TERMS = load_terms()
 PROVIDER = provider_statement(Config().provider if CFG.memo.enabled or CFG.claims.enabled
                               else "none")
@@ -92,7 +110,7 @@ def _base_context(request: Request) -> dict:
     return {
         "request": request,
         "nearest_site": _nearest_site,
-        "snapshot_date": public_data.snapshot_date(CFG.data_dir),
+        "snapshot_date": public_data.snapshot_date(DATA_ROOT),
         "terms_version": TERMS.version,
         "provider": PROVIDER,
         "flags": CFG,
@@ -135,24 +153,71 @@ async def request_middleware(request: Request, call_next):
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+def index(request: Request):
     return templates.TemplateResponse("index.html", _base_context(request))
 
 
 @app.get("/terms", response_class=HTMLResponse)
-async def terms_page(request: Request):
+def terms_page(request: Request):
     ctx = _base_context(request)
     ctx["terms_markdown"] = TERMS.markdown
     return templates.TemplateResponse("terms.html", ctx)
 
 
-@app.get("/healthz", response_class=PlainTextResponse)
+@app.get("/healthz")
 async def healthz():
-    return "ok"
+    """Everything needed to judge whether this deployment is honest, in one GET.
+
+    Deliberately NOT a bare "ok". A liveness probe that only proves the process
+    is running is exactly the failure this codebase keeps guarding against: a
+    page that looks healthy while serving something other than what it claims.
+    An operator should be able to see, without logging in:
+
+      * how old the data is, and whether that is within the configured threshold;
+      * which terms version visitors are agreeing to;
+      * which model provider — if any — is receiving submitted text;
+      * which features are on.
+
+    Carries no request content and no secret: the provider is named, never its
+    key. Safe to expose to a load balancer, and useful enough to be worth
+    reading rather than just polling.
+    """
+    payload = {
+        "status": "ok",
+        "terms_version": TERMS.version,
+        "model_provider": PROVIDER.provider,
+        "model_is_local": PROVIDER.is_local,
+        "model_disclosure": PROVIDER.sentence,
+        "features": {f.name: f.enabled for f in CFG.flags()},
+        "artifact_verified": ARTIFACT is not None,
+    }
+    if ARTIFACT is not None:
+        payload.update({
+            "snapshot_date": ARTIFACT.snapshot_display,
+            "snapshot_age_days": ARTIFACT.age_days,
+            "max_snapshot_age_days": ARTIFACT.max_age_days,
+            "snapshot_stale": ARTIFACT.stale,
+            "artifact_version": ARTIFACT.artifact_version,
+            "artifact_bytes": ARTIFACT.total_bytes,
+            "artifact_built_at": ARTIFACT.built_at,
+            # Reported so an operator can tell a verified start from one where
+            # verification was deliberately skipped. A skipped check that looked
+            # like a passed check would defeat the whole mechanism.
+            "checksums_verified": CFG.verify_checksums,
+        })
+    else:
+        payload.update({
+            "snapshot_date": public_data.snapshot_date(DATA_ROOT),
+            "warning": ("no verified artifact is configured (PUBLIC_ARTIFACT_DIR is "
+                        "unset) — this process is reading an unverified directory. "
+                        "Acceptable for local development, not for a public "
+                        "deployment."),
+        })
+    return payload
 
 
 @app.get("/landscape", response_class=HTMLResponse)
-async def landscape_form(request: Request):
+def landscape_form(request: Request):
     """The empty search form. Takes NO parameters, deliberately.
 
     See `landscape` below for why the search itself is a POST. Accepting
@@ -167,8 +232,15 @@ async def landscape_form(request: Request):
     return templates.TemplateResponse("landscape.html", ctx)
 
 
+# NOT `async def`, and that is load-bearing rather than style. A coroutine
+# handler runs ON the event loop, so the blocking SQLite reads and the CPU-bound
+# biomarker screen inside it stall every other request in the same worker —
+# including /healthz. Measured: a concurrency test against async handlers did not
+# finish in ten minutes. A plain `def` handler is run by Starlette in a
+# threadpool, so requests proceed in parallel up to the pool size and a slow
+# search cannot take the health check down with it.
 @app.post("/landscape", response_class=HTMLResponse)
-async def landscape(request: Request, condition: str = Form(""),
+def landscape(request: Request, condition: str = Form(""),
                     biomarker: str = Form(""), location: str = Form("")):
     """Trial landscape. A POST, and that is a privacy decision, not a REST one.
 
@@ -204,7 +276,7 @@ async def landscape(request: Request, condition: str = Form(""),
 
     try:
         result = public_data.run_landscape(
-            CFG.data_dir, condition=condition.strip(), biomarker=biomarker.strip(),
+            DATA_ROOT, condition=condition.strip(), biomarker=biomarker.strip(),
             location=location.strip(),
             # Two caps, the smaller wins: the service's hard ceiling and the
             # landscape's own default. A caller cannot raise either.
@@ -219,7 +291,7 @@ async def landscape(request: Request, condition: str = Form(""),
 
 
 @app.post("/memo", response_class=HTMLResponse)
-async def memo(request: Request, asset: str = Form(""), indication: str = Form(""),
+def memo(request: Request, asset: str = Form(""), indication: str = Form(""),
                consent: str = Form("")):
     """Diligence memo. SHIPPED OFF.
 
@@ -243,7 +315,7 @@ async def memo(request: Request, asset: str = Form(""), indication: str = Form("
 
 
 @app.post("/claims", response_class=HTMLResponse)
-async def claims(request: Request, claims_text: str = Form(""), consent: str = Form("")):
+def claims(request: Request, claims_text: str = Form(""), consent: str = Form("")):
     """Claim check. SHIPPED OFF. Same ordering as /memo."""
     ctx = _base_context(request)
     if not CFG.claims.enabled:
@@ -262,7 +334,7 @@ async def claims(request: Request, claims_text: str = Form(""), consent: str = F
 
 
 @app.post("/landscape.pdf")
-async def landscape_pdf(condition: str = Form(""), biomarker: str = Form(""),
+def landscape_pdf(condition: str = Form(""), biomarker: str = Form(""),
                         location: str = Form("")):
     """The same result as a PDF, rendered to a BytesIO and streamed.
 
@@ -282,7 +354,7 @@ async def landscape_pdf(condition: str = Form(""), biomarker: str = Form(""),
         return PlainTextResponse("Enter a condition and a biomarker.", status_code=400)
 
     result = public_data.run_landscape(
-        CFG.data_dir, condition=condition.strip(), biomarker=biomarker.strip(),
+        DATA_ROOT, condition=condition.strip(), biomarker=biomarker.strip(),
         location=location.strip(), max_results=min(CFG.max_results, 30))
 
     from medrag.landscape_memo import render_pdf

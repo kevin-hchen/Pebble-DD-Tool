@@ -1,0 +1,26 @@
+# Dependencies for the PUBLIC service only (public/, served by Dockerfile).
+#
+# Deliberately not requirements.txt. That file installs streamlit, torch,
+# transformers, faiss and sentence-transformers for the internal tool — none of
+# which the public app imports. A public image should not carry code it cannot
+# run: it is a larger attack surface, a slower pull, and a longer list of CVEs
+# to answer for, all for capabilities the service does not have.
+#
+# Pinned exactly, like requirements.txt. `pip install -r` this into a fresh venv
+# and the public app runs; anything it needs that is missing from here is a bug
+# in this file, not a reason to fall back to the big one.
+
+fastapi==0.128.8
+uvicorn==0.39.0
+python-multipart==0.0.20
+jinja2==3.1.6
+
+# medrag/ imports these on the public read path:
+#   reportlab  — the landscape PDF, rendered to a BytesIO and streamed
+#   pyyaml     — config/markers.yaml, config/ranking.yaml, config/registries.yaml
+#   requests   — imported by medrag.trials.client at module scope. The public app
+#                never calls it (public/data.py imports nothing that fetches, and
+#                that is asserted by a test), but the import must resolve.
+reportlab==4.4.4
+pyyaml==6.0.3
+requests==2.32.5
