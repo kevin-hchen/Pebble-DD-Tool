@@ -66,7 +66,26 @@ from .client import STOPPED_STATUSES, TrialRecord
 # written before the fetch and only cleared by a verified count, so an
 # interrupted run leaves a family visibly in progress instead of a plausible
 # lie.
-STORE_VERSION = 9
+# v10 replaces the `query_sets` space-padded token column with a real indexed
+# join table (`trial_query_sets`). The token scheme required
+# `query_sets LIKE '% key %'`, and a LEADING-wildcard LIKE cannot use an index,
+# so every landscape search full-scanned all 241,298 rows — six times, once per
+# count/query/provenance/census call. Measured: ~3 seconds of fixed cost on
+# EVERY search regardless of how small the family was (a 104-trial family took
+# 3.1s). The column is DROPPED rather than kept alongside: two sources of the
+# same truth is how `biomarker.py` and `biomarker_gating.py` drifted apart, and
+# the migration asserts the join table reproduces the column exactly before
+# removing it.
+# v11 recomputes the biomarker census columns (biomarker_gating,
+# biomarker_basis, biomarker_flags). They are baked at ingest, so a change to
+# the MATCHER leaves the stored census describing the old rules — and this
+# codebase's rule is that a stale derived column is refused rather than read.
+# Two matcher fixes forced it: markers.resolve_marker no longer substring-matches
+# a query onto the wrong marker, and _is_test_requirement now also neutralises an
+# assay PANEL listing (a sentence enumerating the variants an assay covers is not
+# a sentence saying the patient has them). Pure recomputation from stored text —
+# no re-fetch.
+STORE_VERSION = 11
 
 #: The three states a query set can be in, and why there are three rather than
 #: a boolean. A family with no row at all was never searched — the
@@ -125,9 +144,20 @@ CREATE TABLE IF NOT EXISTS trials (
     biomarker_basis         TEXT,   -- space-padded ' MARKER:EXPLICIT|SYNONYM|NONE ' tokens
     biomarker_flags         TEXT,   -- JSON {marker: {status, span}}, computed at ingest
     found_by                TEXT,   -- JSON array of query labels that returned this trial
-    query_sets              TEXT,   -- space-padded ' setkey ' tokens for LIKE filtering
     ingested_at             TEXT DEFAULT CURRENT_TIMESTAMP
 );
+-- Query-set membership, indexed. Replaces `query_sets LIKE '% key %'`, which
+-- could not use an index and full-scanned the table on every search.
+-- (set_key, nct_id) leading with set_key is the order that matters: every query
+-- selects one set and wants its members, so this is a range scan into the
+-- trials primary key rather than a table scan.
+CREATE TABLE IF NOT EXISTS trial_query_sets (
+    nct_id  TEXT NOT NULL,
+    set_key TEXT NOT NULL,
+    PRIMARY KEY (set_key, nct_id)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS idx_tqs_nct ON trial_query_sets(nct_id);
+
 CREATE INDEX IF NOT EXISTS idx_status     ON trials(overall_status);
 CREATE INDEX IF NOT EXISTS idx_phase      ON trials(phase);
 CREATE INDEX IF NOT EXISTS idx_sponsor    ON trials(lead_sponsor);
@@ -167,6 +197,13 @@ _ARRAY_FIELDS = (
     "conditions", "keywords", "interventions", "collaborators",
     "overall_officials", "central_contacts", "locations",
 )
+
+
+#: Membership test against the indexed join table. One definition, used by every
+#: caller — the old scheme had the same LIKE pattern written out at eight call
+#: sites, which is how a token-format change would have missed one.
+_QUERY_SET_CLAUSE = (
+    "nct_id IN (SELECT nct_id FROM trial_query_sets WHERE set_key = ?)")
 
 
 def _intervention_clause(intervention: str, params: list, join: str = "AND") -> str:
@@ -211,10 +248,15 @@ def _intervention_clause(intervention: str, params: list, join: str = "AND") -> 
 #: called COMPLETE only when its own recorded numbers prove it (see
 #: `_derive_status`), and everything else — including every row whose numbers
 #: are merely silent — becomes PARTIAL. A version not listed here is refused
+#: v9 -> v10 rebuilds query-set membership as an indexed join table, which is a
+#: pure re-shaping of the `query_sets` token column already stored — and the
+#: migration ASSERTS the two agree for every family before dropping the column,
+#: so the reshaping cannot lose a membership silently.
+#: A version not listed here is refused
 #: outright, because the missing columns hold data only a re-fetch can supply
 #: (v4's fetch provenance, v5's detailed_description) and inventing them would
 #: be worse than the refusal.
-_BACKFILLABLE_FROM = frozenset({7, 8})
+_BACKFILLABLE_FROM = frozenset({7, 8, 9, 10})
 
 
 def verify_ingest(held: int, total_unique: int, yields: list[dict],
@@ -271,7 +313,7 @@ def migrate_derived_columns(path: str | Path) -> dict:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
         if version == STORE_VERSION:
             return {"migrated": False, "from_version": version, "rows": 0,
-                    "graded": [], "reason": "already current"}
+                    "graded": [], "membership": {}, "reason": "already current"}
         if version not in _BACKFILLABLE_FROM:
             raise TrialStoreSchemaError(
                 f"the trial database at {path} is schema v{version or 1} and the gap to "
@@ -311,8 +353,8 @@ def migrate_derived_columns(path: str | Path) -> dict:
             for row in conn.execute(
                     "SELECT set_key, yields, total_unique, errors FROM query_coverage"):
                 held = conn.execute(
-                    "SELECT COUNT(*) FROM trials WHERE query_sets LIKE ?",
-                    (f"% {row['set_key']} %",)).fetchone()[0]
+                    "SELECT COUNT(*) FROM trial_query_sets WHERE set_key = ?",
+                    (row["set_key"],)).fetchone()[0]
                 status, _why = verify_ingest(
                     held=held,
                     total_unique=row["total_unique"] or 0,
@@ -321,7 +363,82 @@ def migrate_derived_columns(path: str | Path) -> dict:
                 )
                 graded.append((status, held, row["set_key"]))
 
+        # v9 -> v10: build the indexed join table from the token column, PROVE it
+        # reproduces that column exactly for every family, and only then drop the
+        # column. Leaving both would be two sources of one truth — the drift that
+        # produced the biomarker bug — and dropping it without the check would
+        # risk losing a membership silently, which is the failure this whole
+        # codebase is organised against.
+        membership_check: dict = {}
+        if version < 10:
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(trials)")}
+            conn.executescript(
+                "CREATE TABLE IF NOT EXISTS trial_query_sets ("
+                "  nct_id TEXT NOT NULL, set_key TEXT NOT NULL,"
+                "  PRIMARY KEY (set_key, nct_id)) WITHOUT ROWID;"
+                "CREATE INDEX IF NOT EXISTS idx_tqs_nct ON trial_query_sets(nct_id);")
+
+            if "query_sets" in cols:
+                pairs = []
+                for row in conn.execute("SELECT nct_id, query_sets FROM trials"):
+                    for key in (row["query_sets"] or "").split():
+                        pairs.append((row["nct_id"], key))
+                conn.executemany(
+                    "INSERT OR IGNORE INTO trial_query_sets (nct_id, set_key) VALUES (?, ?)",
+                    pairs)
+
+                # The assertion. Per family, the old LIKE and the new join must
+                # select exactly the same NCT IDs.
+                mismatches = []
+                for (key,) in conn.execute(
+                        "SELECT DISTINCT set_key FROM trial_query_sets ORDER BY set_key"):
+                    old_ids = {r[0] for r in conn.execute(
+                        "SELECT nct_id FROM trials WHERE query_sets LIKE ?",
+                        (f"% {key} %",))}
+                    new_ids = {r[0] for r in conn.execute(
+                        "SELECT nct_id FROM trial_query_sets WHERE set_key = ?", (key,))}
+                    if old_ids != new_ids:
+                        mismatches.append(
+                            f"{key}: token column {len(old_ids)}, join table {len(new_ids)}, "
+                            f"symmetric difference {len(old_ids ^ new_ids)}")
+                    membership_check[key] = len(new_ids)
+                if mismatches:
+                    raise TrialStoreSchemaError(
+                        "refusing to migrate: the join table does not reproduce the "
+                        "query_sets column.\n  " + "\n  ".join(mismatches) +
+                        "\n  Nothing has been changed. This is a bug in the migration, "
+                        "not in your data.")
+
+                conn.execute("ALTER TABLE trials DROP COLUMN query_sets")
+
+        # v10 -> v11: recompute the biomarker census from stored text. A pure
+        # function of columns already held, so no network — but it MUST run when
+        # the matcher changes, or every landscape count still reflects the old
+        # rules while the live screen reflects the new ones. That divergence is
+        # exactly what the census/live equality gate exists to catch.
+        census: list = []
+        if version < 11:
+            rows = conn.execute(
+                "SELECT nct_id, eligibility_criteria, detailed_description, "
+                "brief_summary, keywords FROM trials").fetchall()
+            for r in rows:
+                flags = gate_markers(
+                    r["eligibility_criteria"] or "",
+                    detailed_description=r["detailed_description"] or "",
+                    brief_summary=r["brief_summary"] or "",
+                    keywords=json.loads(r["keywords"] or "[]"),
+                )
+                census.append((
+                    gating_tokens(flags), gating_basis_tokens(flags),
+                    json.dumps({k: {"status": f.status, "span": f.span}
+                                for k, f in flags.items()}),
+                    r["nct_id"]))
+
         with conn:
+            if census:
+                conn.executemany(
+                    "UPDATE trials SET biomarker_gating = ?, biomarker_basis = ?, "
+                    "biomarker_flags = ? WHERE nct_id = ?", census)
             if updates:
                 conn.executemany(
                     "UPDATE trials SET intervention_tokens = ? WHERE nct_id = ?", updates)
@@ -330,7 +447,9 @@ def migrate_derived_columns(path: str | Path) -> dict:
                     "UPDATE query_coverage SET status = ?, held = ? WHERE set_key = ?", graded)
             conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
         return {"migrated": True, "from_version": version, "rows": len(updates),
-                "graded": [(k, s) for s, _h, k in graded], "reason": ""}
+                "graded": [(k, s) for s, _h, k in graded],
+                "membership": membership_check, "census_rows": len(census),
+                "reason": ""}
     finally:
         conn.close()
 
@@ -431,13 +550,17 @@ class TrialStore:
         for i in range(0, len(nct_ids), batch):
             chunk = nct_ids[i : i + batch]
             rows = self.conn.execute(
-                f"SELECT nct_id, found_by, query_sets FROM trials WHERE nct_id IN "
+                f"SELECT nct_id, found_by FROM trials WHERE nct_id IN "
                 f"({', '.join('?' * len(chunk))})", chunk
             ).fetchall()
+            members: dict[str, list[str]] = {}
+            for r in self.conn.execute(
+                    f"SELECT nct_id, set_key FROM trial_query_sets WHERE nct_id IN "
+                    f"({', '.join('?' * len(chunk))})", chunk):
+                members.setdefault(r["nct_id"], []).append(r["set_key"])
             for row in rows:
                 labels = json.loads(row["found_by"] or "[]")
-                sets = [s for s in (row["query_sets"] or "").split() if s]
-                out[row["nct_id"]] = (labels, sets)
+                out[row["nct_id"]] = (labels, members.get(row["nct_id"], []))
         return out
 
     def upsert(
@@ -460,6 +583,7 @@ class TrialStore:
 
         prior = self._existing_provenance([r.nct_id for r in records])
 
+        memberships: list[tuple[str, str]] = []
         rows = []
         for r in records:
             d = r.to_dict()
@@ -475,7 +599,9 @@ class TrialStore:
             if set_key and set_key not in sets:
                 sets.append(set_key)
             d["found_by"] = json.dumps(labels)
-            d["query_sets"] = (" " + " ".join(sets) + " ") if sets else ""
+            # Membership goes to the indexed join table, not a token column —
+            # collected here and written in the same transaction as the rows.
+            memberships.extend((r.nct_id, key) for key in sets)
             # The gating census is deterministic (regex only) and computed once
             # here, so a landscape COUNT is real SQL over the stored flags — not a
             # parse of the retrieved sample. Supplementary fields are consulted
@@ -508,6 +634,14 @@ class TrialStore:
                 f"ON CONFLICT(nct_id) DO UPDATE SET {updates}",
                 rows,
             )
+            # Membership MERGES, never replaces — dropping a prior set would
+            # erase the answer to "did we ever search for colon cancer?", the
+            # same rule `found_by` follows. INSERT OR IGNORE on the composite
+            # primary key is that merge.
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO trial_query_sets (nct_id, set_key) VALUES (?, ?)",
+                memberships,
+            )
             # Clear prior FTS rows for these trials first: re-ingestion would
             # otherwise stack duplicate index entries for the same NCT ID.
             self.conn.executemany(
@@ -534,7 +668,7 @@ class TrialStore:
 
     # Columns computed by the store, not part of TrialRecord.
     _NON_RECORD_COLS = ("ingested_at", "biomarker_gating", "biomarker_basis",
-                        "biomarker_flags", "found_by", "query_sets",
+                        "biomarker_flags", "found_by",
                         "intervention_tokens")
 
     @staticmethod
@@ -566,6 +700,7 @@ class TrialStore:
         query_set: str | None = None,
         limit: int = 50,
         intervention_join: str = "AND",
+        admits_marker: str | None = None,
     ) -> list[TrialRecord]:
         """Structured filter query. This is the precision the registry exists for.
 
@@ -594,8 +729,25 @@ class TrialStore:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
         if query_set:
-            where.append("query_sets LIKE ?")
-            params.append(f"% {query_set} %")
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
+        if admits_marker:
+            # THE CENSUS PREFILTER. Narrow to trials the ingest-time census says
+            # could admit this marker, so the caller's live screen runs over
+            # hundreds of records instead of tens of thousands. On colorectal
+            # that is 826 instead of 12,095.
+            #
+            # Safe ONLY because it was proven so: for all 74 families and all 7
+            # curated markers — 2,150,918 record-comparisons — the set the census
+            # admits is exactly the set the live matcher admits. The census has
+            # no UNCLEAR (a conflict resolves to REQUIRED, which is admitting),
+            # so a live-UNCLEAR trial is always kept. See
+            # tests/test_census_live_parity.py, which keeps that equality
+            # enforced so a future census change cannot silently reintroduce the
+            # gap this prefilter would then hide.
+            where.append("(biomarker_gating LIKE ? OR biomarker_gating LIKE ?)")
+            params.append(f"%{gating_token(admits_marker, 'REQUIRED')}%")
+            params.append(f"%{gating_token(admits_marker, 'ELIGIBLE_BY_EXCLUSION')}%")
         if sponsor:
             where.append("LOWER(lead_sponsor) LIKE ?")
             params.append(f"%{sponsor.lower()}%")
@@ -653,7 +805,7 @@ class TrialStore:
         if not query_set:
             return len(self)
         return self.conn.execute(
-            "SELECT COUNT(*) FROM trials WHERE query_sets LIKE ?", (f"% {query_set} %",)
+            "SELECT COUNT(*) FROM trial_query_sets WHERE set_key = ?", (query_set,)
         ).fetchone()[0]
 
     def biomarker_counts(self, marker: str, query_set: str | None = None) -> dict[str, int]:
@@ -664,8 +816,8 @@ class TrialStore:
         it will not report."""
         where, params = [], []
         if query_set:
-            where.append("query_sets LIKE ?")
-            params.append(f"% {query_set} %")
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
         clause = (" WHERE " + " AND ".join(where) + " AND " if where else " WHERE ")
         return {
             status: self.conn.execute(
@@ -675,6 +827,24 @@ class TrialStore:
             for status in ("REQUIRED", "ELIGIBLE_BY_EXCLUSION", "EXCLUDED", "NOT_MENTIONED")
         }
 
+    def count_without_eligibility(self, query_set: str | None = None) -> int:
+        """Trials in the population with no eligibility text on file at all.
+
+        A SQL count, because the census prefilter means most records are never
+        loaded — and this number is printed ("N of which have no eligibility
+        text"), so inferring it from the screened subset would report 0 for a
+        population that has hundreds. It is a subset of NOT_MENTIONED: nothing
+        to screen is not the same as screened and silent, the same distinction
+        `ValidationReport.assessed` draws.
+        """
+        where, params = [], []
+        if query_set:
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
+        where.append("(eligibility_criteria IS NULL OR TRIM(eligibility_criteria) = '')")
+        return self.conn.execute(
+            f"SELECT COUNT(*) FROM trials WHERE {' AND '.join(where)}", params).fetchone()[0]
+
     def biomarker_basis_counts(self, marker: str, query_set: str | None = None) -> dict[str, int]:
         """For a REQUIRED marker, the SQL-COUNTED split of how many admitting
         trials name it EXPLICITLY versus only by SYNONYM, over one query set's
@@ -682,8 +852,8 @@ class TrialStore:
         line — a stored count, never a live re-scan of eligibility text."""
         where, params = [], []
         if query_set:
-            where.append("query_sets LIKE ?")
-            params.append(f"% {query_set} %")
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
         clause = (" WHERE " + " AND ".join(where) + " AND " if where else " WHERE ")
         return {
             basis: self.conn.execute(
@@ -712,8 +882,8 @@ class TrialStore:
         sql = "SELECT nct_id, found_by FROM trials"
         params: list = []
         if query_set:
-            sql += " WHERE query_sets LIKE ?"
-            params.append(f"% {query_set} %")
+            sql += f" WHERE {_QUERY_SET_CLAUSE}"
+            params.append(query_set)
         return {r["nct_id"]: json.loads(r["found_by"] or "[]")
                 for r in self.conn.execute(sql, params)}
 
@@ -879,8 +1049,8 @@ class TrialStore:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
         if query_set:
-            where.append("query_sets LIKE ?")
-            params.append(f"% {query_set} %")
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
         where.append(
             f"UPPER(overall_status) IN ({', '.join('?' * len(STOPPED_STATUSES))})")
         params.extend(sorted(STOPPED_STATUSES))
@@ -904,8 +1074,8 @@ class TrialStore:
             clause = "(" + " OR ".join(["intervention_tokens LIKE ?"] * len(term.forms)) + ")"
             params.extend(f"% {f} %" for f in term.forms)
             if query_set:
-                clause += " AND query_sets LIKE ?"
-                params.append(f"% {query_set} %")
+                clause += f" AND {_QUERY_SET_CLAUSE}"
+                params.append(query_set)
             n = self.conn.execute(
                 f"SELECT COUNT(*) FROM trials WHERE {clause}", params).fetchone()[0]
             out.append({"typed": term.typed, "forms": list(term.forms),
@@ -966,8 +1136,8 @@ class TrialStore:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")
         if query_set:
-            where.append("query_sets LIKE ?")
-            params.append(f"% {query_set} %")
+            where.append(_QUERY_SET_CLAUSE)
+            params.append(query_set)
         if phase:
             where.append("LOWER(phase) LIKE ?")
             params.append(f"%{phase.lower()}%")

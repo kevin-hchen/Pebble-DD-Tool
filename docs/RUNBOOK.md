@@ -273,72 +273,61 @@ focus only in its detailed description).
 artifact does not need to fit in RAM, but the OS page cache will use whatever is
 spare, and a box with 2 GB free will serve noticeably faster than one with 256 MB.
 
-### Latency — the number that matters
+### Latency
 
-A search costs **a fixed ~3 seconds plus ~0.8 ms per trial screened**:
+Two optimisations landed after the first measurement; both numbers below are
+measured on the same machine and the same 241,298-trial store.
 
-| Search | Trials screened | Time |
-|---|---|---|
-| `rett syndrome` | 104 | **3.1 s** |
-| `gaucher disease` | 214 | 3.3 s |
-| `colorectal cancer` | 12,095 | **12.8 s** |
-| `breast cancer` (projected, not isolated) | 17,089 | ~17 s |
+| Search | Population | Before | After |
+|---|---|---|---|
+| `rett syndrome` | 104 | 3.1 s | **0.05 s** |
+| `colorectal cancer` | 12,095 | 12.8 s | **1.8 s** |
+| `breast cancer` (HER2) | 17,089 | ~17 s (projected) | **1.9 s** |
 
-Both halves are understood:
+**1. Query-set membership is an indexed join table.** `query_sets LIKE '% key %'`
+could not use an index, so every search full-scanned all 241k rows six times —
+a fixed ~3 s regardless of family size. `trial_query_sets(set_key, nct_id)`
+turns that into an index range scan. The old token column was DROPPED, not kept
+alongside; the migration asserts the join table reproduces it exactly for every
+family first.
 
-- **The fixed ~3 s** is six full-table scans over 241,298 rows. Every one is
-  `WHERE query_sets LIKE '% key %'`, and a leading-wildcard LIKE cannot use an
-  index, so each scan reads the table. `biomarker_counts` alone is 1.4 s (five
-  scans, one per status).
-- **The per-trial cost** is `build_landscape` re-screening every record in the
-  family with `match_biomarker`, in Python, at ~0.8 ms each.
+**2. The live biomarker screen is prefiltered by the ingest-time census.** The
+gating tokens were already computed at ingest, so SQL narrows colorectal from
+12,095 records to 826 before any Python runs. Proven equivalent before shipping
+— see below.
 
-### Concurrency
+### Throughput and concurrency
 
-Two workers, `rett syndrome` (the cheap case):
+Two workers, measured end to end through uvicorn:
 
-| Concurrency | Wall | Throughput |
-|---|---|---|
-| 1 | 3.1 s | 0.32 req/s |
-| 2 | 6.1 s | 0.33 req/s |
-| 4 | 9.5 s | 0.42 req/s |
-| 8 | 27.2 s | 0.29 req/s |
+| Search | Concurrency | Before | After |
+|---|---|---|---|
+| `rett syndrome` | 1 | 0.32 req/s | **16.5 req/s** |
+| | 2 | 0.33 req/s | **33.7 req/s** |
+| | 4 | 0.42 req/s | **46.1 req/s** |
+| | 8 | 0.29 req/s | **34.4 req/s** |
+| `colorectal cancer` | 1 | ~0.08 req/s | **0.75 req/s** |
+| | 8 | — | **1.38 req/s** |
+| | 16 | — | **1.02 req/s** |
 
-**Throughput is flat at roughly 0.3 req/s and does not improve with
-concurrency** — the work is CPU-bound, so it degrades linearly: each additional
-concurrent visitor adds their full service time to everyone's wait. With two
-workers this is **usable at about 2 concurrent searchers and unusable beyond
-about 8**, and that is on the cheapest family. On `colorectal` a single request
-occupies a worker for 13 seconds.
+Throughput now **scales with concurrency** up to the worker count instead of
+being flat — the work per request is small enough that the threadpool can
+overlap it. The health check answers in 1.5 ms under load.
 
-**Be honest with whoever is paying: this will not survive a campaign in its
-current shape.** A launch that puts a hundred people on the page at once will
-queue them for minutes. Sizing up helps only linearly — throughput is
-`workers ÷ 3 s` at best, so serving 10 req/s of cheap searches needs ~30 cores,
-and colorectal-sized searches need four times that.
+The honest envelope has moved: a cheap search is now genuinely cheap
+(~46 req/s on two workers), and the expensive families are ~1.3 req/s rather
+than 0.08. **A campaign is now survivable** for common searches; a page where
+every visitor searches a 12,000-trial family still wants more workers, and
+throughput is still `workers × per-request-cost`, so size for the searches you
+expect rather than the average.
 
-One defect was found and fixed during this measurement: the route handlers were
-`async def` while doing blocking SQLite and CPU work, which runs them **on the
-event loop** and serialises everything in a worker — including `/healthz`. A
-concurrency test against them did not finish in ten minutes. As plain `def`
-handlers Starlette runs them in a threadpool; the health check now answers in
-1.4 ms during a heavy search.
+### Where the remaining time goes
 
-**Two changes would move the numbers a lot, and neither is done** — both touch
-core modules and neither was in scope:
+For colorectal the 1.8 s is now dominated by loading and screening the 826
+prefiltered records. Further gains would need either a narrower SQL prefilter
+(the census cannot narrow further — 826 IS the admitting set) or caching, which
+has a retention question attached and is not built.
 
-1. **Prefilter with the stored biomarker census.** The gating tokens are already
-   computed at ingest, so a curated marker could narrow colorectal from 12,095
-   screened to ~826 before any Python runs. Needs care: `biomarker.py` and
-   `biomarker_gating.py` have deliberately different conflict policies (see
-   CLAUDE.md), so the prefilter must be proven not to drop a trial the live
-   matcher would admit.
-2. **Index the query-set membership.** Replacing the `query_sets LIKE '% key %'`
-   token column with an indexed `(nct_id, set_key)` join table would remove most
-   of the fixed 3 seconds. That is a schema change and a migration.
-
-Until then, the honest operating envelope is: **fine for a link shared with a
-handful of people; not fine for a campaign.**
 
 ---
 

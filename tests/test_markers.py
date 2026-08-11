@@ -353,6 +353,104 @@ def test_recall_is_six_of_six():
     )
 
 
+# ------------------------------------------------- resolution is exact, never substring
+
+
+def test_no_query_resolves_to_a_marker_that_does_not_list_it_exactly():
+    """The rule: the marker reported is the marker the user typed, or nothing
+    matched. There is no third option, and in particular no silent substitution.
+
+    `resolve_marker` used to fall back to
+    `any(a in norm or norm in a for a in mdef.aliases)`, which substituted a
+    DIFFERENT marker for the one asked for:
+
+      * "KRAS G12C" contains RAS's alias "kras" -> resolved to RAS. On the live
+        colorectal set the page answered 865 (every RAS statement) where the
+        correct answer is 71, and KRAS_G12C/KRAS_G12D were unreachable by any
+        query at all.
+      * "MSI-H" is a substring of MSS's alias "non-msi-h" -> resolved to MSS,
+        the OPPOSITE marker. Measured on the live store: searching MSS and MSI-H
+        returned byte-identical results and the page labelled both "MSS", so an
+        MSI-H patient was shown trials selected against them with a criterion
+        sentence offered as evidence.
+
+    This test drives every marker's own key and aliases, every other marker's,
+    and a set of adversarial near-misses, and asserts the invariant directly:
+    whatever comes back must list the query exactly.
+    """
+    from medrag.markers import MARKERS, _normalise_query, resolve_marker
+
+    def lists_exactly(mdef, query: str) -> bool:
+        norm = _normalise_query(query)
+        return (norm == _normalise_query(mdef.key)
+                or any(norm == _normalise_query(a) for a in mdef.aliases))
+
+    queries = []
+    for mdef in MARKERS.values():
+        queries.append(mdef.key)
+        queries.extend(mdef.aliases)
+    # Adversarial: substrings and superstrings of real aliases, which is exactly
+    # what the old implementation matched on.
+    queries += ["kras g12c", "kras g12d", "msi-h", "msi h", "non-msi-h", "kras",
+                "ras", "her2 negative", "braf", "g12", "g12cx", "mss patients",
+                "microsatellite", "mmr", "her", "ms", "k", "", "   ",
+                "advanced kras g12c mutant colorectal cancer"]
+
+    for query in queries:
+        mdef = resolve_marker(query)
+        if mdef is None:
+            continue      # unmatched is always allowed: it goes to the uncurated path
+        assert lists_exactly(mdef, query), (
+            f"{query!r} resolved to marker {mdef.key!r}, whose aliases are "
+            f"{list(mdef.aliases)} — none of which is {query!r}. A query must never "
+            "be answered with a marker the user did not name.")
+
+
+def test_every_curated_marker_is_reachable_by_its_own_name():
+    """The other half. Exactness must not make a marker unreachable — which is
+    what the substring bug did to KRAS_G12C and KRAS_G12D from the other
+    direction."""
+    from medrag.markers import MARKERS, resolve_marker
+
+    for key, mdef in MARKERS.items():
+        assert resolve_marker(key) is not None, f"{key} unreachable by its own key"
+        assert resolve_marker(key).key == key
+        for alias in mdef.aliases:
+            got = resolve_marker(alias)
+            assert got is not None and got.key == key, (
+                f"alias {alias!r} of {key} resolved to {got.key if got else None!r}")
+
+
+def test_the_opposite_marker_is_never_substituted_for_the_one_typed():
+    """MSS and MSI-H are a paired opposite. Answering one with the other is the
+    worst available failure on a patient-facing page, so it gets its own test
+    naming the two markers rather than relying on the general rule above."""
+    from medrag.markers import resolve_marker
+
+    assert resolve_marker("MSS").key == "MSS"
+    assert resolve_marker("MSI-H").key == "MSI_H"
+    assert resolve_marker("pMMR").key == "MSS"
+    assert resolve_marker("dMMR").key == "MSI_H"
+    for query in ("MSI-H", "dMMR", "MSI high", "microsatellite instability-high"):
+        assert resolve_marker(query).key != "MSS", (
+            f"{query!r} resolved to MSS — the opposite of what was asked for")
+
+
+def test_an_unmatched_marker_falls_to_the_uncurated_path_not_to_another_marker():
+    """Unmatched must mean uncurated, which can only ever return UNCLEAR or NOT
+    MENTIONED and says so — never a confident verdict about a different
+    marker."""
+    from medrag.biomarker import match_biomarker
+    from medrag.markers import resolve_marker
+
+    for query in ("FGFR2 fusion", "ALK rearrangement", "PD-L1", "EGFR exon 19"):
+        assert resolve_marker(query) is None, f"{query!r} unexpectedly matched a marker"
+        m = match_biomarker("Inclusion Criteria:\n* MSS colorectal cancer", query)
+        assert m.curated is False
+        assert m.status in ("UNCLEAR", "NOT MENTIONED"), (
+            f"an uncurated query returned {m.status!r}, which reads as a reviewed verdict")
+
+
 if __name__ == "__main__":
     import traceback
 

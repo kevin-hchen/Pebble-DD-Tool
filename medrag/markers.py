@@ -236,17 +236,56 @@ MARKER_KEYS: tuple[str, ...] = tuple(MARKERS)
 MARKER_LABELS: dict[str, str] = {k: m.label for k, m in MARKERS.items()}
 
 
+def _normalise_query(text: str) -> str:
+    """Lowercase, unify hyphen/underscore/slash to spaces, collapse whitespace.
+
+    Applied identically to the query AND to each alias, so matching stays an
+    EQUALITY test while "MSI-H", "msi h" and "MSI_H" all reach the same entry.
+    Normalisation is not loosening: it maps different spellings of the same
+    token to one form, where a substring test matched different tokens.
+    """
+    return re.sub(r"\s+", " ", re.sub(r"[-_/]+", " ", (text or "").strip().lower())).strip()
+
+
 def resolve_marker(query: str, markers: dict[str, MarkerDef] | None = None) -> MarkerDef | None:
-    """Map a user's biomarker string to a curated definition, or None (the
-    caller falls back to an uncurated match)."""
+    """Map a user's biomarker string to a curated definition, or None.
+
+    EXACT match against the marker's key or one of its aliases. Never a
+    substring, in either direction.
+
+    The previous implementation fell back to
+    `any(a in norm or norm in a for a in mdef.aliases)` and returned the first
+    registry entry that matched, which substituted a DIFFERENT marker for the
+    one the user asked for:
+
+      * "KRAS G12C" contains RAS's alias "kras", so it resolved to RAS. The
+        KRAS_G12C and KRAS_G12D entries were unreachable by any query — on the
+        live colorectal set the page answered 865 (every RAS statement) where
+        the correct answer is 71.
+      * "MSI-H" is a substring of MSS's alias "non-msi-h", so it resolved to
+        MSS — the OPPOSITE marker. Verified on the live store: searching MSS and
+        MSI-H returned byte-identical results, and the page labelled both "MSS".
+        An MSI-H patient was shown trials selected for the opposite biomarker,
+        with a criterion sentence presented as evidence.
+
+    The rule now is: the marker the page reports is the marker the user typed,
+    or nothing matched and the caller falls back to the uncurated literal path —
+    which can only ever return UNCLEAR or NOT MENTIONED, and says so. There is
+    no third option, and in particular no silent substitution of a marker the
+    user did not name.
+
+    Ties break on the LONGEST key first, so a string that is legitimately an
+    alias of two markers resolves to the more specific one rather than to
+    whichever the config happened to list first.
+    """
     registry = MARKERS if markers is None else markers
-    norm = re.sub(r"\s+", " ", (query or "").strip().lower())
+    norm = _normalise_query(query)
     if not norm:
         return None
-    for mdef in registry.values():
-        if norm == mdef.key.lower() or norm in mdef.aliases:
+    for mdef in sorted(registry.values(), key=lambda m: (-len(m.key), m.key)):
+        if norm == _normalise_query(mdef.key):
             return mdef
-        if any(a in norm or norm in a for a in mdef.aliases):
+        if any(norm == _normalise_query(a) for a in mdef.aliases):
             return mdef
     return None
 
@@ -349,8 +388,47 @@ _TEST_REQUIREMENT = re.compile(
 )
 
 
+#: A sentence that ENUMERATES what an assay covers is not a sentence saying the
+#: patient has any of it. Second shape of the same error `_TEST_REQUIREMENT`
+#: catches: there the sentence mandates a test, here it lists the panel.
+#:
+#: Found on NCT05619172, whose inclusion criterion reads
+#:
+#:     "RAS wild type as confirmed by: locally performed ctDNA assessment
+#:      including at least mutations in exon 2 (G12D, G12V, G12C, G12S, G12A,
+#:      G12R, G13D) and ..."
+#:
+#: `\bG12C\b` matched inside that list, so the census recorded KRAS_G12C
+#: REQUIRED — for a trial whose actual requirement is RAS WILD TYPE, the
+#: opposite. A patient searching KRAS G12C would have been shown a trial that
+#: excludes them, with this sentence printed as the evidence.
+#:
+#: Deliberately narrow. It fires only when an assay noun is followed by a run of
+#: at least three comma-separated variant-shaped tokens with no direction word
+#: in between — the shape of a panel listing, which no ordinary status sentence
+#: has. "Documented KRASG12D mutation in tissue or liquid biopsy" (NCT06599502)
+#: and "Subject has KRasG12C mutation in tumor tissue" (NCT04585035) are both
+#: real requirements and are deliberately NOT caught: they name one variant and
+#: assert it, rather than enumerating a panel.
+_ASSAY_NOUN = r"(?:assay|panel|assessment|testing|sequencing|analysis|test|ngs|pcr)"
+_VARIANT_TOKEN = r"[A-Z]?\d{1,4}[A-Z]"
+_ASSAY_PANEL = re.compile(
+    rf"\b{_ASSAY_NOUN}\b"
+    rf"(?:(?!\b(?:must have|must be|patient|subject|tumou?r is)\b).){{0,200}}?"
+    rf"\b{_VARIANT_TOKEN}\b(?:\s*[,/]\s*{_VARIANT_TOKEN}\b){{2,}}",
+    re.IGNORECASE,
+)
+
+
 def _is_test_requirement(sentence: str) -> bool:
-    return bool(_TEST_REQUIREMENT.search(sentence))
+    """True when the sentence mandates a test or lists an assay panel, rather
+    than stating a result. Such a sentence contributes NO signal for any marker.
+
+    Both shapes trade a handful of borderline sentences for eliminating a
+    demonstrated, silent inversion — the standing rule that a missed signal is
+    safer than a wrong one.
+    """
+    return bool(_TEST_REQUIREMENT.search(sentence)) or bool(_ASSAY_PANEL.search(sentence))
 
 
 def _negated(text: str, start: int, end: int) -> bool:

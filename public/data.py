@@ -25,6 +25,7 @@ path, and the environment variable is a belt on top of braces.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from medrag.config import Config
@@ -88,6 +89,34 @@ def trials_path(data_dir: Path) -> Path:
 
 
 def snapshot_date(data_dir: Path) -> str:
+    """How old the DATA is — read from inside the database, not from the file.
+
+    This used to return `_mtime(trials.db)`, the file's modification time, which
+    on any real deployment is when the artifact was COPIED to the server, not
+    when the registry was fetched. The masthead every visitor reads would have
+    said "1 September" for data gathered on 10 August, while `/healthz` — which
+    reads the embedded `snapshot_meta` — said 10 August. Two code paths
+    answering "how old is this?" and disagreeing, with the more visible one
+    overstating freshness.
+
+    Both now read the same embedded value, so the page and the health endpoint
+    cannot drift; `tests/test_public_app.py` asserts they agree.
+
+    The mtime fallback survives only for a development directory built by the
+    CLI rather than by `scripts/build_artifact.py`, which has no embedded
+    metadata. A deployment never takes that path: `public/artifact.verify`
+    refuses to start on a database with no `snapshot_meta`.
+    """
+    from public.artifact import read_embedded_snapshot_date
+
+    embedded = read_embedded_snapshot_date(trials_path(data_dir))
+    if embedded:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(embedded.split(".")[0], fmt).strftime("%d %B %Y")
+            except ValueError:
+                continue
+        return embedded
     stamp = _mtime(trials_path(data_dir))
     return stamp.strftime("%d %B %Y") if stamp else "unknown"
 
