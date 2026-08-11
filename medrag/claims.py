@@ -846,19 +846,28 @@ class ClaimVerifier:
                 self.warnings.append(note)
 
     def _retrieve(self, claim: str, asset: str, indication: str, k: int) -> list[Evidence]:
-        from .trials.queries import resolve_query_set
+        from .trials.anchors import anchor_for
 
         trials = []
+        # The same gate the memo path runs, from the same module rather than a
+        # second copy — this retrieval had the identical shape and therefore the
+        # identical defect, and a claim about a company's asset is the LAST
+        # place an unrelated trial should be able to arrive as evidence.
+        anchor = anchor_for(asset, indication, self.trial_store)
         if self.trial_store is not None:
-            qset = resolve_query_set(indication).key if indication else None
+            for note in anchor.notes():
+                if note not in self.warnings:
+                    self.warnings.append(note)
+        if self.trial_store is not None and anchor:
             trials = self.trial_store.query(
                 intervention=asset or None,
                 # The population the fetch defined, not a substring re-match over
                 # the free-text condition array — the indication a deck writes
                 # ("microsatellite stable metastatic colorectal cancer") is almost
                 # never a substring of what a sponsor registered. Same rule as the
-                # landscape and the census; see CLAUDE.md.
-                query_set=qset,
+                # landscape and the census; see CLAUDE.md. `None` when that family
+                # was never ingested, which is reported, not filtered on.
+                query_set=anchor.query_set,
                 limit=k,
             )
             # Structured filters can legitimately return nothing; fall back to
@@ -868,8 +877,15 @@ class ClaimVerifier:
             # fact from "there are no trials", so it is named rather than hidden
             # behind a fallback that then succeeds.
             if not trials:
-                self._warn_collapsed_combination(asset, qset)
-                trials = self.trial_store.search(f"{asset} {indication} {claim}".strip(), limit=k)
+                self._warn_collapsed_combination(asset, anchor.query_set)
+                # Never the CLAIM text: it is prose, and ORing its tokens
+                # retrieves on its furniture rather than on its subject.
+                trials = [
+                    r for r in self.trial_store.search(
+                        anchor.search_text(), limit=k, query_set=anchor.query_set,
+                    )
+                    if anchor.is_about(r)
+                ]
 
         passages = self.rag.retriever.retrieve(claim, k=k) if self.rag else []
         return build_evidence(

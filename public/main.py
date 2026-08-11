@@ -114,6 +114,7 @@ def _base_context(request: Request) -> dict:
         "terms_version": TERMS.version,
         "provider": PROVIDER,
         "flags": CFG,
+        "report_email": CFG.report_email,
     }
 
 

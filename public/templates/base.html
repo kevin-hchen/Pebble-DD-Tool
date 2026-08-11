@@ -35,6 +35,19 @@
     <a href="/terms">How your data is handled</a> ·
     terms version {{ terms_version }} ·
     sources: ClinicalTrials.gov
+    {%- if report_email %} ·
+    {#
+      A mailto:, not a form. A form needs somewhere to put what was typed, and
+      "somewhere to put what visitors type" is exactly what the terms say does
+      not exist. A mailto: opens the visitor's own mail client: nothing is
+      posted here, nothing is logged, and what they choose to send goes to a
+      mailbox we already operate rather than into this service.
+
+      No prefilled body carrying the search, deliberately — that would put the
+      search terms into a URL, which is the thing the POST change removed.
+    #}
+    <a href="mailto:{{ report_email }}?subject=Trial%20finder%20%E2%80%94%20possible%20error">Report a wrong answer</a>
+    {%- endif %}
   </p>
   <p class="muted">
     Absence of a result means it is not in this snapshot. That is not evidence it

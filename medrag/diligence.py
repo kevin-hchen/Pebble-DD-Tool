@@ -21,6 +21,7 @@ from .fda.drug_store import ApprovalAnswer
 from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
 from .router import Route, Router
+from .trials.anchors import anchor_for
 from .trials.client import TrialRecord
 from .trials.queries import resolve_query_set
 from .trials.store import TrialStore
@@ -279,20 +280,43 @@ class DiligenceRunner:
             found = [self.trial_store.get(n) for n in filters["nct_ids"]]
             return [f for f in found if f]
 
-        qset = resolve_query_set(indication).key if indication else None
+        # THE GATE. A structured query is only a query about something when
+        # something anchors it; with neither an agent name this store can match
+        # nor a query set it has actually ingested, `store.query` degrades to
+        # `SELECT * FROM trials LIMIT k` and hands back whatever the store holds
+        # most of. See trials/anchors.py for the three paths that produced eight
+        # colorectal trials as evidence for a hidradenitis asset.
+        anchor = anchor_for(asset, indication, self.trial_store)
+        for note in anchor.notes():
+            if note not in self.warnings:
+                self.warnings.append(note)
+        if not anchor:
+            return []
+
         records = self.trial_store.query(
             intervention=asset or None,
-            query_set=qset,
+            # Only an INGESTED set scopes anything. An ad-hoc key from an
+            # unrecognised indication selects nothing, which reads identically
+            # to a family searched and found empty — so it is dropped here and
+            # reported as not-searched instead.
+            query_set=anchor.query_set,
             phase=filters.get("phase"),
             statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
             limit=limit,
         )
         # Structured filters can legitimately return nothing (no Phase 3 exists).
-        # Fall back to free text so the section is not silently empty.
+        # Fall back to free text so the section is not silently empty — over the
+        # ANCHORS, never the question, and with every row re-checked against the
+        # asset it claims to be evidence for.
         if not records:
-            self._warn_collapsed_combination(asset, qset)
-            records = self.trial_store.search(f"{asset} {indication} {question}", limit=limit)
+            self._warn_collapsed_combination(asset, anchor.query_set)
+            records = [
+                r for r in self.trial_store.search(
+                    anchor.search_text(), limit=limit, query_set=anchor.query_set,
+                )
+                if anchor.is_about(r)
+            ]
         return records
 
     def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
@@ -530,8 +554,26 @@ class DiligenceRunner:
                 approval_guard: str = "") -> Answer:
         """Generate a grounded answer over provenance-labelled evidence."""
         if not evidence:
+            # NOTHING FOUND, said in the shape the regulatory block uses — which
+            # was the one part of an empty-asset memo that behaved correctly.
+            #
+            # An empty section with no explanation is its own version of the
+            # defect the relevance floor fixed: before the floor, sections filled
+            # with unrelated evidence; a bare blank would just move the same
+            # misreading somewhere else. Absence has to be stated, and stated as
+            # absence rather than as a finding.
             return Answer(
-                text="No evidence was retrieved for this question from either store.",
+                text=(
+                    "**Nothing found.** No stored trial record, regulatory record or "
+                    "published passage was a close enough match to this question to be "
+                    "used as evidence.\n\n"
+                    "> This is NOT a finding that no such evidence exists. It means this "
+                    "tool's stored snapshot contains nothing above the relevance "
+                    "threshold for it. Four things it can mean: nothing has been "
+                    "published or registered; it exists under a name this search did not "
+                    "match; it has not been ingested into this snapshot; or it is in a "
+                    "source this tool does not cover (see the coverage note)."
+                ),
                 sources=[],
                 model="none",
                 grounded=False,
@@ -590,6 +632,15 @@ class DiligenceRunner:
             if progress:
                 print(f"[medrag] {i}/{len(qs)} {q.section}")
             memo.sections.append(self.run_question(q, asset, indication))
+
+        # Re-read the list AFTER the sections, not only before them. It was
+        # snapshotted at construction, so every warning a section raised —
+        # `_warn_collapsed_combination`, `_flag_approval_overreach`, and the
+        # anchor notes — was appended to a list the memo had already copied and
+        # reached no reader at all. The convention this codebase states for
+        # guards applies to notices too: one that production cannot surface is
+        # decoration.
+        memo.warnings = list(self.warnings)
 
         return memo
 

@@ -776,15 +776,37 @@ class TrialStore:
 
         return [self._to_record(r) for r in self.conn.execute(sql, params).fetchall()]
 
-    def search(self, text: str, limit: int = 20) -> list[TrialRecord]:
-        """Free-text search across titles, conditions, interventions, sponsors."""
+    def search(self, text: str, limit: int = 20,
+               query_set: str | None = None) -> list[TrialRecord]:
+        """Free-text search across titles, conditions, interventions, sponsors.
+
+        Every token is ORed, so this is a LOOSE match and always has been — it
+        exists to rescue a section a structured filter emptied, not to select a
+        population. Two consequences a caller must hold in mind. Give it a
+        sentence and it matches on the sentence's furniture: handed the rendered
+        diligence question it answered a hidradenitis query with colorectal
+        trials, because `trials`, `other` and `run` are in the index and the
+        asset name is not. And a row coming back means one token matched
+        somewhere, never that the record is about the query — `trials.anchors`
+        is the check that belongs behind this one.
+
+        `query_set` confines the match to a family the ingest actually fetched,
+        via the same indexed join `query()` uses. It cannot make the match
+        relevant; it stops the fallback answering from a population nobody
+        asked about.
+        """
         safe = " OR ".join(f'"{t}"' for t in text.split() if t.strip())
         if not safe:
             return []
+        sql = "SELECT nct_id FROM trials_fts WHERE trials_fts MATCH ?"
+        params: list = [safe]
+        if query_set:
+            sql += " AND " + _QUERY_SET_CLAUSE
+            params.append(query_set)
+        sql += " LIMIT ?"
+        params.append(limit)
         try:
-            rows = self.conn.execute(
-                "SELECT nct_id FROM trials_fts WHERE trials_fts MATCH ? LIMIT ?", (safe, limit)
-            ).fetchall()
+            rows = self.conn.execute(sql, params).fetchall()
         except sqlite3.OperationalError:  # malformed FTS expression
             return []
 

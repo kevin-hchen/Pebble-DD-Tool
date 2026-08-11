@@ -34,9 +34,34 @@
 # tell you whether it found anything new. If a new synonym adds zero trials,
 # that is a measurement that the set is near-complete, and worth keeping.
 
+# Condition phrasings a person actually types, expanded into EXACT aliases.
+#
+# `resolve_query_set` matches exactly — never by substring — because a substring
+# rule cannot tell "metastatic colorectal cancer" from "a" (which used to resolve
+# to colorectal, and "the" to urothelial). Exactness made the tool safe and made
+# it stop recognising the way people write an indication.
+#
+# So the phrasings are CURATED here rather than inferred there. Each prefix below
+# is combined with each condition string of every set that opts in with
+# `modifiers: true`, producing exact aliases like "metastatic colorectal cancer".
+# Adding a prefix is a reviewed vocabulary change, same as a synonym.
+#
+# Opt-in per set, because these prefixes are oncology grammar: "metastatic
+# epilepsy" is not a phrase, and generating it would be noise in a file a
+# clinician reads.
+condition_modifiers:
+  - metastatic
+  - advanced
+  - locally advanced
+  - recurrent
+  - refractory
+  - relapsed
+  - unresectable
+
 sets:
   colorectal:
     label: Colorectal cancer
+    modifiers: true
     conditions:
       - colorectal cancer
       - colorectal neoplasms
@@ -55,10 +80,12 @@ sets:
   # ---------------------------------------------------------------- ONCOLOGY
   nsclc:
     label: Non-small cell lung cancer
+    modifiers: true
     conditions: [non-small cell lung cancer, lung adenocarcinoma, lung squamous cell carcinoma, NSCLC, carcinoma non-small-cell lung]
     terms: [NSCLC cohort, EGFR-mutant lung, ALK-positive lung]
   sclc:
     label: Small cell lung cancer
+    modifiers: true
     # MEASURED 2026-08-07: the registry's tokeniser ignores the "non-" prefix, so
     # query.cond="small cell lung cancer" returns 9,604 studies of which 7 of the
     # first 8 are NON-small cell — the set would have been ~90% wrong population.
@@ -71,66 +98,82 @@ sets:
     terms: [extensive-stage small cell lung]
   breast:
     label: Breast cancer
+    modifiers: true
     conditions: [breast cancer, breast neoplasms, triple negative breast cancer, HER2-positive breast cancer, hormone receptor positive breast cancer]
     terms: [breast cancer cohort, TNBC, HR+/HER2- breast]
   prostate:
     label: Prostate cancer
+    modifiers: true
     conditions: [prostate cancer, prostatic neoplasms, castration-resistant prostate cancer, metastatic hormone-sensitive prostate cancer]
     terms: [mCRPC, prostate cohort]
   pancreatic:
     label: Pancreatic cancer
+    modifiers: true
     conditions: [pancreatic cancer, pancreatic neoplasms, pancreatic ductal adenocarcinoma, PDAC]
     terms: [pancreatic cohort, metastatic pancreatic adenocarcinoma]
   gastric:
     label: Gastric and gastroesophageal junction cancer
+    modifiers: true
     conditions: [gastric cancer, stomach neoplasms, gastroesophageal junction adenocarcinoma, esophageal cancer, gastroesophageal cancer]
     terms: [gastric cohort, GEJ adenocarcinoma, CLDN18.2 gastric]
   hepatocellular:
     label: Hepatocellular carcinoma
+    modifiers: true
     conditions: [hepatocellular carcinoma, liver cancer, carcinoma hepatocellular, HCC]
     terms: [HCC cohort, advanced hepatocellular]
   ovarian:
     label: Ovarian cancer
+    modifiers: true
     conditions: [ovarian cancer, ovarian neoplasms, fallopian tube cancer, primary peritoneal cancer, high-grade serous ovarian carcinoma]
     terms: [ovarian cohort, platinum-resistant ovarian]
   endometrial:
     label: Endometrial cancer
+    modifiers: true
     conditions: [endometrial cancer, endometrial neoplasms, uterine cancer, uterine corpus cancer]
     terms: [endometrial cohort, dMMR endometrial]
   urothelial:
     label: Urothelial and bladder cancer
+    modifiers: true
     conditions: [urothelial carcinoma, bladder cancer, urinary bladder neoplasms, transitional cell carcinoma]
     terms: [urothelial cohort, muscle-invasive bladder]
   renal_cell:
     label: Renal cell carcinoma
+    modifiers: true
     conditions: [renal cell carcinoma, kidney cancer, carcinoma renal cell, clear cell renal cell carcinoma]
     terms: [RCC cohort, advanced renal cell]
   melanoma:
     label: Melanoma
+    modifiers: true
     conditions: [melanoma, skin melanoma, uveal melanoma, cutaneous melanoma]
     terms: [melanoma cohort, BRAF-mutant melanoma]
   head_neck:
     label: Head and neck cancer
+    modifiers: true
     conditions: [head and neck cancer, head and neck squamous cell carcinoma, oropharyngeal cancer, laryngeal cancer]
     terms: [HNSCC, head and neck cohort]
   glioblastoma:
     label: Glioblastoma and glioma
+    modifiers: true
     conditions: [glioblastoma, glioma, brain neoplasms, astrocytoma]
     terms: [GBM cohort, IDH-mutant glioma]
   multiple_myeloma:
     label: Multiple myeloma
+    modifiers: true
     conditions: [multiple myeloma, plasma cell myeloma, smoldering multiple myeloma]
     terms: [myeloma cohort, relapsed refractory multiple myeloma]
   aml:
     label: Acute myeloid leukaemia
+    modifiers: true
     conditions: [acute myeloid leukemia, leukemia myeloid acute, AML, myelodysplastic syndrome]
     terms: [AML cohort, FLT3-mutated AML]
   cll:
     label: Chronic lymphocytic leukaemia
+    modifiers: true
     conditions: [chronic lymphocytic leukemia, small lymphocytic lymphoma, CLL]
     terms: [CLL cohort, relapsed refractory CLL]
   dlbcl:
     label: Diffuse large B-cell lymphoma
+    modifiers: true
     conditions: [diffuse large B-cell lymphoma, B-cell lymphoma, DLBCL]   # removed: 'non-Hodgkin lymphoma' (6,640) is a parent of DLBCL
     terms: [DLBCL cohort, relapsed refractory large B-cell]
 

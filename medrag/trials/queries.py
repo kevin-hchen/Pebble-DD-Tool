@@ -89,6 +89,11 @@ class QuerySet:
     label: str
     queries: tuple[TrialQuery, ...]
     curated: bool = True      # False for an ad-hoc set built from a bare string
+    #: Extra EXACT strings this set answers to — the phrasings people type
+    #: ("metastatic colorectal cancer"), expanded from the curated
+    #: `condition_modifiers` list in config/trial_queries.yaml. They are aliases,
+    #: not patterns: matching stays an equality test.
+    aliases: tuple[str, ...] = ()
 
     @property
     def condition_queries(self) -> tuple[TrialQuery, ...]:
@@ -190,6 +195,9 @@ def load_query_sets(path: str | Path | None = None) -> dict[str, QuerySet]:
         return {}
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
 
+    modifiers = [str(m).strip().lower() for m in (data.get("condition_modifiers") or [])
+                 if str(m).strip()]
+
     sets: dict[str, QuerySet] = {}
     for key, spec in (data.get("sets") or {}).items():
         spec = spec or {}
@@ -197,34 +205,81 @@ def load_query_sets(path: str | Path | None = None) -> dict[str, QuerySet]:
             [TrialQuery(CONDITION, c) for c in (spec.get("conditions") or []) if str(c).strip()]
             + [TrialQuery(TERM, t) for t in (spec.get("terms") or []) if str(t).strip()]
         )
+        aliases: list[str] = []
+        if spec.get("modifiers") and modifiers:
+            # Exact aliases, generated from a reviewed prefix list — not a
+            # pattern, and not a substring rule reintroduced by another name.
+            bases = [q.value for q in queries if q.kind == CONDITION]
+            bases.append(spec.get("label") or key)
+            for prefix in modifiers:
+                aliases.extend(f"{prefix} {b}" for b in bases)
         if queries:
-            sets[key] = QuerySet(key=key, label=spec.get("label") or key, queries=queries)
+            sets[key] = QuerySet(key=key, label=spec.get("label") or key,
+                                 queries=queries, aliases=tuple(aliases))
     return sets
+
+
+def _normalise_condition(text: str) -> str:
+    """Lowercase, unify hyphen/underscore/slash to spaces, collapse whitespace.
+
+    Applied identically to the query AND to every key, label and condition
+    string, so matching stays an EQUALITY test while "non-small cell lung
+    cancer" and "non small cell lung cancer" reach the same set. Normalisation
+    maps spellings of the same token together; it never matches different
+    tokens, which is what substring matching did.
+    """
+    return re.sub(r"\s+", " ", re.sub(r"[-_/]+", " ", (text or "").strip().lower())).strip()
 
 
 def resolve_query_set(condition: str, sets: dict[str, QuerySet] | None = None) -> QuerySet:
     """Map what the user typed to a curated set, or build a one-query ad-hoc set.
 
-    An ad-hoc set is marked `curated=False` so the caller can say so out loud: it
-    is a single condition string with none of the synonym coverage the curated
-    sets have, and reporting it as equivalent would overstate what was searched.
+    EXACT match against the set's key, its label, or one of its condition/term
+    strings. Never a substring, in either direction.
+
+    The previous implementation fell back to
+    `norm in q.value.lower() or q.value.lower() in norm` and returned the first
+    set that matched, which handed a visitor a confident ranked field of trials
+    for a disease they had not asked for:
+
+        'a'      -> colorectal    ("a" is inside "colorectal cancer")
+        'x'      -> epilepsy      ("x" is inside "Lennox-Gastaut syndrome")
+        'the'    -> urothelial    ("the" is inside "urothelial carcinoma")
+        'cancer' -> colorectal
+        "colorectal'; DROP TABLE trials;--" -> als   ("als" is inside "trials;--")
+
+    A single keystroke returned 30 ranked colorectal trials with criterion
+    sentences and a coverage box, and nothing on the page said the search had
+    been reinterpreted. This is the SIXTH instance of substring matching
+    standing in for identity in this codebase; see `markers.resolve_marker` for
+    the fifth and CLAUDE.md for the earlier four.
+
+    An ad-hoc set is marked `curated=False` so the caller says so out loud: it
+    is a single condition string with none of the synonym coverage a curated set
+    has, and reporting it as equivalent would overstate what was searched.
+
+    THE COST, STATED: "metastatic colorectal cancer" no longer reaches the
+    colorectal set — it is not any of that set's strings. It falls to the
+    uncurated path, which reports that nothing has been ingested for it rather
+    than silently answering with a different population. The remedy is to add
+    the phrasing to `config/trial_queries.yaml`, where a clinician reviews it,
+    NOT to reintroduce a substring rule that cannot tell "metastatic colorectal
+    cancer" from "a".
     """
     sets = load_query_sets() if sets is None else sets
-    norm = re.sub(r"\s+", " ", (condition or "").strip().lower())
+    norm = _normalise_condition(condition)
     if not norm:
         raise ValueError("a condition is required to resolve a query set")
 
-    for key, qset in sets.items():
-        if norm == key.lower() or norm == qset.label.lower():
+    # Longest key first, so a string that is legitimately a label of two sets
+    # resolves to the more specific one rather than to whichever the config
+    # happened to list first.
+    for _key, qset in sorted(sets.items(), key=lambda kv: (-len(kv[0]), kv[0])):
+        if norm == _normalise_condition(qset.key) or norm == _normalise_condition(qset.label):
             return qset
-        if any(norm == q.value.lower() for q in qset.queries):
+        if any(norm == _normalise_condition(q.value) for q in qset.queries):
             return qset
-    # A near miss on a curated condition string ("metastatic colorectal cancer"
-    # against "colorectal cancer") should use the curated set rather than quietly
-    # dropping to a single query.
-    for _key, qset in sets.items():
-        if any(q.kind == CONDITION and (norm in q.value.lower() or q.value.lower() in norm)
-               for q in qset.queries):
+        if any(norm == _normalise_condition(a) for a in qset.aliases):
             return qset
 
     return QuerySet(key=_slug(condition), label=condition,

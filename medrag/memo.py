@@ -344,6 +344,46 @@ def _memo_title(memo: MemoResult) -> str:
     return f"Landscape — {memo.indication or 'not specified'}"
 
 
+def _thin_banner(cov: dict) -> list[str]:
+    """A prominent statement, at the TOP, when the memo found little or nothing.
+
+    Before this, an asset with nothing published produced eleven confident-looking
+    sections and the only honest signal was a ratio in the Coverage block — and
+    the regulatory caveat in section nine. A reader skimming a memo reads the
+    top; the finding "there is almost nothing here" has to be there, not ninth.
+
+    Silence when the memo is well-evidenced: a banner on every memo is a banner
+    nobody reads.
+    """
+    total = cov.get("sections") or 0
+    with_evidence = cov.get("sections_with_evidence") or 0
+    if not total or with_evidence > total // 2:
+        return []
+    if with_evidence == 0:
+        headline = (
+            "**NOTHING WAS FOUND FOR THIS ASSET.** No section of this memo is "
+            "supported by a stored trial record, regulatory record or published "
+            "passage."
+        )
+    else:
+        headline = (
+            f"**LITTLE WAS FOUND FOR THIS ASSET.** Only {with_evidence} of {total} "
+            "sections are supported by any stored evidence; the rest found nothing "
+            "above the relevance threshold."
+        )
+    return [
+        "> " + headline,
+        ">",
+        "> This is NOT a finding that the asset lacks evidence in the world. It is a "
+        "statement about this tool's stored snapshot. For an early-stage or "
+        "preclinical asset it is the expected result, and it is itself the finding: "
+        "there is nothing here to diligence from public sources.",
+        "",
+        "---",
+        "",
+    ]
+
+
 def render_markdown(memo: MemoResult, generated: datetime | None = None) -> str:
     cov = memo.coverage()
     lines = [
@@ -357,6 +397,7 @@ def render_markdown(memo: MemoResult, generated: datetime | None = None) -> str:
         "",
         "---",
         "",
+        *_thin_banner(cov),
         "## Coverage",
         "",
         f"- Sections answered with evidence: {cov['sections_with_evidence']}/{cov['sections']}",

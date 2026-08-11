@@ -105,6 +105,17 @@ class PublicConfig:
     #: Hard cap on an uploaded document, checked before it is read into memory.
     max_upload_bytes: int = 2 * 1024 * 1024
 
+    #: Where a visitor reports a wrong answer. A mailto: address, because it is
+    #: the one channel that collects NOTHING on our side: no form, no POST, no
+    #: field to fill in, no server-side record. A web form would need somewhere
+    #: to put what was typed, and "somewhere to put what visitors type" is
+    #: precisely what the terms say does not exist.
+    #:
+    #: Unset means the link is not shown at all rather than pointing at a
+    #: placeholder — a broken report path is worse than a visible absence,
+    #: because it looks like a channel that works.
+    report_email: str = field(default_factory=lambda: os.getenv("PUBLIC_REPORT_EMAIL", "").strip())
+
     def flags(self) -> list[FeatureFlag]:
         return [self.landscape, self.memo, self.claims]
 
