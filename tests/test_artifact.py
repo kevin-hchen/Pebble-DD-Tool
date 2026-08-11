@@ -256,7 +256,11 @@ def test_skipping_checksums_is_possible_but_reported_never_silent():
 
     with pytest.raises(ArtifactError):
         verify(out)                                    # checked: refuses
-    assert verify(out, check_checksums=False)          # skipped: proceeds
+    # The two skips are independent axes: this test isolates the checksum one,
+    # so the precompute re-run is disabled too. A corrupted database would fail
+    # THAT check as well, which is a stronger guarantee and a different property
+    # (tested in test_public_app.py).
+    assert verify(out, check_checksums=False, verify_precompute_sample=False)
 
     from public.config import PublicConfig
 

@@ -321,6 +321,41 @@ every visitor searches a 12,000-trial family still wants more workers, and
 throughput is still `workers × per-request-cost`, so size for the searches you
 expect rather than the average.
 
+### Precomputed results
+
+The artifact ships answers for every **condition x curated marker** pair —
+74 families x 7 markers = 518 pairs, 10,453 ranked rows, **+8 MB** on a 1.9 GB
+artifact. Computed at build time, so there is no request-time cache and
+therefore no retention surface: nothing is keyed, nothing expires, and the terms
+need no amendment.
+
+**Location is deliberately not precomputed** (combinatorial across free-text
+place names). Proximity is a ranking pass over rows that are already selected,
+so it is applied per request to the precomputed candidate set.
+
+| Search | Live path | Precomputed |
+|---|---|---|
+| `colorectal cancer` + MSS | 1.8 s | **0.030 s** |
+| `breast cancer` + HER2 | 1.9 s | **0.030 s** |
+| `rett syndrome` + MSS | 0.05 s | **0.036 s** |
+| `colorectal` + MSS + location | — | **0.069 s** |
+| `colorectal` + FGFR2 (uncurated, not precomputed) | 2.0 s | **2.0 s** — falls through, by design |
+
+Throughput on two workers: **~47 req/s** at concurrency 4–8 (was 0.08 req/s
+before any of this work).
+
+**Two startup gates, and both fail closed.** The precompute is stamped with a
+`code_version` fingerprint derived from every source file and config that can
+change an answer — so a serving-code change with a stale artifact is refused.
+And because a fingerprint proves the bytes matched rather than that the
+behaviour did, startup also **re-runs a sample of precomputed pairs through the
+live path** and compares. Either mismatch refuses to start, naming the remedy.
+
+If you change `markers.py`, `biomarker.py`, `biomarker_gating.py`,
+`landscape.py`, `ranking.py`, `config/markers.yaml` or `config/ranking.yaml`,
+**rebuild the artifact** — the service will not start otherwise, which is the
+intended behaviour rather than an inconvenience.
+
 ### Where the remaining time goes
 
 For colorectal the 1.8 s is now dominated by loading and screening the 826

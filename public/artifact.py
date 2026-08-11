@@ -121,8 +121,33 @@ def read_embedded_snapshot_date(db_path: Path) -> str:
         conn.close()
 
 
+def _verify_precompute(artifact_dir: Path, sample: int = 3) -> list[str]:
+    """Re-run a sample of the artifact's precomputed answers through the live
+    path and compare. Returns problems; empty means they agreed.
+
+    Two checks, and the second is the one that matters: a code-version
+    fingerprint proves the artifact was built from these bytes, and re-running
+    proves the answers still agree — which a fingerprint alone cannot, because
+    identical code against a different store produces the same fingerprint and
+    different answers.
+    """
+    from medrag.precompute import verify_sample
+    from medrag.trials.store import TrialStore
+
+    trials = artifact_dir / "trials.db"
+    if not trials.exists():
+        return []
+    store = TrialStore(trials, read_only=True, immutable=True)
+    try:
+        return verify_sample(store, sample=sample)
+    finally:
+        store.close()
+
+
 def verify(artifact_dir: Path, max_age_days: int = DEFAULT_MAX_AGE_DAYS,
-           check_checksums: bool = True, now: datetime | None = None) -> ArtifactStatus:
+           check_checksums: bool = True, now: datetime | None = None,
+           verify_precompute_sample: bool = True,
+           precompute_sample: int = 3) -> ArtifactStatus:
     """Verify and describe the artifact, or raise `ArtifactError`.
 
     `check_checksums=False` exists for a large artifact on a slow disk where an
@@ -226,6 +251,16 @@ def verify(artifact_dir: Path, max_age_days: int = DEFAULT_MAX_AGE_DAYS,
             "the staleness threshold, and serving data of unknown age on a public site "
             "is exactly what this check exists to stop.\n"
             "  Rebuild:   python scripts/build_artifact.py --out dist/artifact")
+
+    if verify_precompute_sample:
+        problems = _verify_precompute(artifact_dir, sample=precompute_sample)
+        if problems:
+            raise ArtifactError(
+                "the precomputed results in this artifact do not match what this code "
+                "produces:\n  " + "\n  ".join(problems) +
+                "\n  Refusing to serve: precomputed and live answers would differ, and "
+                "a visitor could not tell which they got.\n"
+                "  Rebuild the artifact:  python scripts/build_artifact.py --out dist/artifact")
 
     if status.stale:
         raise ArtifactError(

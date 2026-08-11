@@ -39,8 +39,9 @@ Four things are deliberate:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 
-from . import ranking
+from . import precompute, ranking
 from .biomarker import (
     ELIGIBLE,
     ELIGIBLE_BY_EXCLUSION,
@@ -201,6 +202,68 @@ def _proximity(record: TrialRecord, location: str) -> tuple[dict | None, int, st
     return best, best_tier, best_label
 
 
+def _from_precomputed(store, landscape, pre, location: str, show_limit: int | None):
+    """Assemble a landscape from precomputed rows, applying location per request.
+
+    What this avoids: loading and live-matching every candidate. For colorectal
+    that was 826 records and ~1.3s of the 1.8s.
+
+    With NO location, only the rows that will actually be PRINTED are loaded —
+    30 of 826 — because the precomputed order is already the final order.
+
+    With a location, the whole precomputed candidate set is loaded so proximity
+    can rank across all of it. That costs the load (~0.5s on colorectal) but
+    still skips the live match, and it keeps a located search identical to what
+    the live path would have produced rather than approximating it over a
+    truncated head.
+    """
+    precompute.counts_to_landscape(pre, landscape)
+
+    ordered = list(pre.rows)
+    wanted = [r.nct_id for r in ordered] if location else [
+        r.nct_id for r in (ordered if show_limit is None else ordered[:show_limit])]
+    records = {r.nct_id: r for r in store.records_by_id(wanted)}
+
+    trials = []
+    for row in ordered:
+        record = records.get(row.nct_id)
+        if record is None:
+            continue      # only possible when not loaded, i.e. below the cap
+        loc, tier, label = _proximity(record, location)
+        trials.append(LandscapeTrial(
+            record=record,
+            match=BiomarkerMatch(status=row.status, evidence=row.evidence,
+                                 biomarker=pre.marker, curated=True),
+            nearest_location=loc, proximity_tier=tier, proximity_label=label,
+            ranking=SimpleNamespace(explain=lambda e=row.explain: e),
+        ))
+
+    if location:
+        # Re-rank with proximity, which the precompute could not know. Stable on
+        # the precomputed order, so a trial no closer than another keeps the
+        # order the build produced rather than being shuffled arbitrarily.
+        trials.sort(key=lambda t: -t.proximity_tier)
+        if show_limit is not None:
+            trials = trials[:show_limit]
+
+    landscape.trials = trials
+    landscape.show_limit = show_limit or 0
+    landscape.ranked_out_by_state = _ranked_out_by_state(ordered, trials)
+    return landscape
+
+
+def _ranked_out_by_state(ordered, shown) -> dict:
+    """What the display cap held back, by biomarker state — the same breakdown
+    `sample_lines()` prints, computed from the precomputed list rather than from
+    a live screen."""
+    shown_ids = {t.record.nct_id for t in shown}
+    out: dict = {}
+    for row in ordered:
+        if row.nct_id not in shown_ids:
+            out[row.status] = out.get(row.status, 0) + 1
+    return out
+
+
 def build_landscape(
     store,
     condition: str,
@@ -209,6 +272,7 @@ def build_landscape(
     limit: int | None = None,
     query_set: str | None = None,
     show_limit: int | None = DEFAULT_SHOW_LIMIT,
+    use_precomputed: bool = True,
 ) -> TrialLandscape:
     """Screen the fetched population for the biomarker and assemble the landscape.
 
@@ -254,6 +318,21 @@ def build_landscape(
 
     landscape.query_set = query_set
     landscape.population_total = store.count(query_set=query_set)
+
+    # THE PRECOMPUTED FAST PATH. Answers for every (family, curated marker) are
+    # baked into the artifact at build time — see medrag/precompute.py for why
+    # this and not a request-time cache. Location is deliberately NOT
+    # precomputed (combinatorial, and proximity is a ranking pass over rows that
+    # are already selected), so it is applied here to the precomputed candidate
+    # set.
+    #
+    # `use_precomputed=False` is how the build itself, and the startup
+    # verification, reach the live path — otherwise the precompute would verify
+    # against itself.
+    if use_precomputed and mdef is not None and not limit:
+        pre = precompute.lookup(store.conn, query_set, mdef.key)
+        if pre is not None:
+            return _from_precomputed(store, landscape, pre, location, show_limit)
     landscape.coverage = store.coverage(query_set)
     landscape.coverage_statement = build_coverage_statement(
         store, query_set, marker=mdef.key if mdef else None,

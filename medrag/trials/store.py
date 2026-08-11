@@ -827,6 +827,25 @@ class TrialStore:
             for status in ("REQUIRED", "ELIGIBLE_BY_EXCLUSION", "EXCLUDED", "NOT_MENTIONED")
         }
 
+    def records_by_id(self, nct_ids: list[str]) -> list[TrialRecord]:
+        """Fetch specific trials by NCT ID, in one query per batch.
+
+        The precomputed fast path already knows WHICH trials it wants and in
+        what order, so it needs exactly these rows and not a filtered scan —
+        loading 30 records instead of 826 is most of what the precompute buys.
+        """
+        if not nct_ids:
+            return []
+        out: list[TrialRecord] = []
+        batch = 500
+        for i in range(0, len(nct_ids), batch):
+            chunk = nct_ids[i : i + batch]
+            rows = self.conn.execute(
+                f"SELECT * FROM trials WHERE nct_id IN ({', '.join('?' * len(chunk))})",
+                chunk).fetchall()
+            out.extend(self._to_record(r) for r in rows)
+        return out
+
     def count_without_eligibility(self, query_set: str | None = None) -> int:
         """Trials in the population with no eligibility text on file at all.
 

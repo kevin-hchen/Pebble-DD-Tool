@@ -296,6 +296,88 @@ def test_the_weak_and_strong_completeness_checks_cannot_disagree_in_the_unsafe_d
                 "the strong check has become weaker than the weak one")
 
 
+# ------------------------------------------------- precomputed vs live
+
+
+def test_the_precomputed_path_returns_exactly_what_the_live_path_returns():
+    """The precompute is a build-time answer served at request time, so it is one
+    more pair of paths that must agree — and the one most able to drift, because
+    the artifact and the code are versioned separately and shipped separately."""
+    from medrag import precompute
+
+    store = _store()
+    try:
+        precompute.build_all(store, ["colorectal"], list(MARKER_KEYS))
+        for marker in MARKER_KEYS:
+            fast = build_landscape(store, condition="colorectal", biomarker=marker,
+                                   query_set="colorectal", show_limit=None)
+            live = build_landscape(store, condition="colorectal", biomarker=marker,
+                                   query_set="colorectal", show_limit=None,
+                                   use_precomputed=False)
+            assert [t.record.nct_id for t in fast.trials] == \
+                   [t.record.nct_id for t in live.trials], f"{marker}: row order differs"
+            for attr in ("n_condition", "n_eligible", "n_eligible_by_exclusion",
+                         "n_unclear", "n_excluded", "n_not_mentioned",
+                         "n_no_eligibility_text"):
+                assert getattr(fast, attr) == getattr(live, attr), \
+                    f"{marker}: {attr} differs ({getattr(fast, attr)} vs {getattr(live, attr)})"
+    finally:
+        store.close()
+
+
+def test_a_changed_code_version_is_refused_rather_than_served():
+    """The version gate. Precomputed answers come from build-time code; if the
+    serving code changes and the artifact does not, the two diverge silently —
+    the same failure the census gate demonstrated, from the other direction."""
+    from medrag import precompute
+
+    store = _store()
+    try:
+        precompute.build_all(store, ["colorectal"], list(MARKER_KEYS))
+        assert precompute.verify_sample(store, sample=2) == []
+
+        with store.conn:
+            store.conn.execute(
+                "UPDATE precompute_meta SET value='0000000000000000' "
+                "WHERE key='code_version'")
+        problems = precompute.verify_sample(store, sample=2)
+        assert problems and "built by code version" in problems[0]
+        assert "build_artifact.py" in problems[0], "the refusal must name the remedy"
+    finally:
+        store.close()
+
+
+def test_tampered_precomputed_rows_are_caught_even_though_the_version_matches():
+    """A fingerprint proves the artifact was built from these bytes; it cannot
+    prove the answers still agree — identical code against a different store
+    produces the same fingerprint and different results. That is why startup
+    RE-RUNS a sample rather than trusting the stamp."""
+    from medrag import precompute
+
+    store = _store()
+    try:
+        precompute.build_all(store, ["colorectal"], list(MARKER_KEYS))
+        with store.conn:
+            store.conn.execute("DELETE FROM precomputed_landscape WHERE rank = 0")
+        problems = precompute.verify_sample(store, sample=5)
+        assert problems, "a tampered precompute passed the sample re-run"
+    finally:
+        store.close()
+
+
+def test_an_unprecomputed_pair_falls_through_to_the_live_path():
+    """A miss is a slower answer, never a wrong or empty one. An uncurated
+    marker has no census and so no precompute, and must still work."""
+    store = _store()
+    try:
+        landscape = build_landscape(store, condition="colorectal cancer",
+                                    biomarker="FGFR2 fusion", show_limit=None)
+        assert landscape.biomarker_curated is False
+        assert landscape.n_condition == store.count(query_set="colorectal")
+    finally:
+        store.close()
+
+
 if __name__ == "__main__":
     import traceback
 

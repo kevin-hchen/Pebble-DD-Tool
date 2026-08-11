@@ -152,6 +152,21 @@ def _write_meta(path: Path, snapshot_date: str, counts: dict) -> None:
     tmp.replace(path)
 
 
+def _precompute_into(db_path: Path, say) -> dict:
+    """Run the precompute against the artifact copy."""
+    from medrag.biomarker_gating import MARKER_KEYS
+    from medrag.precompute import build_all
+    from medrag.trials.store import TrialStore
+
+    store = TrialStore(db_path)
+    try:
+        families = [r[0] for r in store.conn.execute(
+            "SELECT DISTINCT set_key FROM trial_query_sets ORDER BY set_key")]
+        return build_all(store, families, list(MARKER_KEYS))
+    finally:
+        store.close()
+
+
 def build(source: Path, out: Path, quiet: bool = False) -> dict:
     def say(msg: str) -> None:
         if not quiet:
@@ -186,6 +201,18 @@ def build(source: Path, out: Path, quiet: bool = False) -> dict:
             conn.execute("VACUUM INTO ?", (str(dest),))
         finally:
             conn.close()
+
+        if filename == "trials.db":
+            # Precompute every (family, curated marker) landscape INTO the
+            # artifact copy. Build-time only: the dev store is never touched, and
+            # a deployment therefore serves answers computed before any visitor
+            # existed — which is what lets the common searches be instant with no
+            # request-time cache and so no retention surface. See
+            # medrag/precompute.py.
+            say(f"  {label:<14} precomputing landscapes…")
+            pre = _precompute_into(dest, say)
+            say(f"  {label:<14} {pre['pairs']} pairs, {pre['rows']:,} rows, "
+                f"code version {pre['code_version']}")
 
         _write_meta(dest, snapshot_date, counts)
         digest = _sha256(dest)
