@@ -527,12 +527,36 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requiremen
 
 **3. Is it a store schema refusal?** `TrialStoreSchemaError` or
 `FDAStoreSchemaError` mean the database on disk predates the columns the code
-needs. That is fail-closed behaviour, not a bug. Delete and re-ingest:
+needs. That is fail-closed behaviour, not a bug. There are **three** remedies,
+and the refusal message names which one applies — read it rather than assuming
+the third:
 
-```bash
-rm data/raw/trials.db
-python -m medrag trials -c "<condition>" -n 500
-```
+| The gap is | Remedy | Cost |
+|---|---|---|
+| derivable from stored data | `python -m medrag trials --migrate` | seconds, no network |
+| stated by the registry, not derivable | `python -m medrag trials --backfill-types` | ~35 min, fetches one module |
+| data only a full fetch can supply | `rm data/raw/trials.db` then re-ingest | hours |
+
+Only the third deletes anything. Sending an operator to `rm` a verified
+241,298-record store to recover one field the API returns on its own is a wrong
+answer that reads like a correct one, and an operator given it will reasonably
+decide the upgrade is not worth doing.
+
+**A repair path cannot open the store it is repairing.** This is the constraint
+that will surprise whoever writes the next one. The version gate refuses the
+file *before* any code can touch it, so anything that fixes a stale store has to
+run on a raw `sqlite3` connection inside the migration or backfill function
+itself — `TrialStore(path)` raises, and so does every helper that takes a store.
+`backfill_intervention_types` repairs drifted records that way for exactly this
+reason: the first attempt did the repair in the CLI layer, which could not open
+the database it had just been told to fix.
+
+The corollary is that a repair written this way bypasses everything `TrialStore`
+normally guarantees — `refuse_write`, the derived-column recomputation, WAL. So
+a raw repair must update derived columns by hand and in the same transaction as
+the columns they derive from. `intervention_tokens` moves with `interventions`
+there for that reason; leaving it behind would make an agent query disagree with
+the record it is querying, silently.
 
 **4. Is it the corpus?** `medrag stats` reports unreadable records. If any are
 quarantined, the count and a plain-language note appear there, in the app, and in
