@@ -19,6 +19,7 @@ import json
 import sqlite3
 import sys
 import tempfile
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -356,6 +357,164 @@ def test_the_data_touching_handlers_are_not_coroutines():
         assert not inspect.iscoroutinefunction(fn), (
             f"{name} is `async def`; it does blocking work and will stall the "
             "event loop for every other request in the worker")
+
+
+
+def test_a_process_that_ages_past_the_threshold_stops_reporting_itself_healthy():
+    """Staleness is a fact about NOW, and it was being read from import time.
+
+    `verify()` freezes `age_days` when the process boots and only refuses on a
+    restart, so a service that starts one day inside the threshold and runs for
+    a month keeps serving and keeps answering `snapshot_stale: false`. Nothing
+    re-asks in between. This drives the ageing directly on the status object,
+    which is where the recomputation lives.
+    """
+    status = verify(_artifact(), max_age_days=90)
+    assert status.stale is False, "fresh at verification, as the fixture intends"
+
+    later = datetime.now(timezone.utc) + timedelta(days=200)
+    assert status.is_stale_now(later) is True, (
+        "the same status object must report itself stale once the clock has moved; "
+        "reading the frozen age_days is what let a long-running process serve stale data"
+    )
+    assert status.age_days_now(later) > status.age_days
+    # The startup value is deliberately unchanged: it records what the refusal
+    # acted on, and an operator needs both numbers to see how long it has run.
+    assert status.stale is False
+
+
+def test_the_health_endpoint_refuses_to_look_healthy_once_the_snapshot_is_stale():
+    """The endpoint, not just the model underneath it.
+
+    The invariant this file exists to defend is that a page must not look
+    healthy while serving something other than what it claims. A 200 with
+    `snapshot_stale: false` from a process that has aged out is exactly that,
+    so the check runs per request and a stale process answers 503.
+    """
+    pytest.importorskip("fastapi")
+    import importlib
+    import os
+
+    from fastapi.testclient import TestClient
+
+    out = _artifact()
+    saved = {k: os.environ.get(k) for k in ("PUBLIC_ARTIFACT_DIR", "MEDRAG_DATA_DIR")}
+    try:
+        os.environ["PUBLIC_ARTIFACT_DIR"] = str(out)
+        os.environ["MEDRAG_DATA_DIR"] = str(out)
+        import public.main as main
+
+        importlib.reload(main)
+        client = TestClient(main.app)
+
+        fresh = client.get("/healthz")
+        assert fresh.status_code == 200 and fresh.json()["snapshot_stale"] is False
+
+        # Age the process rather than the artifact: this is the case a restart
+        # would fix and nothing else does.
+        original = main.ARTIFACT
+        aged = replace(original, snapshot_date="2000-01-01")
+        main.ARTIFACT = aged
+        try:
+            response = client.get("/healthz")
+        finally:
+            main.ARTIFACT = original
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    assert response.status_code == 503, (
+        "a process serving a snapshot older than its own threshold must not answer 200; "
+        "verify() refuses to START on this data, so the health check must not bless it"
+    )
+    payload = response.json()
+    assert payload["snapshot_stale"] is True
+    assert payload["status"] == "stale"
+    assert "days old" in payload["warning"]
+    assert "snapshot_age_days_at_startup" in payload, (
+        "the age the startup check acted on must stay visible beside the current one"
+    )
+
+
+def test_an_unhandled_exception_logs_frames_and_never_the_request_content():
+    """A 500 left one access-log line and nothing to debug from.
+
+    The obvious fix leaks: `traceback.format_exc()` ends with `str(exc)`, and
+    on this service that string routinely quotes the visitor's search. So the
+    line is built from the traceback's structured frames, and this test proves
+    it the only way worth proving — throw an exception whose MESSAGE is a
+    sentinel, capture everything the logger emitted, and grep for it.
+    """
+    pytest.importorskip("fastapi")
+    import logging
+
+    from public.reqlog import LOGGER_NAME, log_exception
+
+    sentinel = "ZZQX-hidradenitis-suppurativa-ZZQX"
+    records = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            records.append(record.getMessage())
+
+    logger = logging.getLogger(LOGGER_NAME)
+    handler = _Capture()
+    logger.addHandler(handler)
+    try:
+        try:
+            raise ValueError(f"no trials matched {sentinel}")
+        except ValueError as exc:
+            line = log_exception(exc, "POST", "/landscape")
+    finally:
+        logger.removeHandler(handler)
+
+    everything = " ".join(records) + " " + line
+    assert sentinel not in everything, (
+        "the exception message reached the log — it carries whatever a visitor typed"
+    )
+    assert "ValueError" in line, "the exception type must survive; it is the diagnosis"
+    assert "test_artifact.py:" in line, "the frame that raised must survive; it is the location"
+    assert "POST /landscape" in line
+
+
+def test_the_error_response_body_echoes_nothing_back():
+    """The other half: what the visitor is shown must not quote the input
+    either, or it lands in browser history and in any layer above us."""
+    pytest.importorskip("fastapi")
+    import importlib
+    import os
+
+    from fastapi.testclient import TestClient
+
+    out = _artifact()
+    saved = {k: os.environ.get(k) for k in ("PUBLIC_ARTIFACT_DIR", "MEDRAG_DATA_DIR")}
+    try:
+        os.environ["PUBLIC_ARTIFACT_DIR"] = str(out)
+        os.environ["MEDRAG_DATA_DIR"] = str(out)
+        import public.main as main
+
+        importlib.reload(main)
+        sentinel = "ZZQX-sentinel-ZZQX"
+
+        @main.app.get("/__boom")
+        def _boom():
+            raise RuntimeError(f"exploded on {sentinel}")
+
+        client = TestClient(main.app, raise_server_exceptions=False)
+        response = client.get("/__boom")
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+    assert response.status_code == 500
+    assert sentinel not in response.text
+    assert "went wrong" in response.text.lower()
 
 
 if __name__ == "__main__":

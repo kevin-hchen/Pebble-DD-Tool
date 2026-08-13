@@ -64,13 +64,19 @@ from medrag.vectorstore import INDEX_SCHEMA, VectorStore  # noqa: E402
 # a future reweight has to argue with a number rather than an impression.
 MEASURED = {
     "on_topic_min": 0.334,
-    "on_topic_p05": 0.436,
-    "on_topic_p25": 0.530,
-    "on_topic_median": 0.643,
+    "on_topic_p05": 0.433,
+    "on_topic_p25": 0.551,
+    "on_topic_median": 0.644,
     "off_topic_median": 0.361,
     "off_topic_p95": 0.482,
     "off_topic_p99": 0.521,
     "off_topic_max": 0.555,
+    # How far the two distributions overlap. This is the number that makes the
+    # floor a TRADEOFF rather than a separator, and it is asserted below so a
+    # future re-measurement that separates them cleanly forces the reasoning in
+    # config.py to be rewritten rather than silently inherited.
+    "on_topic_below_highest_off_topic": 38,
+    "on_topic_samples": 143,
 }
 
 # The two representative scores the stub reproduces: an on-topic passage at the
@@ -297,6 +303,11 @@ def test_the_shipped_floor_sits_between_the_measured_distributions():
         "this pins that the distributions OVERLAP — if a re-measurement ever "
         "separates them cleanly, the trade-off recorded in config.py no longer "
         "applies and the comment must be rewritten"
+    )
+    assert MEASURED["on_topic_below_highest_off_topic"] > 0, (
+        "no floor can be a clean separator while any on-topic score sits below the "
+        "highest off-topic one; 38 of 143 do, which is why 0.50 is a chosen error "
+        "rather than a boundary between two populations"
     )
 
 

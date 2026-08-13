@@ -154,6 +154,21 @@ Step 4 should show the new `snapshot_date`, `artifact_verified: true`,
 `snapshot_stale: false`, and `checksums_verified: true`. If it shows the old
 date, the restart did not pick up the new directory.
 
+**`/healthz` returns 503 once the snapshot passes the threshold, without a
+restart.** Staleness is recomputed per request rather than read from the value
+captured at import — a process that started one day inside the threshold and ran
+for a month used to keep serving and keep answering `snapshot_stale: false`,
+because the refusal in `verify()` only fires at startup and nothing re-asked in
+between. The payload carries both numbers: `snapshot_age_days` (now) and
+`snapshot_age_days_at_startup` (what the startup check acted on); the gap between
+them is how long the process has been up.
+
+Operationally this means an ageing deployment takes itself out of a load-balancer
+rotation and, under an orchestrator that restarts on health failure, hits the
+startup refusal — a restart loop and a log line, which is the intended way for
+this to become impossible to ignore rather than a page that gets quietly more
+wrong. If you accept the age, raise `PUBLIC_MAX_SNAPSHOT_AGE_DAYS` deliberately.
+
 **Never overwrite the live artifact in place.** A partially-copied 1.9 GB file
 is a broken deployment, and it is broken for as long as the copy takes.
 
@@ -202,6 +217,7 @@ takes a query string reopens the hole.
 | Layer | Default | What to do |
 |---|---|---|
 | **This app** | safe | `log_request` writes method, route template, status, ms. Nothing to do. |
+| **This app, on a 500** | safe | `log_exception` writes the exception TYPE and one `file:line in function` per frame — never `str(exc)`, which routinely quotes the input, and never a local. Before this a 500 left one access-log line and nothing to debug from. The cost: a `KeyError` no longer tells you which key. The file and line do. |
 | **uvicorn / gunicorn** | **logs full URL** | Silenced at import by `public/main`. Do not re-enable; `--access-log` will not defeat it, but a custom `logging.config` might. |
 | **nginx / Apache** | **logs full URL** | The default `combined` format includes `$request` (method + full URI) *and* `$http_referer`. Use a format with neither, or `access_log off;`. |
 | **Cloudflare / CDN** | **logs full URL** | Logpush and the HTTP Requests analytics both capture the URI. Disable Logpush for this hostname, or restrict fields to method/status/timing. Check WAF sampling too — blocked requests are logged with their URI. |
@@ -546,9 +562,31 @@ process environment.
 **When a key expires or is revoked,** every model call fails and the tool degrades
 rather than crashing: routing falls back to its rule-based path, answers become
 extractive evidence lists rather than syntheses, and the contradiction hunt does
-not run. Memos are still produced and still fully cited. That is intentional, but
-it means an expired key looks like "the memos got worse", not like an error. If
-quality drops suddenly, check the key first.
+not run. Memos are still produced and still fully cited.
+
+**This was documented before it was true.** The router and the contradiction
+hunter did catch a provider error; the ANSWER path did not, so a configured key
+returning 403 raised `openai.PermissionDeniedError` out of `diligence._answer`
+and killed the run with a traceback on question 1 of 11 — the two halves that
+degraded were the two nobody would have noticed. Every model call now goes
+through `providers.call_chat`, which returns a failure instead of raising.
+
+The degradation is no longer silent either, which was the other half of the
+complaint this paragraph used to make about itself. The memo's warnings block
+names the provider and what it returned:
+
+    the configured model provider (groq) returned HTTP 403: the provider refused
+    the request — the key is revoked, out of quota, or not permitted to use this
+    model. No further model calls will be made in this run. ...
+
+A 400, 401, 403 or 404 latches the model off for the rest of the run — asking
+eleven times produces eleven identical refusals — while a 429, 5xx or timeout is
+retried on the next question, because a blip should not cost ten syntheses. The
+message is BUILT from the status code and the provider name, never from the
+SDK exception, which renders the response body.
+
+So an expired key no longer looks like "the memos got worse". It says so. If
+quality drops suddenly and there is no warning, the key is not the cause.
 
 **Never** put the key in `.streamlit/secrets.toml`, a shell profile committed
 anywhere, or a CI variable. There are tests asserting it cannot reach a

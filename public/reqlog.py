@@ -23,7 +23,9 @@ from __future__ import annotations
 
 import logging
 import sys
+import traceback
 from dataclasses import dataclass
+from pathlib import Path
 
 LOGGER_NAME = "medrag.public.access"
 
@@ -126,3 +128,38 @@ def safe_route(scope_route: str | None, path: str) -> str:
         return scope_route
     head = (path or "/").split("?", 1)[0].strip("/").split("/", 1)[0]
     return f"/{head}" if head.isalnum() else "/<unmatched>"
+
+
+def log_exception(exc: BaseException, method: str, route: str) -> str:
+    """Log an unhandled exception's FRAMES, never its message. Returns what was logged.
+
+    A 500 previously left one access-log line — `POST /landscape 500 812.3ms` —
+    and nothing else. Nothing to debug from, and nothing recording that a
+    visitor's search hit a crash rather than an empty result.
+
+    The obvious fix is the wrong one. `traceback.format_exc()` ends with the
+    exception's `str()`, and that string routinely quotes the input: a
+    `ValueError` echoes the value, an `sqlite3` error can carry a bound
+    parameter, and a `KeyError` names the key. On this service the input is a
+    visitor's condition and biomarker, which the terms promise are never
+    written down. A filter over the rendered traceback would be a blocklist,
+    and blocklists are how this leak happens in the first place.
+
+    So the line is BUILT, exactly like `RequestLogLine`: the exception TYPE and
+    one `file:line in function` per frame, taken from the traceback object
+    itself. `traceback.extract_tb` yields structured frames — filename, line
+    number, function name — and never touches `str(exc)` or the frames' local
+    variables. There is no field here that can hold a search term, which is the
+    property that makes this safe rather than the care of whoever writes the
+    next handler.
+
+    The cost, stated: the exception's message is gone, so "KeyError" no longer
+    tells you WHICH key. The file and line do, and they cannot leak.
+    """
+    frames = traceback.extract_tb(exc.__traceback__)
+    where = " <- ".join(
+        f"{Path(f.filename).name}:{f.lineno} in {f.name}" for f in reversed(frames)
+    ) or "no traceback"
+    line = f"UNHANDLED {type(exc).__name__} during {method} {route} :: {where}"
+    get_logger().error(line)
+    return line

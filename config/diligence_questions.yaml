@@ -27,9 +27,18 @@ questions:
     k: 6
     negative: true
 
+  # "this mechanism or target" was an anaphor with no referent: the question
+  # interpolated NEITHER {asset} NOR {indication}, so it was a constant string
+  # for every asset ever screened — one fixed embedding, one identical
+  # retrieval, scoring an identical 0.436 across all 33 assets measured. Only
+  # the referent is bound here. What the question ASKS is unchanged: it is still
+  # about the mechanism or target rather than the compound, and still
+  # deliberately not scoped to {indication}, because "who else has worked on
+  # this target" is a broader question than "in this disease". Changing that is
+  # an editorial call for whoever owns this file.
   - id: competitive-trials
     section: "Who else has run trials on this target"
-    question: "Which other sponsors have run clinical trials on this mechanism or target, and what happened to those trials?"
+    question: "Which other sponsors have run clinical trials on the mechanism or target of {asset}, and what happened to those trials?"
     route: structured
     k: 8
     negative: false

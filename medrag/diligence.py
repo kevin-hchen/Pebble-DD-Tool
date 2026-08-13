@@ -20,6 +20,7 @@ from .documents import Retrieved
 from .fda.drug_store import ApprovalAnswer
 from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
+from .providers import call_chat, effective_provider
 from .router import Route, Router
 from .trials.anchors import anchor_for
 from .trials.client import TrialRecord
@@ -210,6 +211,9 @@ class DiligenceRunner:
         # and failing the whole memo because no index exists would be wrong.
         self.rag = rag
         self.warnings: list[str] = []
+        #: Latched by a provider refusal no retry can fix, so the rest of the
+        #: run degrades to extractive answers without calling again.
+        self._model_failed = False
         if self.rag is None:
             try:
                 from .pipeline import MedRAG
@@ -581,19 +585,16 @@ class DiligenceRunner:
 
         generator = self.rag.generator if self.rag else None
         client = getattr(generator, "client", None)
-        if client is None:
-            # Extractive fallback: return the evidence itself rather than an
-            # ungrounded synthesis. Clearly labelled so nobody mistakes it for one.
-            body = ["*(No model available — showing retrieved evidence verbatim.)*", ""]
-            for e in evidence:
-                label = f"[{e.index}] ({e.kind} — {e.identifier}"
-                label += f" — {e.grade_tag})" if e.grade_tag else ")"
-                snippet = e.text.replace("\n", " ")[:400]
-                body.append(f"{label} {snippet}")
-                body.append("")
-            return Answer(text="\n".join(body).strip(), sources=[], model="extractive-fallback")
+        # `self._model_failed` latches on a refusal no retry can fix — a revoked
+        # key answers question 2 exactly the way it answered question 1, and
+        # asking eleven times costs eleven round trips and eleven identical
+        # warnings for the same one fact.
+        if client is None or self._model_failed:
+            return self._extractive(evidence, configured=client is not None)
 
-        resp = client.chat.completions.create(
+        resp, failure = call_chat(
+            client,
+            provider_key=effective_provider(self.cfg).key,
             model=self.cfg.chat_model,
             temperature=self.cfg.temperature,
             messages=[
@@ -607,11 +608,42 @@ class DiligenceRunner:
                 },
             ],
         )
+        if failure is not None:
+            # Loud, once. A degradation nobody is told about is the failure mode
+            # the RUNBOOK already names — "an expired key looks like the memos
+            # got worse, not like an error" — so the memo says which provider
+            # refused and what the memo is missing because of it.
+            if failure.message not in self.warnings:
+                self.warnings.append(failure.message)
+            self._model_failed = failure.fatal
+            return self._extractive(evidence, configured=True)
+
         return Answer(
             text=resp.choices[0].message.content.strip(),
             sources=[],
             model=self.cfg.chat_model,
         )
+
+    @staticmethod
+    def _extractive(evidence: list[Evidence], configured: bool) -> Answer:
+        """The evidence itself, rather than an ungrounded synthesis.
+
+        Labelled differently depending on WHY, because "this deployment has no
+        model" and "the model refused" are different facts about the run and a
+        reader who cannot tell them apart cannot act on either.
+        """
+        note = ("*(The configured model could not be reached — showing retrieved evidence "
+                "verbatim. See the warnings above.)*") if configured else \
+               "*(No model available — showing retrieved evidence verbatim.)*"
+        body = [note, ""]
+        for e in evidence:
+            label = f"[{e.index}] ({e.kind} — {e.identifier}"
+            label += f" — {e.grade_tag})" if e.grade_tag else ")"
+            snippet = e.text.replace("\n", " ")[:400]
+            body.append(f"{label} {snippet}")
+            body.append("")
+        return Answer(text="\n".join(body).strip(), sources=[],
+                      model="extractive-fallback")
 
     # ------------------------------------------------------------ full run
 

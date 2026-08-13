@@ -71,7 +71,41 @@ class ArtifactStatus:
 
     @property
     def stale(self) -> bool:
+        """Staleness AT VERIFICATION — the fact the startup refusal acted on.
+
+        Deliberately frozen: it describes the moment the process decided to
+        start. For what is true NOW, which is what a health check must answer,
+        use `age_days_now()` / `is_stale_now()`.
+        """
         return self.age_days is not None and self.age_days > self.max_age_days
+
+    def age_days_now(self, now: datetime | None = None) -> int | None:
+        """Age recomputed against the clock, not the value captured at import.
+
+        `age_days` is fixed when `verify()` runs, so a process that starts one
+        day inside the threshold and then runs for a month keeps reporting the
+        age it had on the day it booted. The refusal in `verify()` only fires on
+        a restart, so nothing else notices either: the service goes on serving a
+        stale snapshot and goes on reporting `snapshot_stale: false`, which is
+        the tool misdescribing its own state — the exact failure this module's
+        docstring says it exists to prevent, arriving through the passage of
+        time rather than through a bad artifact.
+
+        `now` is injectable for the same reason `verify()` takes it: a test
+        about ageing must not depend on the wall clock.
+        """
+        parsed = _parse_date(self.snapshot_date)
+        if parsed is None:
+            return None
+        # UTC-aware on both sides, because `_parse_date` stamps `timezone.utc`
+        # and `verify()` already compares against `datetime.now(timezone.utc)`.
+        # A naive clock here raises rather than answering, which would turn the
+        # health check into the outage.
+        return ((now or datetime.now(timezone.utc)) - parsed).days
+
+    def is_stale_now(self, now: datetime | None = None) -> bool:
+        age = self.age_days_now(now)
+        return age is not None and age > self.max_age_days
 
     @property
     def snapshot_display(self) -> str:

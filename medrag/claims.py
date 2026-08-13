@@ -65,7 +65,7 @@ from dataclasses import dataclass, field
 
 from .config import Config, load_config
 from .context import TRIAL_LABEL, Evidence, build_evidence, render_context
-from .providers import effective_provider, make_client
+from .providers import call_chat, effective_provider, make_client
 from .validation import extract_figures, figure_grounded
 
 # ---------------------------------------------------------------- support axis
@@ -317,6 +317,13 @@ def consent_key(notice: TransmissionNotice, prefix: str = "consent") -> str:
     return f"{prefix}_{digest}"
 
 
+class ModelUnavailable(RuntimeError):
+    """The configured provider refused. Distinct from "no provider configured",
+    which every path here already handles by degrading, and distinct from a
+    response that would not parse. Carries the plain-language message built by
+    `providers.describe_failure` — never the key, never the prompt."""
+
+
 class ConfirmationRequired(Exception):
     """Raised when a run would transmit off-machine but was not confirmed.
 
@@ -420,12 +427,20 @@ def _load_json(client, cfg: Config, instructions: str, data: str = "") -> dict:
     messages = [{"role": "system", "content": instructions}]
     if data:
         messages.append({"role": "user", "content": data})
-    resp = client.chat.completions.create(
+    resp, failure = call_chat(
+        client,
+        provider_key=effective_provider(cfg).key,
         model=cfg.chat_model,
         temperature=0.0,
         response_format={"type": "json_object"},
         messages=messages,
     )
+    if failure is not None:
+        # A provider that refused and a response that would not parse are
+        # different facts, and callers here treat them differently — one is
+        # worth telling the analyst about, the other is already handled by
+        # failing open. Raising a distinct type is what lets them.
+        raise ModelUnavailable(failure.message)
     return json.loads(resp.choices[0].message.content)
 
 
@@ -450,7 +465,17 @@ def extract_claims(deck_text: str, cfg: Config | None = None,
             "supply the claims directly, one per line."
         )
 
-    payload = _load_json(client, cfg, EXTRACTION_PROMPT, _fence("DECK", deck_text))
+    try:
+        payload = _load_json(client, cfg, EXTRACTION_PROMPT, _fence("DECK", deck_text))
+    except ModelUnavailable as exc:
+        # There is no degraded extraction — pulling claims out of a deck IS the
+        # model call. So this raises, like the no-provider case above, but with
+        # the provider's actual refusal instead of a traceback.
+        raise RuntimeError(
+            f"claims could not be extracted from the deck: {exc}\n"
+            "Supply the claims directly, one per line, or fix the provider "
+            "configuration and try again."
+        ) from None
     claims: list[ExtractedClaim] = []
     for c in payload.get("claims") or []:
         if isinstance(c, str):
@@ -623,6 +648,17 @@ def classify_claim(
             cfg,
             CLASSIFY_PROMPT,
             _fence("CLAIM", claim) + "\n\n" + _fence("EXCERPTS", render_context(evidence)),
+        )
+    except ModelUnavailable as exc:
+        # Said accurately: with a 403 there was no response to parse, and
+        # reporting a parse failure would misdescribe the tool's own state.
+        return ClaimVerdict(
+            claim=claim,
+            support=UNVERIFIED,
+            evidence=evidence,
+            assessed=False,
+            model="none",
+            note=f"This claim was not classified: {exc}",
         )
     except Exception:
         return ClaimVerdict(

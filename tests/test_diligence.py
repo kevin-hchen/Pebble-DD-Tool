@@ -21,6 +21,7 @@ from tests import netguard  # noqa: E402
 netguard.install()
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import yaml  # noqa: E402
 from fixtures.ctgov import PAGE_ONE, PAGE_TWO  # noqa: E402
 
 from medrag.chunking import chunk_document  # noqa: E402
@@ -473,6 +474,154 @@ def test_coverage_counts_are_consistent():
     assert cov["sections_with_evidence"] <= cov["sections"]
     assert cov["stopped_trials_found"] >= 1
 
+
+
+# ------------------------------------------- every question must interpolate
+
+
+def test_no_shipped_question_is_a_constant_string():
+    """A question that names neither the asset nor the indication is the same
+    question for every asset ever screened.
+
+    `competitive-trials` was one: "trials on this mechanism or target" is an
+    anaphor with no referent, so it embedded to ONE fixed vector and returned an
+    identical retrieval — an identical 0.436 across all 33 assets measured —
+    whatever was being diligenced. Nothing detects that from the outside; the
+    section looks answered.
+
+    The sets are DISCOVERED rather than listed, so a new question set is covered
+    the day it is added instead of the day someone remembers to add it here —
+    the same reason `tests/test_phrasing.py` discovers the modules it sweeps.
+    """
+    import re
+
+    config_dir = Path(__file__).resolve().parents[1] / "config"
+    swept = []
+    for path in sorted(config_dir.glob("*.yaml")):
+        data = yaml.safe_load(path.read_text()) or {}
+        for q in data.get("questions") or []:
+            swept.append(path.name)
+            fields = set(re.findall(r"\{(\w+)\}", q.get("question", "")))
+            assert fields, (
+                f"{path.name}: question '{q.get('id')}' interpolates neither {{asset}} nor "
+                "{indication}, so it is a constant string and retrieves the same passages "
+                "for every asset. Bind the referent; do not change what it asks."
+            )
+            assert fields <= {"asset", "indication"}, (
+                f"{path.name}: question '{q.get('id')}' interpolates {sorted(fields)}, but "
+                "only {asset} and {indication} are substituted — the rest render literally"
+            )
+
+    assert len(set(swept)) >= 3, (
+        f"the sweep only reached {sorted(set(swept))}; it is supposed to cover every "
+        "shipped question set, and a sweep that reaches one file passes vacuously"
+    )
+
+
+# ------------------------------------------- a provider that refuses
+
+
+class _RefusingClient:
+    """A configured client whose calls fail the way a revoked key fails."""
+
+    def __init__(self, status=403):
+        self.calls = 0
+        self._status = status
+        outer = self
+
+        class _Completions:
+            def create(self, **kwargs):
+                outer.calls += 1
+                raise _fake_openai_error(outer._status)
+
+        self.chat = type("chat", (), {"completions": _Completions()})()
+
+
+def _fake_openai_error(status: int):
+    from openai import APIStatusError
+
+    response = MagicMock()
+    response.status_code = status
+    response.headers = {}
+    return APIStatusError("refused", response=response, body=None)
+
+
+def test_a_configured_provider_that_refuses_degrades_instead_of_crashing():
+    """The documented behaviour, made true.
+
+    CLAUDE.md and docs/RUNBOOK.md both say an expired key degrades — routing
+    falls back to rules, answers become extractive evidence lists, the
+    contradiction hunt does not run. Two of the three were true; the answer path
+    raised `openai.PermissionDeniedError` out of `_answer` and took the run down
+    with a traceback on question 1 of 11, which is the one that mattered most.
+    """
+    runner = _runner()
+    runner.rag = type("rag", (), {"generator": type("g", (), {"client": _RefusingClient()})(),
+                                  "retriever": None, "embedder": None})()
+    evidence = build_evidence(trials=_trial_store().query(intervention="Compound X", limit=2))
+    assert evidence, "the fixture must supply evidence, or this tests nothing"
+
+    answer = runner._answer("Does Compound X work?", evidence)
+
+    assert answer.model == "extractive-fallback"
+    assert "could not be reached" in answer.text, \
+        "the reader must be told the prose is missing because the model refused"
+    assert any("403" in w for w in runner.warnings), \
+        "the memo must name what the provider returned"
+    assert not any("api_key" in w.lower() or "sk-" in w for w in runner.warnings), \
+        "the warning must carry no key"
+
+
+def test_a_refusal_no_retry_can_fix_stops_calling_for_the_rest_of_the_run():
+    """A revoked key answers question 2 exactly as it answered question 1.
+
+    Latching matters for a reason beyond speed: without it the memo collects
+    eleven identical warnings about one fact, which buries the ten other things
+    the warnings block exists to say.
+    """
+    client = _RefusingClient(status=403)
+    runner = _runner()
+    runner.rag = type("rag", (), {"generator": type("g", (), {"client": client})(),
+                                  "retriever": None, "embedder": None})()
+    evidence = build_evidence(trials=_trial_store().query(intervention="Compound X", limit=2))
+
+    for _ in range(5):
+        runner._answer("Does Compound X work?", evidence)
+
+    assert client.calls == 1, f"a fatal refusal was retried {client.calls} times"
+    assert len([w for w in runner.warnings if "403" in w]) == 1
+
+
+def test_a_transient_failure_does_not_latch_the_model_off_for_the_whole_run():
+    """The other side of the same decision, and the reason it is not just
+    `except Exception: give up`. A 503 or a timeout may well succeed on the next
+    question, and turning one blip into eleven empty syntheses would be a worse
+    failure than the crash this replaces."""
+    client = _RefusingClient(status=503)
+    runner = _runner()
+    runner.rag = type("rag", (), {"generator": type("g", (), {"client": client})(),
+                                  "retriever": None, "embedder": None})()
+    evidence = build_evidence(trials=_trial_store().query(intervention="Compound X", limit=2))
+
+    for _ in range(3):
+        runner._answer("Does Compound X work?", evidence)
+
+    assert client.calls == 3, "a transient failure must be retried on the next question"
+
+
+def test_the_failure_message_is_built_rather_than_quoted():
+    """`describe_failure` must not render the SDK exception, which prints the
+    response body — and a future SDK version may print more. The message goes
+    into a memo a human reads and may circulate."""
+    from medrag.providers import describe_failure
+
+    exc = _fake_openai_error(403)
+    exc.args = ("Error code: 403 - the prompt was: PATIENT NAME ZZQX",)
+    failure = describe_failure(exc, "groq", "some-model")
+
+    assert "ZZQX" not in failure.message
+    assert "403" in failure.message and "groq" in failure.message
+    assert failure.fatal is True
 
 if __name__ == "__main__":
     failures = 0

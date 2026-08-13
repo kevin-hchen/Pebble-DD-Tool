@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 
 from .config import Config
 from .documents import Retrieved
-from .providers import make_client
+from .providers import call_chat, effective_provider, make_client
 
 # Bracketed citation clusters written by real models: single [4], range [1-6] or
 # en-dash [1–6], comma list [12, 14, 17], and mixes like [1-3, 7]. Anything
@@ -136,6 +136,9 @@ class Generator:
             self.client = None
         else:
             self.client = make_client(cfg)
+        #: Set by a provider refusal no retry can fix. Readable by a caller that
+        #: wants to say so; `None` while the provider is answering.
+        self.failure = None
 
     def generate(self, question: str, retrieved: list[Retrieved]) -> Answer:
         if not retrieved:
@@ -150,7 +153,7 @@ class Generator:
                 grounded=False,
             )
 
-        if self.client is None:
+        if self.client is None or self.failure is not None:
             return Answer(
                 text=_extractive_answer(question, retrieved),
                 sources=retrieved,
@@ -158,7 +161,9 @@ class Generator:
             )
 
         context = build_context(retrieved, self.cfg.max_context_chars)
-        resp = self.client.chat.completions.create(
+        resp, failure = call_chat(
+            self.client,
+            provider_key=effective_provider(self.cfg).key,
             model=self.cfg.chat_model,
             temperature=self.cfg.temperature,
             messages=[
@@ -166,6 +171,18 @@ class Generator:
                 {"role": "user", "content": USER_TEMPLATE.format(question=question, context=context)},
             ],
         )
+        if failure is not None:
+            # Kept on the generator so a caller can report it. `MedRAG.ask` has
+            # no warnings list to append to, and degrading silently here would
+            # reproduce the defect this guard exists to remove one layer up.
+            if failure.fatal:
+                self.failure = failure
+            return Answer(
+                text=_extractive_answer(question, retrieved),
+                sources=retrieved,
+                model="extractive-fallback",
+                grounded=False,
+            )
         usage = getattr(resp, "usage", None)
         return Answer(
             text=resp.choices[0].message.content.strip(),

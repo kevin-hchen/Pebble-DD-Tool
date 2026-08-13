@@ -33,7 +33,7 @@ import time
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -44,7 +44,7 @@ from .artifact import verify
 from .config import load_public_config
 from .consent import ConsentRequired, require_consent
 from .ratelimit import RateLimiter, client_address
-from .reqlog import log_request, safe_route, silence_server_access_logs
+from .reqlog import log_exception, log_request, safe_route, silence_server_access_logs
 from .terms import audit_provider_disclosure, load_terms, provider_statement
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -153,6 +153,38 @@ async def request_middleware(request: Request, call_next):
     return response
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception(request: Request, exc: Exception):
+    """A 500 must leave something to debug from, and nothing to leak.
+
+    Before this, an unhandled exception produced one access-log line — method,
+    route, 500, milliseconds — and no record of what broke. Starlette's own
+    default would have re-raised it into the server's logger, which is the
+    logger `silence_server_access_logs()` disables at import; so the traceback
+    went nowhere at all, and an operator's only signal that the search page was
+    crashing was a status code in a line that looks like every other line.
+
+    Registered rather than left to the middleware because the middleware sits
+    OUTSIDE the exception: `call_next` raises, so its `log_request` never runs
+    for the failing request. This handler converts the exception into a
+    response, which the middleware then logs normally — so a 500 gets both the
+    ordinary access line and the frame trace, and the two can be lined up.
+
+    `log_exception` writes frames and an exception type, never `str(exc)` and
+    never a local variable — see its docstring for why that distinction is the
+    whole design. The response body is fixed text: an error page that echoed
+    the failing input back would put it in the visitor's browser history and in
+    any error-reporting layer above us.
+    """
+    route = safe_route(getattr(request.scope.get("route"), "path", None), request.url.path)
+    log_exception(exc, request.method, route)
+    return PlainTextResponse(
+        "Something went wrong handling that request. Nothing was saved. "
+        "Please try again.",
+        status_code=500,
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse("index.html", _base_context(request))
@@ -193,11 +225,23 @@ async def healthz():
         "artifact_verified": ARTIFACT is not None,
     }
     if ARTIFACT is not None:
+        # RECOMPUTED per request, never read from the value `verify()` captured
+        # at import. A process that started one day inside the threshold and has
+        # since run past it was reporting the age it had at boot — serving stale
+        # data while answering `snapshot_stale: false`, because the refusal in
+        # `verify()` only fires on a restart and nothing re-asked in between.
+        # Staleness is a fact about now, so it is computed now.
+        age_now = ARTIFACT.age_days_now()
+        stale_now = ARTIFACT.is_stale_now()
         payload.update({
             "snapshot_date": ARTIFACT.snapshot_display,
-            "snapshot_age_days": ARTIFACT.age_days,
+            "snapshot_age_days": age_now,
             "max_snapshot_age_days": ARTIFACT.max_age_days,
-            "snapshot_stale": ARTIFACT.stale,
+            "snapshot_stale": stale_now,
+            # What the startup check saw, kept beside what is true now: the gap
+            # between them is exactly how long this process has been running,
+            # and an operator reading a stale deployment wants both numbers.
+            "snapshot_age_days_at_startup": ARTIFACT.age_days,
             "artifact_version": ARTIFACT.artifact_version,
             "artifact_bytes": ARTIFACT.total_bytes,
             "artifact_built_at": ARTIFACT.built_at,
@@ -206,6 +250,23 @@ async def healthz():
             # like a passed check would defeat the whole mechanism.
             "checksums_verified": CFG.verify_checksums,
         })
+        if stale_now:
+            # 503, not 200. `verify()` refuses to START on a snapshot this old;
+            # a process that crosses the threshold while running is serving
+            # exactly the data that refusal exists to prevent, and a health
+            # check that keeps saying "ok" is the thing that lets it. A
+            # non-200 takes it out of a load-balancer rotation and, where an
+            # orchestrator restarts it, the startup refusal then makes the
+            # problem loud instead of invisible — which is the documented
+            # intent: a restart loop and a log line nobody can miss.
+            payload["status"] = "stale"
+            payload["warning"] = (
+                f"the data snapshot is {age_now} days old and this deployment accepts at "
+                f"most {ARTIFACT.max_age_days}. This process started when it was "
+                f"{ARTIFACT.age_days} days old and has been running since. It is still "
+                "serving; build a fresh artifact and redeploy, or raise "
+                "PUBLIC_MAX_SNAPSHOT_AGE_DAYS deliberately.")
+            return JSONResponse(payload, status_code=503)
     else:
         payload.update({
             "snapshot_date": public_data.snapshot_date(DATA_ROOT),

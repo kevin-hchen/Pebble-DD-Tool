@@ -44,33 +44,36 @@ class Config:
     # presented as its evidence, with the memo reporting "sections answered with
     # evidence: 11/11".
     #
-    # MEASURED (2026-08-11, all-MiniLM-L6-v2, the real 820-chunk index) by
+    # MEASURED (2026-08-13, all-MiniLM-L6-v2, the real 820-chunk index) by
     # driving the REAL rendered question set — 11 questions x 33 asset/indication
     # pairs, 363 retrievals — across three disease families the corpus covers
     # (colorectal/MSS, pneumonia/penicillin, neonatal jaundice) and 20 assets it
     # covers not at all. Top-1 cosine per question:
     #
     #                 min    p05    p25    med    p75    p95    p99    max
-    #   on-topic     0.334  0.436  0.530  0.643  0.742  0.829  0.897  0.897
-    #   off-topic    0.177  0.234  0.311  0.361  0.415  0.482  0.521  0.555
+    #   on-topic     0.334  0.433  0.551  0.644  0.742  0.829  0.897  0.897
+    #   off-topic    0.177  0.234  0.311  0.361  0.401  0.482  0.521  0.555
     #
     # THE TWO DISTRIBUTIONS OVERLAP, and an earlier version of this comment —
     # written from a single query pair — claimed they "separate cleanly". They
-    # do not: 45 of 143 on-topic scores fall below the highest off-topic one.
+    # do not: 38 of 143 on-topic scores fall below the highest off-topic one
+    # (0.555), and 144 of 220 off-topic scores sit above the lowest on-topic one.
     # There is no threshold that admits all real evidence and no false evidence,
-    # so this number chooses which error to make, and chooses the one this tool
-    # is for. A memo that cites a bilirubinometry meta-analysis as a hidradenitis
-    # drug's efficacy evidence is worse than a memo with an empty section, the
-    # same way an invented contradiction is worse than silence.
+    # so THIS NUMBER CHOOSES WHICH ERROR TO MAKE — it is a tradeoff, not a
+    # separator — and it chooses the error this tool is for. A memo that cites a
+    # bilirubinometry meta-analysis as a hidradenitis drug's efficacy evidence is
+    # worse than a memo with an empty section, the same way an invented
+    # contradiction is worse than silence. Anyone moving it should re-measure and
+    # look at the distributions first, not reason about the number.
     #
     # Sections retaining literature evidence, of 11:
     #
     #   floor   on-topic   off-topic   off-topic assets left fully silent
     #    0.05     100%        100%           0 of 20
-    #    0.35      99%         57%           0 of 20     <- still evidenced everything
-    #    0.45      85%          8%          13 of 20
-    #    0.50      79%          2%          17 of 20     <- here
-    #    0.55      70%          1%          19 of 20
+    #    0.35      99%         56%           0 of 20     <- still evidenced everything
+    #    0.45      94%         10%          11 of 20
+    #    0.50      87%          2%          17 of 20     <- here
+    #    0.55      76%          1%          19 of 20
     #    0.60      62%          0%          20 of 20
     #
     # 0.50 sits above the off-topic p95 (0.482) and below the point where the
@@ -78,19 +81,16 @@ class Config:
     # decided it, not the headline percentage: at 0.50 the eight questions whose
     # answers live in a published abstract — efficacy, endpoints, comparator,
     # evidence quality, terminated trials, bear case — retain 12 or 13 of 13
-    # on-topic assets each. Every point of the loss is concentrated in
-    # `mechanism` (7/13), `development-stage` (6/13) and `competitive-trials`
-    # (0/13), which are registry and regulatory questions that a literature
-    # search answers badly at any floor.
+    # on-topic assets each. The loss is concentrated in `mechanism` and
+    # `development-stage`, which are registry and regulatory questions that a
+    # literature search answers badly at any floor.
     #
-    # `competitive-trials` is worth naming separately: its text interpolates
-    # NEITHER {asset} NOR {indication}, so it embeds to one fixed vector and
-    # scores an identical 0.436 for every asset in the sample, on-topic and
-    # off-topic alike. No floor can distinguish anything there, because the
-    # query contains nothing to distinguish. It is answered from the registry,
-    # and dropping its literature is losing a result that was never about the
-    # asset. Fixing the question text is a question-set change, not a code one —
-    # config/diligence_questions.yaml.
+    # These numbers replace a first measurement taken while `competitive-trials`
+    # interpolated neither {asset} nor {indication} — a constant string, one
+    # fixed embedding, an identical 0.436 for all 33 assets. Binding its referent
+    # (config/diligence_questions.yaml) raised on-topic retention at this floor
+    # from 79% to 87% and on-topic p25 from 0.530 to 0.551, leaving off-topic
+    # unchanged: the constant question was costing real recall, not adding it.
     #
     # NOT tuned to clear the one asset that exposed this. 0.45 would have zeroed
     # PBX-7749 while leaving 7 of the other 20 absent assets evidenced; picking
