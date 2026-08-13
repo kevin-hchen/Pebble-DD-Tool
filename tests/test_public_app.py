@@ -144,6 +144,7 @@ def test_a_submitted_sentinel_reaches_neither_disk_nor_logs():
     out_buf, err_buf = io.StringIO(), io.StringIO()
     real_out, real_err = sys.stdout, sys.stderr
     before = _tree_state(data_dir)
+    temp_before = _tree_state_shallow(Path(tempfile.gettempdir()))
 
     try:
         sys.stdout, sys.stderr = out_buf, err_buf
@@ -170,9 +171,21 @@ def test_a_submitted_sentinel_reaches_neither_disk_nor_logs():
 
     # Nothing new on disk, and the sentinel nowhere in any file that exists.
     assert _tree_state(data_dir) == before, "a request created or changed a file"
-    for root in (data_dir, REPO / "out", Path(tempfile.gettempdir())):
+    for root in (data_dir, REPO / "out"):
         hit = _grep_tree(root, SENTINEL)
         assert hit is None, f"the submitted string was found on disk at {hit}"
+    # The system temp directory is SHARED, so it is scanned for files this
+    # request window actually created or changed rather than in full. Grepping
+    # all of /tmp made the test fail whenever any unrelated process on the
+    # machine had written the sentinel there — including a captured log of this
+    # very test's earlier run, which is how it was found. That is a false
+    # positive about a different process, and a suite that fails for reasons
+    # outside the code under test is a suite people learn to re-run.
+    #
+    # The property is unweakened: a file the app wrote during the window is by
+    # definition new or newer, so it is still scanned.
+    hit = _grep_tree_changed(Path(tempfile.gettempdir()), SENTINEL, temp_before)
+    assert hit is None, f"the submitted string was found on disk at {hit}"
 
     # Anti-vacuity: the sentinel really did reach the app, so "not found" is a
     # statement about retention rather than about a request that never happened.
@@ -182,6 +195,46 @@ def test_a_submitted_sentinel_reaches_neither_disk_nor_logs():
 def _tree_state(root: Path) -> dict:
     return {str(p.relative_to(root)): p.stat().st_mtime_ns
             for p in sorted(root.rglob("*")) if p.is_file()}
+
+
+def _tree_state_shallow(root: Path, max_files: int = 20000) -> dict:
+    """mtime by path, tolerating a tree that changes while it is walked — the
+    system temp directory belongs to the whole machine, not to this test."""
+    out: dict = {}
+    if not root.exists():
+        return out
+    for i, path in enumerate(root.rglob("*")):
+        if i > max_files:
+            break
+        try:
+            if path.is_file():
+                out[str(path)] = path.stat().st_mtime_ns
+        except OSError:
+            continue
+    return out
+
+
+def _grep_tree_changed(root: Path, needle: str, before: dict,
+                       max_files: int = 20000) -> str | None:
+    """Grep only files that are new or modified since `before` was taken."""
+    if not root.exists():
+        return None
+    for i, path in enumerate(root.rglob("*")):
+        if i > max_files:
+            break
+        try:
+            if not path.is_file():
+                continue
+            key = str(path)
+            if before.get(key) == path.stat().st_mtime_ns:
+                continue
+            if path.stat().st_size > 20_000_000:
+                continue
+            if needle in path.read_text(errors="ignore"):
+                return key
+        except OSError:
+            continue
+    return None
 
 
 def _grep_tree(root: Path, needle: str, max_files: int = 4000) -> str | None:

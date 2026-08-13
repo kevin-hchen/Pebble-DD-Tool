@@ -59,6 +59,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .. import agents
+from .store import NAME_AS_ASSET, NAME_AS_DESCRIPTION
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,10 @@ class TrialAnchor:
     #: which case it anchors nothing: `_intervention_clause` would return `1=1`
     #: and the query would match the whole store.
     asset_query: agents.AssetQuery
+    #: Which parser built `asset_query`. Carried so `is_about` re-checks a
+    #: fallback row with the SAME grammar the SQL used — checking a device name
+    #: with the drug parser would drop every row the SQL had just accepted.
+    name_style: str = NAME_AS_ASSET
 
     @property
     def by_asset(self) -> bool:
@@ -193,7 +198,8 @@ def _has_been_searched(store, key: str) -> bool:
     return store.count(query_set=key) > 0
 
 
-def anchor_for(asset: str, indication: str, store) -> TrialAnchor:
+def anchor_for(asset: str, indication: str, store,
+               name_style: str = NAME_AS_ASSET) -> TrialAnchor:
     """Build the anchor, consulting the store for what it has actually searched."""
     from .queries import resolve_query_set
 
@@ -204,5 +210,7 @@ def anchor_for(asset: str, indication: str, store) -> TrialAnchor:
         indication=indication or "",
         query_set=resolved if searched else None,
         resolved_key=resolved,
-        asset_query=agents.parse_asset(asset or ""),
+        asset_query=(agents.parse_descriptive_name if name_style == NAME_AS_DESCRIPTION
+                     else agents.parse_asset)(asset or ""),
+        name_style=name_style,
     )

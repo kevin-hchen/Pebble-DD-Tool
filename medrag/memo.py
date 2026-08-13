@@ -233,6 +233,19 @@ def _section_md(s: SectionResult) -> list[str]:
             out.append(f"> {line}")
             out.append(">")
         out.append("")
+    if s.device is not None:
+        # The DEVICE half, on identical terms and under its own heading. Never
+        # merged with the drug block: a 510(k) clearance by substantial
+        # equivalence, a PMA approval on clinical evidence and an NDA approval
+        # are three different regulatory facts, and one combined "regulatory
+        # status" heading invites a reader to treat them as one.
+        out.append("### Device regulatory status — generated from openFDA, "
+                   "not written by a model")
+        out.append("")
+        for line in s.device.render_lines():
+            out.append(f"> {line}")
+            out.append(">")
+        out.append("")
     if s.aggregate is not None:
         out.extend(_aggregate_md(s.aggregate))
     else:
@@ -637,6 +650,13 @@ def render_pdf(memo: MemoResult, path: str | Path, generated: datetime | None = 
                 "Regulatory status — generated from openFDA, not written by a model",
                 styles["h3"]))
             for line in s.approval.render_lines():
+                story.append(Paragraph(_inline_to_rl(line), styles["note"]))
+
+        if s.device is not None:
+            story.append(Paragraph(
+                "Device regulatory status — generated from openFDA, not written by a model",
+                styles["h3"]))
+            for line in s.device.render_lines():
                 story.append(Paragraph(_inline_to_rl(line), styles["note"]))
 
         if s.aggregate is not None:

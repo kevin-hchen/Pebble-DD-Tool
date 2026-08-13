@@ -229,11 +229,34 @@ _ARRAY_FIELDS = (
 #: Membership test against the indexed join table. One definition, used by every
 #: caller — the old scheme had the same LIKE pattern written out at eight call
 #: sites, which is how a token-format change would have missed one.
+#: How a typed asset phrase becomes SQL terms. Two parsers already existed and
+#: only one was reachable from trial retrieval.
+#:
+#:   NAME_AS_ASSET       "trifluridine tipiracil" is ONE molecule, one token.
+#:                       Correct for drugs, and the reason a combination like
+#:                       "botensilimab and balstilimab" ANDs two agents rather
+#:                       than five words.
+#:   NAME_AS_DESCRIPTION "procalcitonin assay" is a DESCRIPTION whose words the
+#:                       registry reorders freely, so each significant word is
+#:                       its own ANDed term. `agents.parse_descriptive_name`
+#:                       was written for `device/pma`'s trade_name/generic_name
+#:                       and called at exactly one site; trial retrieval used
+#:                       the drug parser on device names and returned nothing.
+#:
+#: THE RULE IS DECLARED, NOT SNIFFED. A caller states which it wants — the
+#: question set declares `asset_kind`, and `screening_devices.yaml` is the
+#: device one. Guessing the modality from the asset string is how "procalcitonin
+#: assay" and "trifluridine tipiracil" become indistinguishable: both are two
+#: words, and splitting the second is what would shred a combination asset.
+NAME_AS_ASSET = "asset"
+NAME_AS_DESCRIPTION = "description"
+
 _QUERY_SET_CLAUSE = (
     "nct_id IN (SELECT nct_id FROM trial_query_sets WHERE set_key = ?)")
 
 
-def _intervention_clause(intervention: str, params: list, join: str = "AND") -> str:
+def _intervention_clause(intervention: str, params: list, join: str = "AND",
+                         name_style: str = NAME_AS_ASSET) -> str:
     """SQL for "this trial involves these agents", over the token column.
 
     `join` is a deliberate per-caller POLICY, the same shape as the split
@@ -252,10 +275,16 @@ def _intervention_clause(intervention: str, params: list, join: str = "AND") -> 
         reasoning, one level down: widening risks a few loosely related trials a
         reader can dismiss, narrowing risks a silence they cannot detect.
 
+    `name_style` picks which PARSER turns the typed phrase into terms, and it is
+    passed in by a caller that knows, never sniffed from the string. See
+    NAME_AS_ASSET / NAME_AS_DESCRIPTION.
+
     A term the alias table does not know still matches its own name, so this
     never degrades to matching nothing on an uncurated agent.
     """
-    query = agents.parse_asset(intervention)
+    parse = (agents.parse_descriptive_name if name_style == NAME_AS_DESCRIPTION
+             else agents.parse_asset)
+    query = parse(intervention)
     if not query:
         return "1=1"
     per_term = []
@@ -778,6 +807,7 @@ class TrialStore:
         limit: int = 50,
         intervention_join: str = "AND",
         admits_marker: str | None = None,
+        name_style: str = NAME_AS_ASSET,
     ) -> list[TrialRecord]:
         """Structured filter query. This is the precision the registry exists for.
 
@@ -801,7 +831,8 @@ class TrialStore:
         where, params = [], []
 
         if intervention:
-            where.append(_intervention_clause(intervention, params, join=intervention_join))
+            where.append(_intervention_clause(intervention, params, join=intervention_join,
+                                              name_style=name_style))
         if condition:
             where.append("LOWER(conditions) LIKE ?")
             params.append(f"%{condition.lower()}%")

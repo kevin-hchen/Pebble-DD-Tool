@@ -28,6 +28,9 @@
 #              are never folded in.
 #   negative   run the deterministic stopped-trial pass against this section
 
+# Indication-first: no asset is typed, so the parser never runs.
+asset_kind: auto
+
 version: 1
 name: "Indication-first trial landscape — reference question set (draft)"
 

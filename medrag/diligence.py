@@ -17,6 +17,7 @@ from . import agents
 from .config import Config, load_config
 from .context import Evidence, build_evidence, provenance_summary, render_context
 from .documents import Retrieved
+from .fda.device_answer import DeviceRegulatoryAnswer
 from .fda.drug_store import ApprovalAnswer
 from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
@@ -25,7 +26,7 @@ from .router import Route, Router
 from .trials.anchors import anchor_for
 from .trials.client import TrialRecord
 from .trials.queries import resolve_query_set
-from .trials.store import TrialStore
+from .trials.store import NAME_AS_ASSET, NAME_AS_DESCRIPTION, TrialStore
 from .validation import ValidationReport, validate_answer
 
 DEFAULT_QUESTION_SET = Path(__file__).resolve().parents[1] / "config" / "diligence_questions.yaml"
@@ -74,6 +75,20 @@ _NON_APPROVAL_PHRASES = (
 )
 
 
+#: Phrasings that assert or imply the ABSENCE of a device authorisation. The
+#: clearance-axis counterpart of `_NON_APPROVAL_PHRASES`, and deliberately its
+#: own list: "not approved" is a drug claim, "not cleared" is a device one, and
+#: a device that is PMA-approved but not 510(k)-cleared is a real and common
+#: shape that neither list may blur.
+_NON_CLEARANCE_PHRASES = (
+    "not cleared", "never cleared", "no 510(k)", "no 510k", "not fda-cleared",
+    "not fda cleared", "lacks clearance", "without clearance", "no clearance",
+    "not authorised by the fda", "not authorized by the fda",
+    "no premarket approval", "not premarket approved", "has no fda authorisation",
+    "has no fda authorization", "unapproved device", "uncleared",
+)
+
+
 @dataclass
 class DiligenceQuestion:
     id: str
@@ -93,6 +108,21 @@ class QuestionSet:
     version: int
     questions: list[DiligenceQuestion]
     path: Path | None = None
+    #: What KIND of asset this set is written for: "drug", "device", or "auto".
+    #:
+    #: It decides which parser turns the typed asset into SQL terms, and it is
+    #: DECLARED by the question set rather than sniffed from the asset string.
+    #: Sniffing is not a smaller version of this — it is unsafe. Measured on the
+    #: live store: "procalcitonin assay" needs word-splitting and returns 0 vs 2
+    #: without it, while "trastuzumab deruxtecan" is ONE molecule and word
+    #: splitting widens it from 123 trials to 132 by matching the two halves of
+    #: an ADC separately. Both are two lowercase words; nothing in the string
+    #: distinguishes them. The question set knows, so the question set says.
+    #:
+    #: "auto" means the drug parser, which is the historical behaviour — chosen
+    #: so that adding this field changes nothing for any caller that has not
+    #: opted in.
+    asset_kind: str = "auto"
 
     def __len__(self) -> int:
         return len(self.questions)
@@ -113,6 +143,12 @@ class SectionResult:
     #: The deterministic regulatory answer, rendered by the memo as a FIXED
     #: string from `ApprovalAnswer.render_lines()`. Never summarised by a model.
     approval: "ApprovalAnswer | None" = None
+    #: The DEVICE equivalent — 510(k), De Novo and PMA across three pathways.
+    #: Same contract, same reason: `DeviceRegulatoryAnswer.render_lines()` is the
+    #: only thing that writes it. This object existed, complete and tested, and
+    #: was imported by nothing outside tests, so every device memo carried zero
+    #: FDA records while the store held 56,853 PMAs and 482 De Novo grants.
+    device: "DeviceRegulatoryAnswer | None" = None
 
 
 @dataclass
@@ -191,11 +227,16 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
             )
         )
 
+    kind = str(data.get("asset_kind", "auto")).strip().lower()
+    if kind not in ("auto", "drug", "device"):
+        raise ValueError(
+            f"{path.name}: asset_kind must be auto, drug or device — got {kind!r}")
     return QuestionSet(
         name=data.get("name", path.stem),
         version=int(data.get("version", 1)),
         questions=questions,
         path=path,
+        asset_kind=kind,
     )
 
 
@@ -214,6 +255,11 @@ class DiligenceRunner:
         #: Latched by a provider refusal no retry can fix, so the rest of the
         #: run degrades to extractive answers without calling again.
         self._model_failed = False
+        #: Which parser turns the typed asset into SQL terms. Set from the
+        #: question set's declared `asset_kind` when `run` loads one; the
+        #: default is the drug parser, so nothing changes for a caller that has
+        #: not declared.
+        self.name_style = NAME_AS_ASSET
         if self.rag is None:
             try:
                 from .pipeline import MedRAG
@@ -290,7 +336,8 @@ class DiligenceRunner:
         # `SELECT * FROM trials LIMIT k` and hands back whatever the store holds
         # most of. See trials/anchors.py for the three paths that produced eight
         # colorectal trials as evidence for a hidradenitis asset.
-        anchor = anchor_for(asset, indication, self.trial_store)
+        anchor = anchor_for(asset, indication, self.trial_store,
+                            name_style=self.name_style)
         for note in anchor.notes():
             if note not in self.warnings:
                 self.warnings.append(note)
@@ -304,6 +351,7 @@ class DiligenceRunner:
             # to a family searched and found empty — so it is dropped here and
             # reported as not-searched instead.
             query_set=anchor.query_set,
+            name_style=self.name_style,
             phase=filters.get("phase"),
             statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
@@ -370,6 +418,27 @@ class DiligenceRunner:
         }
         return records, meta
 
+    def _device_for(self, asset: str, filters: dict):
+        """The deterministic three-pathway device answer.
+
+        Built whenever a regulatory question runs and a device store exists, on
+        the same terms as `_drugs_for`: with no store the answer still comes
+        back, `searched=False`, so the memo says "not checked" rather than
+        printing nothing and letting the silence read as an absence of
+        authorisations.
+
+        A 510(k) is clearance by substantial equivalence, a PMA is approval on
+        clinical evidence, and a De Novo is granted BECAUSE no predicate exists.
+        `DeviceRegulatoryAnswer` deliberately has no field spanning them, so
+        nothing here can collapse three regulatory facts into one.
+        """
+        from .fda.device_answer import build_device_answer
+
+        if not asset:
+            return None
+        return build_device_answer(self.fda_store, asset,
+                                   product_code=filters.get("product_code"))
+
     def _drugs_for(self, asset: str, limit: int):
         """The drug applications for an asset, and the deterministic approval
         answer beside them.
@@ -410,6 +479,31 @@ class DiligenceRunner:
             "application is NOT evidence of non-approval — see the regulatory status "
             "block, which is generated deterministically. Treat that sentence as "
             "unsupported."
+        )
+
+    @staticmethod
+    def _flag_clearance_overreach(answer, text: str) -> str | None:
+        """Did the model write a clearance claim the record does not support?
+
+        The mirror of `_flag_approval_overreach`, and needed for the same
+        reason: the deterministic block keeps three pathways apart and permits
+        no "cleared or approved" field, and one model paraphrase collapses them
+        back. Checked only when the record supports NO authorisation of any
+        kind, so a device that genuinely has a 510(k) is not flagged for saying
+        so.
+        """
+        if answer is None or answer.found_anything:
+            return None
+        lowered = (text or "").lower()
+        hit = next((p for p in _NON_CLEARANCE_PHRASES if p in lowered), None)
+        if not hit:
+            return None
+        return (
+            f"the generated prose for “{answer.device}” contains the phrase “{hit}”, which "
+            "states or implies that no FDA authorisation exists. This tool's device store "
+            "holding no matching record is NOT evidence of that — see the regulatory block, "
+            "which is generated deterministically and states what was searched. Treat that "
+            "sentence as unsupported."
         )
 
     # ------------------------------------------------------------ one section
@@ -503,6 +597,12 @@ class DiligenceRunner:
         passages = self._passages(rendered, q.k) if route in (Route.SEMANTIC, Route.BOTH) else []
         fda, fda_meta = self._fda_for(asset, filters) if needs_regulatory else ([], {})
         drugs, approval = self._drugs_for(asset, q.k) if needs_drug else ([], None)
+        # The device answer runs on the SAME trigger as the 510(k) evidence
+        # lookup. A question that asks what the regulator has on file gets the
+        # whole regulatory picture or none of it; running the clearance query
+        # and withholding the PMA and De Novo halves is how a Class III device
+        # came back as "nothing on file".
+        device = self._device_for(asset, filters) if needs_regulatory else None
 
         evidence = build_evidence(trials=trials, passages=passages, fda=fda, drugs=drugs,
                                   max_chars=self.cfg.max_context_chars)
@@ -511,6 +611,10 @@ class DiligenceRunner:
                               approval_guard=asset if approval is not None else "")
         if approval is not None:
             note = self._flag_approval_overreach(approval, answer.text)
+            if note and note not in self.warnings:
+                self.warnings.append(note)
+        if device is not None:
+            note = self._flag_clearance_overreach(device, answer.text)
             if note and note not in self.warnings:
                 self.warnings.append(note)
         # Validate against the assembled evidence, not the literature subset:
@@ -552,6 +656,7 @@ class DiligenceRunner:
             provenance=provenance,
             negative=negative,
             approval=approval,
+            device=device,
         )
 
     def _answer(self, question: str, evidence: list[Evidence],
@@ -651,6 +756,10 @@ class DiligenceRunner:
             question_set: QuestionSet | None = None,
             progress: bool = True) -> MemoResult:
         qs = question_set or load_question_set()
+        # Declared by the set, not inferred from the asset. See
+        # QuestionSet.asset_kind for the measurement behind that.
+        self.name_style = (NAME_AS_DESCRIPTION if qs.asset_kind == "device"
+                           else NAME_AS_ASSET)
         memo = MemoResult(
             asset=asset,
             indication=indication,

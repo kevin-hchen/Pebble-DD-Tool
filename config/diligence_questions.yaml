@@ -16,6 +16,11 @@
 #   k         passages to retrieve for this question
 #   negative  run the negative-evidence pass against this answer
 
+# Drug names are joined: "trastuzumab deruxtecan" is ONE molecule, and
+# splitting it matches the two halves of an ADC separately (measured: 123
+# trials -> 132). See QuestionSet.asset_kind.
+asset_kind: drug
+
 version: 1
 name: "Biomedical asset diligence — reference question set (draft)"
 
