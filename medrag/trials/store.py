@@ -85,7 +85,14 @@ from .client import STOPPED_STATUSES, TrialRecord
 # assay PANEL listing (a sentence enumerating the variants an assay covers is not
 # a sentence saying the patient has them). Pure recomputation from stored text —
 # no re-fetch.
-STORE_VERSION = 11
+# v12 adds `intervention_types` — the registry's own DRUG/DEVICE/DIAGNOSTIC_TEST
+# enum, fetched on every trial since the first ingest and thrown away. Unlike
+# every previous bump this one is NOT derivable from stored text: nothing in the
+# file implies it. It is also not worth a full re-ingest, because the only
+# missing field lives in a module the API will return on its own. Hence
+# `_REFETCHABLE_FROM` below — a third category between "recompute offline" and
+# "delete and start over".
+STORE_VERSION = 12
 
 #: The three states a query set can be in, and why there are three rather than
 #: a boolean. A family with no row at all was never searched — the
@@ -127,6 +134,13 @@ CREATE TABLE IF NOT EXISTS trials (
     study_type              TEXT,
     conditions              TEXT,   -- JSON array
     interventions           TEXT,   -- JSON array
+    -- JSON array, INDEX-ALIGNED with interventions. NULL means this record
+    -- predates the column and has never been asked; '[]' or a list of values
+    -- (including "") means the registry was asked and this is what it said.
+    -- The two are kept apart deliberately: "the registry states no type" and
+    -- "we never fetched the field" are different facts, and collapsing them
+    -- would make the UNKNOWN classification mean two things at once.
+    intervention_types      TEXT,
     intervention_tokens     TEXT,   -- space-padded ' agent ' tokens for LIKE filtering
     collaborators           TEXT,   -- JSON array
     brief_summary           TEXT,
@@ -194,7 +208,7 @@ CREATE TABLE IF NOT EXISTS query_coverage (
 # JSON-encoded on write, decoded on read. The three patient-perspective lists
 # join the diligence trio here.
 _ARRAY_FIELDS = (
-    "conditions", "keywords", "interventions", "collaborators",
+    "conditions", "keywords", "interventions", "intervention_types", "collaborators",
     "overall_officials", "central_contacts", "locations",
 )
 
@@ -258,6 +272,27 @@ def _intervention_clause(intervention: str, params: list, join: str = "AND") -> 
 #: be worse than the refusal.
 _BACKFILLABLE_FROM = frozenset({7, 8, 9, 10})
 
+#: Schema versions whose gap needs the REGISTRY but not a re-ingest.
+#:
+#: A third category, and it exists because the two that came before it are both
+#: wrong for v12. `intervention_types` cannot be recomputed from stored text —
+#: no column implies it — so it is not backfillable. But "delete it and
+#: re-ingest" would throw away 241,298 records, every eligibility text, every
+#: provenance label and every verified coverage row to recover one field the API
+#: will hand over on its own, and an operator told to do that will reasonably
+#: decide the upgrade is not worth it.
+#:
+#: `python -m medrag trials --backfill-types` fetches ONLY the interventions
+#: module for the NCT IDs already held. Measured on the live store: ~42 minutes
+#: for all 374 queries, against ~14 hours for a full re-ingest.
+#:
+#: Note what this category does NOT permit: opening the file and reading the
+#: column as empty. That would make UNKNOWN mean both "the registry states no
+#: type" and "nobody has asked", which is the not-assessed-versus-nothing-found
+#: rule broken at the storage layer. The store still refuses until the backfill
+#: has run.
+_REFETCHABLE_FROM = frozenset({11})
+
 
 def verify_ingest(held: int, total_unique: int, yields: list[dict],
                   errors: list[str]) -> tuple[str, list[str]]:
@@ -314,6 +349,20 @@ def migrate_derived_columns(path: str | Path) -> dict:
         if version == STORE_VERSION:
             return {"migrated": False, "from_version": version, "rows": 0,
                     "graded": [], "membership": {}, "reason": "already current"}
+        if version in _REFETCHABLE_FROM:
+            raise TrialStoreSchemaError(
+                f"the trial database at {path} is schema v{version} and v{STORE_VERSION} "
+                "adds `intervention_types`, which the registry states and this file has "
+                "never been told. It cannot be recomputed from what is stored.\n"
+                "  It does NOT need a re-ingest: only the interventions module is "
+                "missing, and the API will return it for the records already held.\n"
+                f"    python -m medrag trials --backfill-types\n"
+                "  Roughly 42 minutes for all 374 queries; nothing else in the file is "
+                "touched.\n"
+                "  Until it runs, the store is refused rather than opened with an empty "
+                "column: an empty column cannot be told apart from a registry that "
+                "stated no type, and the classification depends on that difference."
+            )
         if version not in _BACKFILLABLE_FROM:
             raise TrialStoreSchemaError(
                 f"the trial database at {path} is schema v{version or 1} and the gap to "
@@ -529,6 +578,21 @@ class TrialStore:
             remedy = ("every column it lacks can be recomputed from what it "
                       "already holds — no re-download:\n"
                       "    python -m medrag trials --migrate")
+        elif version in _REFETCHABLE_FROM:
+            # The third remedy. Telling a v11 operator to delete a verified
+            # 241,298-record store to recover ONE field the API returns on its
+            # own is a wrong answer that reads like a correct one, and an
+            # operator given it will reasonably skip the upgrade instead.
+            remedy = ("the one column it lacks (`intervention_types`) is stated by "
+                      "the registry and cannot be derived locally — but it does NOT "
+                      "need a re-ingest, only the interventions module for records "
+                      "already held:\n"
+                      "    python -m medrag trials --backfill-types\n"
+                      "  Roughly 42 minutes for a full store; nothing else is touched. "
+                      "Until then the store is refused rather than opened with an "
+                      "empty column, because an empty column and a registry that "
+                      "stated no type cannot be told apart, and the device/drug "
+                      "classification depends on that difference.")
         else:
             remedy = ("the columns it lacks need data only a re-fetch can "
                       "supply. Delete it and re-ingest:\n"
@@ -1365,3 +1429,87 @@ class TrialStore:
 
     def __exit__(self, *exc) -> None:
         self.close()
+
+
+def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
+                                progress=None) -> dict:
+    """Fill `intervention_types` for records already held, from the registry.
+
+    The third migration category, and the only one that needs the network. See
+    `_REFETCHABLE_FROM`: this column cannot be recomputed from stored text, and
+    a full re-ingest to recover one field would discard 241,298 records,
+    every eligibility text and every verified coverage row to get it.
+
+    Only `filter.ids` + the interventions module is requested, so the payload is
+    a fraction of an ingest's. Measured on the live store: ~42 minutes for the
+    whole file against roughly fourteen hours for a re-ingest.
+
+    `fetch` is injected so this is testable against captured fixtures with no
+    network, the same shape as `bulk.load_export`.
+
+    Two properties worth stating, because both are the difference between a
+    backfill and a corruption:
+
+      * An ID the registry does not return is left NULL and counted as
+        `not_returned`. Writing `[]` for it would record "the registry says this
+        trial has no typed interventions", which is a claim, not an absence.
+      * The length check from parse time is re-applied here. A record whose name
+        count and type count disagree is counted as `misaligned` and skipped
+        rather than written, because a misaligned row states something false
+        about which intervention is which.
+
+    The schema version is stamped ONLY when every held record has been answered
+    for. A partial backfill leaves the file at its old version, so the store goes
+    on refusing rather than opening with a column that is full in places — which
+    would put UNKNOWN back to meaning two things.
+    """
+    path = Path(path)
+    conn = sqlite3.connect(str(path))
+    conn.row_factory = sqlite3.Row
+    try:
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(trials)")}
+        if "intervention_types" not in cols:
+            conn.execute("ALTER TABLE trials ADD COLUMN intervention_types TEXT")
+            conn.commit()
+
+        todo = [(r["nct_id"], json.loads(r["interventions"] or "[]"))
+                for r in conn.execute(
+                    "SELECT nct_id, interventions FROM trials "
+                    "WHERE intervention_types IS NULL")]
+        total = len(todo)
+        if fetch is None:
+            from .client import fetch_intervention_types as fetch
+
+        done = misaligned = not_returned = 0
+        for i in range(0, total, chunk):
+            batch = todo[i:i + chunk]
+            answered = fetch([n for n, _ in batch])
+            writes = []
+            for nct, names in batch:
+                types = answered.get(nct)
+                if types is None:
+                    not_returned += 1
+                    continue
+                if len(types) != len(names):
+                    misaligned += 1
+                    continue
+                writes.append((json.dumps(types), nct))
+            if writes:
+                conn.executemany(
+                    "UPDATE trials SET intervention_types = ? WHERE nct_id = ?", writes)
+                conn.commit()
+                done += len(writes)
+            if progress:
+                progress(min(i + chunk, total), total, done, not_returned, misaligned)
+
+        remaining = conn.execute(
+            "SELECT COUNT(*) FROM trials WHERE intervention_types IS NULL").fetchone()[0]
+        complete = remaining == 0
+        if complete:
+            conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
+            conn.commit()
+        return {"total": total, "filled": done, "not_returned": not_returned,
+                "misaligned": misaligned, "remaining": remaining, "complete": complete,
+                "version_stamped": complete}
+    finally:
+        conn.close()

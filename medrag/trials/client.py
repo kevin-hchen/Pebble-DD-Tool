@@ -262,6 +262,24 @@ class TrialRecord:
     # carries "MSS" and "Microsatellite stable" here verbatim.
     keywords: list[str] = field(default_factory=list)
     interventions: list[str] = field(default_factory=list)
+    #: `armsInterventionsModule.interventions[].type`, INDEX-ALIGNED with
+    #: `interventions` — DRUG, DEVICE, DIAGNOSTIC_TEST, BIOLOGICAL, PROCEDURE,
+    #: RADIATION, BEHAVIORAL, DIETARY_SUPPLEMENT, GENETIC, COMBINATION_PRODUCT,
+    #: OTHER, or "" where the registry states none.
+    #:
+    #: Fetched on every trial since the first ingest (`armsInterventionsModule`
+    #: is requested whole) and thrown away, the same gap class as
+    #: `detailed_description`, `keywords` and `allocation`. The cost was that
+    #: this tool could not tell a device trial from a drug trial AT ALL: a
+    #: parity audit had to identify 12,842 device trials with a regex over
+    #: intervention NAMES, which is guessing at a fact the registry states.
+    #:
+    #: Parallel to `interventions` rather than replacing it: everything
+    #: downstream reads that list and the FTS table indexes it, and a list of
+    #: (name, type) pairs would have broken both. The empty string is preserved
+    #: rather than dropped so the alignment holds — position 3 of this list is
+    #: the type of position 3 of that one, always.
+    intervention_types: list[str] = field(default_factory=list)
     collaborators: list[str] = field(default_factory=list)
 
     # --- patient-perspective fields (trial landscape) ---
@@ -403,7 +421,7 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
         for loc in (contacts.get("locations") or [])
     ]
 
-    return TrialRecord(
+    record = TrialRecord(
         nct_id=nct_id,
         brief_title=ident.get("briefTitle", ""),
         # Multi-phase trials list both, e.g. ["PHASE2", "PHASE3"].
@@ -424,6 +442,12 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
         interventions=[
             i.get("name", "") for i in (arms.get("interventions") or []) if i.get("name")
         ],
+        # Same filter, same order, so index N of one is index N of the other.
+        # `_assert_aligned` below checks that rather than trusting it.
+        intervention_types=[
+            str(i.get("type", "") or "").strip().upper()
+            for i in (arms.get("interventions") or []) if i.get("name")
+        ],
         collaborators=[c.get("name", "") for c in (sponsor.get("collaborators") or []) if c.get("name")],
         brief_summary=(desc.get("briefSummary") or "").strip(),
         detailed_description=(desc.get("detailedDescription") or "").strip(),
@@ -438,6 +462,32 @@ def parse_study(study: dict[str, Any]) -> TrialRecord | None:
         central_contacts=central,
         locations=locations,
     )
+    _assert_aligned(record)
+    return record
+
+
+def _assert_aligned(record: "TrialRecord") -> None:
+    """`intervention_types[i]` must describe `interventions[i]`, always.
+
+    Two parallel lists are a standing invitation to drift, and the drift is
+    silent and total: one dropped element shifts every later type onto the wrong
+    intervention, so a drug trial reads as a device trial with no error anywhere.
+    Both lists are built from one comprehension over one source with one filter,
+    so this can only fail if someone edits one and not the other — which is
+    exactly the edit worth catching, and catching at parse time rather than
+    three layers downstream in a classifier.
+
+    Raises rather than truncating: a misaligned record is not a degraded record,
+    it is a record that states something false about a trial.
+    """
+    if len(record.intervention_types) != len(record.interventions):
+        raise ValueError(
+            f"{record.nct_id}: {len(record.interventions)} intervention names but "
+            f"{len(record.intervention_types)} types. These lists are index-aligned "
+            "by contract; a mismatch means one was filtered differently from the "
+            "other and every type after the divergence describes the wrong "
+            "intervention."
+        )
 
 
 @dataclass
@@ -600,3 +650,48 @@ def fetch_trials(nct_ids: list[str], timeout: int = 45, offline: bool = False) -
             if record:
                 records.append(record)
     return records
+
+
+def fetch_intervention_types(nct_ids: list[str], timeout: int = 90,
+                             offline: bool = False) -> dict[str, list[str]]:
+    """`{nct_id: [types]}` for specific trials, requesting nothing else.
+
+    The backfill path for `intervention_types`. `filter.ids` takes a
+    comma-separated list and the field selector narrows the payload to the one
+    module that carries the answer, so this is a fraction of an ingest's traffic
+    for the same records.
+
+    An ID the registry does not return is ABSENT from the result rather than
+    mapped to an empty list — the caller must be able to tell "this trial has no
+    typed interventions" from "the registry did not answer for it", and an empty
+    list would say the first while meaning the second.
+    """
+    if offline:
+        raise RuntimeError(
+            "offline mode is enabled: refusing to contact clinicaltrials.gov"
+        )
+    if not nct_ids:
+        return {}
+
+    _throttle()
+    resp = _get_with_retry(
+        API_URL,
+        params={
+            "filter.ids": ",".join(nct_ids),
+            "fields": ("protocolSection.identificationModule.nctId"
+                       "|protocolSection.armsInterventionsModule"),
+            "pageSize": len(nct_ids),
+        },
+        timeout=timeout,
+    )
+    out: dict[str, list[str]] = {}
+    for study in (resp.json().get("studies") or []):
+        proto = study.get("protocolSection") or {}
+        nct = ((proto.get("identificationModule") or {}).get("nctId") or "").strip()
+        if not nct:
+            continue
+        ivs = ((proto.get("armsInterventionsModule") or {}).get("interventions") or [])
+        # Same filter as parse_study, so the alignment contract holds here too.
+        out[nct] = [str(i.get("type", "") or "").strip().upper()
+                    for i in ivs if i.get("name")]
+    return out

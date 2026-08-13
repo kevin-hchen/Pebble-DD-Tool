@@ -90,6 +90,42 @@ def cmd_trials(args) -> int:
             print(f"[medrag] nothing to do — {result['reason']}.")
         return 0
 
+    if getattr(args, "backfill_types", False):
+        from .trials.store import backfill_intervention_types
+
+        if not db.exists():
+            print(f"[medrag] no trial database at {db} — nothing to backfill.")
+            return 1
+        if cfg.offline:
+            print("[medrag] --backfill-types needs the registry, and offline mode is on.")
+            return 1
+
+        def _tick(seen, total, filled, missing, bad):
+            pct = 100.0 * seen / max(1, total)
+            print(f"\r[medrag] {seen:,}/{total:,} ({pct:4.1f}%) — {filled:,} filled"
+                  + (f", {missing:,} not returned" if missing else "")
+                  + (f", {bad:,} misaligned" if bad else ""), end="", flush=True)
+
+        print(f"[medrag] backfilling intervention types from the registry. Only the "
+              f"interventions module is requested; nothing else in {db.name} is touched.")
+        r = backfill_intervention_types(db, progress=_tick)
+        print()
+        print(f"[medrag] {r['filled']:,} of {r['total']:,} record(s) filled.")
+        if r["not_returned"]:
+            # Not an error and not a zero: the registry did not answer for these,
+            # which is different from saying they have no typed interventions.
+            print(f"[medrag] {r['not_returned']:,} record(s) the registry did not return — "
+                  "left unset rather than recorded as having no types. Re-run to retry them.")
+        if r["misaligned"]:
+            print(f"[medrag] {r['misaligned']:,} record(s) skipped: the registry returned a "
+                  "different number of types than this store holds names for.")
+        if r["complete"]:
+            print(f"[medrag] complete — store stamped v{STORE_VERSION}.")
+            return 0
+        print(f"[medrag] {r['remaining']:,} record(s) still unset, so the store stays at its "
+              "old version and will go on being refused. Re-run to finish.")
+        return 1
+
     if getattr(args, "incomplete", False):
         if not db.exists():
             print(f"[medrag] no trial database at {db} — nothing has been ingested.")
@@ -799,6 +835,10 @@ def main(argv: list[str] | None = None) -> int:
                       help="recompute columns a newer schema derives from records "
                            "already stored, in place, with no network. Refuses any "
                            "schema gap that needs a re-fetch.")
+    p_tr.add_argument("--backfill-types", action="store_true",
+                      help="fill intervention_types for records already held, "
+                           "fetching only the interventions module. Needed once "
+                           "after the v12 bump; roughly 42 minutes for a full store.")
     p_tr.add_argument("--incomplete", action="store_true",
                       help="list every ingested query set with its state, and exit "
                            "non-zero if any was started and never verified. This is "

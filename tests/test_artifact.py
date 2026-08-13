@@ -251,9 +251,20 @@ def test_skipping_checksums_is_possible_but_reported_never_silent():
     """A named downgrade for slow storage. The health endpoint reports it, so an
     unverified start cannot be mistaken for a verified one."""
     out = _artifact()
-    blob = bytearray((out / "trials.db").read_bytes())
-    blob[len(blob) // 2] ^= 0xFF
-    (out / "trials.db").write_bytes(bytes(blob))
+    # The MANIFEST's recorded checksum is falsified rather than the database
+    # corrupted. Same branch — the file no longer matches what was published —
+    # but it does not depend on where a flipped byte happens to land inside a
+    # SQLite file. It used to: the byte at len/2 was harmless until the v12
+    # column shifted the page layout onto `snapshot_meta`, and the test then
+    # failed for a reason that had nothing to do with checksums. A fixture whose
+    # premise is "SQLite tolerates this particular corruption" is a fixture that
+    # breaks on any schema change.
+    manifest_path = out / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    for entry in manifest["files"]:
+        if entry["file"] == "trials.db":
+            entry["sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest, indent=2))
 
     with pytest.raises(ArtifactError):
         verify(out)                                    # checked: refuses
