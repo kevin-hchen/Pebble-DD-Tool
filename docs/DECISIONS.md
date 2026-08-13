@@ -2004,3 +2004,136 @@ generic"), and drug shortages (1,651 records).
 `config/diligence_questions.yaml`. The current question set is a **draft** and
 says so. Rewriting it with someone who does diligence for a living is the single
 highest-value change available to this project.
+
+---
+
+# Device-parity decisions, recorded 13 August 2026
+
+These are held here rather than only in a session transcript, for the reason
+`docs/SCOPE.md` exists at all: a decision that lives in a transcript is not
+held. Each states what was decided, what it was measured against, and what
+would have to change to revisit it.
+
+**NOTE ON THIS FILE.** It is a committed snapshot of `CLAUDE.md`, which is
+gitignored — and at the time of writing it is 271 lines behind it. A fresh
+clone gets this file and not the other. Anything below is written to stand on
+its own for that reason.
+
+## 1. A device-role axis is approved in principle and is NOT built
+
+`intervention_types` stays exactly what the registry states — "what the sponsor
+coded" — forever. It is never inferred, never overwritten, and never widened to
+absorb trials the registry did not code that way.
+
+The pressure to widen it was real and was measured: a `DEVICE`-only reading
+misses 29.2% of PROCEDURE-only trials in device-oriented query sets (n=383,
+ranging 8.8% in sleep_apnoea to 45.0% in cardiac_arrhythmia_monitoring), and
+between 11% and 33% of zero-intervention observational trials (n=367; the range
+is wide because the lower bound is a classifier that demonstrably misfiles and
+the upper bound is "mentions a device anywhere"). Absorbing those into `DEVICE`
+would make the column assert something the registry never said, which destroys
+the one property that makes it worth having.
+
+So any device-role axis is:
+
+  * SEPARATE from `intervention_types`, never merged into it;
+  * DERIVED, and labelled as derived wherever it appears;
+  * PRINTED SEPARATELY in a memo — never combined into a single
+    "device trials: N", because a reader who cannot tell which number is the
+    registry's and which is ours has lost the distinction at the point of use;
+  * gated on validation against a hand-built ground truth per modality, the way
+    the six-trial MSS list validated the biomarker path. Built and unvalidated
+    is worse than absent here, because it prints as a count.
+
+States, when it is built: `EVALUATED` (the device is the object of study),
+`INSTRUMENT` (a device measures something else), `ABSENT`, `INDETERMINATE`.
+
+## 2. `outcomesModule` alone was tested as the source and REJECTED
+
+Measured 13 August 2026. Recorded so nobody re-runs this experiment in six
+months and gets the same answer at the same cost.
+
+Primary-outcome text was fetched for 749 trials (383 PROCEDURE-only + 367
+zero-intervention, one overlapping) and scored against 135 HAND-READ trials —
+all 55 records where an accuracy/device-evaluation vocabulary fired, and 80 of
+the 633 where it did not.
+
+```
+precision on EVALUATED     38/55  = 69%
+false-negative rate         6/80  = 7.5% of signal-negatives were EVALUATED
+implied recall                    ~45%
+no primary outcome stated  61/749 = 8.1%
+```
+
+69% precision means a third of what such a column would assert is wrong, and it
+would print as a count. Rejected on that basis, not on cost — the fetch is
+field-limited and took 4 seconds for 749 records, so a full-store backfill is
+~20 minutes.
+
+Worth keeping: it is the best SINGLE signal found, and both its failure modes
+are structured rather than random (below), so a COMBINED signal is a reasonable
+next experiment. That is a different experiment with a different ground truth,
+not a tweak to this one.
+
+## 3. The two structured failure modes — the input to the next experiment
+
+**False positives: "sensitivity" used physiologically.** Six of the 17 false
+positives were *contrast sensitivity* (x3), *corneal sensitivity* (x2) and
+*baroreflex sensitivity* — a physiological measure, not a diagnostic metric.
+Two more were "level of agreement" in a Delphi consensus and "strongly
+disagree" in a Likert scale.
+
+**False negatives: the outcome states the clinical target, the device is named
+only in the title.** All six missed trials had this shape:
+
+```
+NCT00800397  "Evaluation of the Noga System"        PO: Detection of Cheyne Stokes respiration
+NCT01415037  "Annular Array Ultrasound"             PO: detection of PVD: 20MHz annular array versus 10MHz
+NCT03693092  "LAmbre LAAC System Follow-Up"         PO: complications related to the device   <- missed on word ORDER
+NCT00797524  "Retinal Leakage Analyzer"             PO: Retinal leakage and retinal thickness
+NCT05908188  mandibular movement sensor             PO: ...recorded by the sensor in comparison with a...
+NCT02898090  "Development and Validation of ..."     PO: prevalence of appropriateness
+```
+
+The worked pair, both verified against the registry rather than transcribed:
+`NCT06232174` (*Value of Transcutaneous Bilirubin Devices*) states
+"diagnostic accuracy of transcutaneous bilirubin devices" and IS caught;
+`NCT04354506` (*Smart Phone Atrial Fibrillation Application*) states "Atrial
+fibrillation recurrence" and is NOT. One right, one wrong, and the wrong one
+fails in the way that matters most.
+
+## 4. Conditions set in advance for the combined-signal experiment
+
+Set now so the bar cannot move to meet the result.
+
+  * **Pre-registered threshold: precision >= 90% on `EVALUATED`.** Coverage is
+    free to be low and is reported as whatever it is. This follows from this
+    codebase's own discipline: a classifier that labels 40% and says
+    `INDETERMINATE` for the rest is honest; one that labels everything at 69%
+    is not. Low recall is a stated limit; low precision is a wrong answer
+    wearing a number.
+  * **`INDETERMINATE` is the DEFAULT, not the residual.** Anything the signal
+    does not clear the bar on stays `INDETERMINATE` and is counted.
+  * **A fresh held-out hand-read set, stratified by modality, read BEFORE the
+    classifier is written.** The two failure patterns above were derived from
+    the existing 135 trials; fixing "contrast sensitivity" and then grading on
+    those same 135 is fitting to the test set and would produce a number that
+    looks good and does not hold.
+
+If the combined signal cannot clear 90% at any useful coverage, the axis does
+not ship, and that goes in `CAPABILITIES.md` as a stated limit rather than
+being quietly retried.
+
+## 5. A measurement discipline that cost real work to learn
+
+The parity audit identified device trials with a regex over intervention NAMES,
+because the registry's own type field was being discarded. Measured against the
+type field once it was stored, that regex recovered roughly **21%** of the real
+device population and **55.3%** of what it returned was a drug or a procedure.
+Every device-side number in that audit was measured through it.
+
+So: a number derived from a proxy is quoted with the proxy named, and is
+re-measured against the authoritative field the moment one exists. The
+audit's per-modality gate-rate bands (imaging 3.3%, monitoring 0.7%, implant
+0.3%, surgical 1.2%, IVD 5.3%) were all measured through that regex and must be
+re-measured against `intervention_types` before being quoted again.
