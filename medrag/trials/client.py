@@ -695,3 +695,34 @@ def fetch_intervention_types(nct_ids: list[str], timeout: int = 90,
         out[nct] = [str(i.get("type", "") or "").strip().upper()
                     for i in ivs if i.get("name")]
     return out
+
+
+def fetch_studies_by_id(nct_ids: list[str], timeout: int = 90,
+                        offline: bool = False) -> list[TrialRecord]:
+    """Full records for specific trials, by NCT ID.
+
+    The repair path for a record whose stored intervention NAMES no longer match
+    what the registry returns. That mismatch is not a parse bug — it is the
+    registry having changed since the ingest, which is the thing this store
+    exists to track — so the answer is to refresh the whole record rather than
+    to write new types against stale names.
+    """
+    if offline:
+        raise RuntimeError(
+            "offline mode is enabled: refusing to contact clinicaltrials.gov"
+        )
+    if not nct_ids:
+        return []
+    _throttle()
+    resp = _get_with_retry(
+        API_URL,
+        params={"filter.ids": ",".join(nct_ids), "fields": "|".join(DEFAULT_FIELDS),
+                "pageSize": len(nct_ids)},
+        timeout=timeout,
+    )
+    out = []
+    for study in (resp.json().get("studies") or []):
+        rec = parse_study(study)
+        if rec:
+            out.append(rec)
+    return out

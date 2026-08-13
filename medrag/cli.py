@@ -116,9 +116,14 @@ def cmd_trials(args) -> int:
             # which is different from saying they have no typed interventions.
             print(f"[medrag] {r['not_returned']:,} record(s) the registry did not return — "
                   "left unset rather than recorded as having no types. Re-run to retry them.")
-        if r["misaligned"]:
-            print(f"[medrag] {r['misaligned']:,} record(s) skipped: the registry returned a "
-                  "different number of types than this store holds names for.")
+        if r.get("drifted"):
+            print(f"[medrag] {len(r['drifted']):,} record(s) had drifted — the registry "
+                  "changed their interventions after the ingest. Names, types and agent "
+                  "tokens refreshed together; their other fields are as stale as they "
+                  "were, so re-ingest those families when convenient.")
+        if r["misaligned"] and r["remaining"]:
+            print(f"[medrag] {r['remaining']:,} record(s) could not be reconciled and are "
+                  "left unset rather than guessed at.")
         if r["complete"]:
             print(f"[medrag] complete — store stamped v{STORE_VERSION}.")
             return 0

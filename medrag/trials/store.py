@@ -94,6 +94,19 @@ from .client import STOPPED_STATUSES, TrialRecord
 # "delete and start over".
 STORE_VERSION = 12
 
+#: The backfill's record of what has been ASKED. Separate from the column, which
+#: records what has been ANSWERED — an ID the registry does not return leaves the
+#: column NULL (writing [] would claim the trial has no typed interventions),
+#: so without this there is no way to tell "not yet reached" from "asked and
+#: there is nothing there".
+BACKFILL_LEDGER = """
+CREATE TABLE IF NOT EXISTS intervention_type_backfill (
+    nct_id   TEXT PRIMARY KEY,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    outcome  TEXT
+)
+"""
+
 #: The three states a query set can be in, and why there are three rather than
 #: a boolean. A family with no row at all was never searched — the
 #: not-assessed-vs-nothing-found rule that `ValidationReport.assessed` and
@@ -1431,8 +1444,8 @@ class TrialStore:
         self.close()
 
 
-def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
-                                progress=None) -> dict:
+def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 400,
+                                progress=None, fetch_full=None) -> dict:
     """Fill `intervention_types` for records already held, from the registry.
 
     The third migration category, and the only one that needs the network. See
@@ -1446,6 +1459,18 @@ def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
 
     `fetch` is injected so this is testable against captured fixtures with no
     network, the same shape as `bulk.load_export`.
+
+    `chunk` is 400 because `filter.ids` is a URL parameter and the registry
+    returns HTTP 414 above roughly 500 IDs — measured: 400 succeeds (~5,000
+    character URL, 259 records/second), 600 fails. Below 400 the per-request
+    overhead dominates: 100 IDs per request runs at 78 records/second, which
+    turns an 18-minute backfill into a 68-minute one for no benefit.
+
+    Resumable by construction, and verified by killing a run: the work set is
+    "column still NULL" and each chunk commits, so an interrupted run loses at
+    most one chunk and a re-run picks up exactly what is left. That is separate
+    from partial tolerance — the version stamp still goes on only when every
+    record has been answered for, so an interrupted store stays refused.
 
     Two properties worth stating, because both are the difference between a
     backfill and a corruption:
@@ -1470,13 +1495,21 @@ def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(trials)")}
         if "intervention_types" not in cols:
             conn.execute("ALTER TABLE trials ADD COLUMN intervention_types TEXT")
-            conn.commit()
+        # The ledger of what has been ASKED, which is not the same as what has
+        # been answered. A filled column already records a success; this records
+        # the attempts that did not produce one, so a re-run can say "these 12
+        # have been asked four times and the registry has never returned them"
+        # instead of retrying them forever in silence.
+        conn.execute(BACKFILL_LEDGER)
+        conn.commit()
 
         todo = [(r["nct_id"], json.loads(r["interventions"] or "[]"))
                 for r in conn.execute(
                     "SELECT nct_id, interventions FROM trials "
-                    "WHERE intervention_types IS NULL")]
+                    "WHERE intervention_types IS NULL ORDER BY nct_id")]
         total = len(todo)
+        already = conn.execute(
+            "SELECT COUNT(*) FROM trials WHERE intervention_types IS NOT NULL").fetchone()[0]
         if fetch is None:
             from .client import fetch_intervention_types as fetch
 
@@ -1484,23 +1517,76 @@ def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
         for i in range(0, total, chunk):
             batch = todo[i:i + chunk]
             answered = fetch([n for n, _ in batch])
-            writes = []
+            writes, ledger = [], []
             for nct, names in batch:
                 types = answered.get(nct)
                 if types is None:
                     not_returned += 1
+                    ledger.append((nct, "NOT_RETURNED"))
                     continue
                 if len(types) != len(names):
                     misaligned += 1
+                    ledger.append((nct, "MISALIGNED"))
                     continue
                 writes.append((json.dumps(types), nct))
+            # Both writes committed together, per chunk. That is what makes an
+            # interrupted run resumable rather than a 42-minute restart: the
+            # resume set is "column still NULL", so work already committed is
+            # never redone and nothing needs to be replayed.
             if writes:
                 conn.executemany(
                     "UPDATE trials SET intervention_types = ? WHERE nct_id = ?", writes)
-                conn.commit()
-                done += len(writes)
+            if ledger:
+                conn.executemany(
+                    "INSERT INTO intervention_type_backfill (nct_id, attempts, outcome) "
+                    "VALUES (?, 1, ?) ON CONFLICT(nct_id) DO UPDATE SET "
+                    "attempts = attempts + 1, outcome = excluded.outcome", ledger)
+            conn.commit()
+            done += len(writes)
             if progress:
                 progress(min(i + chunk, total), total, done, not_returned, misaligned)
+
+        # Answered for EVERY held record, or the file keeps its old version and
+        # goes on being refused. Resumable and partial-tolerant are different
+        # things: an interrupted run must not have to start over, and must also
+        # not leave a store that opens with a column full in places.
+        #
+        # REPAIR. A record whose stored name count disagrees with the registry's
+        # type count has DRIFTED — the registry changed after the ingest, which
+        # is the thing this store exists to track. Measured on the live store:
+        # 21 of 241,298, of which 18 had gained interventions and 3 had lost
+        # them. Writing new types against stale names would misalign them, so
+        # the names are refreshed alongside the types.
+        #
+        # Names, types and the derived token column move TOGETHER or not at all —
+        # `intervention_tokens` is a parse of the names, and leaving it behind
+        # would make an agent query silently disagree with the record it is
+        # querying. Everything else on a drifted record (status, dates) is as
+        # stale as it was before this ran; that is a pre-existing condition, it
+        # is reported as `drifted` so a re-ingest can close it, and it is not
+        # something the backfill can honestly fix one column at a time.
+        drifted = []
+        if fetch_full is None:
+            try:
+                from .client import fetch_studies_by_id as fetch_full
+            except Exception:
+                fetch_full = None
+        stale_ids = [r["nct_id"] for r in conn.execute(
+            "SELECT nct_id FROM intervention_type_backfill WHERE outcome = 'MISALIGNED' "
+            "AND nct_id IN (SELECT nct_id FROM trials WHERE intervention_types IS NULL)")]
+        if stale_ids and fetch_full is not None:
+            for i in range(0, len(stale_ids), chunk):
+                for rec in fetch_full(stale_ids[i:i + chunk]) or []:
+                    if len(rec.interventions) != len(rec.intervention_types):
+                        continue          # cannot happen past _assert_aligned; belt and braces
+                    conn.execute(
+                        "UPDATE trials SET interventions = ?, intervention_types = ?, "
+                        "intervention_tokens = ? WHERE nct_id = ?",
+                        (json.dumps(rec.interventions), json.dumps(rec.intervention_types),
+                         agents.token_blob(rec.interventions), rec.nct_id))
+                    drifted.append(rec.nct_id)
+            conn.commit()
+            done += len(drifted)
 
         remaining = conn.execute(
             "SELECT COUNT(*) FROM trials WHERE intervention_types IS NULL").fetchone()[0]
@@ -1508,8 +1594,18 @@ def backfill_intervention_types(path: str | Path, fetch=None, chunk: int = 100,
         if complete:
             conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
             conn.commit()
+
+        misaligned_ids = [r["nct_id"] for r in conn.execute(
+            "SELECT nct_id FROM intervention_type_backfill WHERE outcome = 'MISALIGNED' "
+            "AND nct_id IN (SELECT nct_id FROM trials WHERE intervention_types IS NULL)")]
+        stuck = [dict(r) for r in conn.execute(
+            "SELECT nct_id, attempts, outcome FROM intervention_type_backfill "
+            "WHERE nct_id IN (SELECT nct_id FROM trials WHERE intervention_types IS NULL) "
+            "ORDER BY attempts DESC, nct_id LIMIT 20")]
         return {"total": total, "filled": done, "not_returned": not_returned,
                 "misaligned": misaligned, "remaining": remaining, "complete": complete,
-                "version_stamped": complete}
+                "version_stamped": complete, "already_filled_on_entry": already,
+                "stuck": stuck, "misaligned_ids": misaligned_ids,
+                "drifted": drifted}
     finally:
         conn.close()
