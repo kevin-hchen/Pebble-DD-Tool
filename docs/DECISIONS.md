@@ -195,3 +195,77 @@ exact tier              35/52   = 67.3%
 within one tier         33/33 comparable pairs
 ordering inversions      0
 ```
+
+---
+
+## Stage A: the audit's device bands are superseded (15 Aug 2026)
+
+Every device number in the parity audit came through a name regex later measured
+at ~21% recall with 55% of its positives being drugs or procedures. Re-measured
+against `intervention_types`, which the registry states. Gate-type patterns are
+byte-identical to the audit's, so the only thing that changed is the population.
+
+**Modality is not a registry fact.** The registry states DEVICE,
+DIAGNOSTIC_TEST, DRUG, PROCEDURE; it does not state imaging vs monitoring vs
+implant. That split existed only in the regex, so it is gone from these numbers
+and the registry's own vocabulary is the axis.
+
+### Eligibility verdict rate (whole store, not a sample)
+
+```
+DEVICE            20,118    0.5%        DRUG        116,552    5.9%
+DIAGNOSTIC_TEST    7,152    1.9%        PROCEDURE    13,517    1.3%
+DEVICE+DRUG        2,388    3.9%        OTHER        57,425    1.1%
+devices combined  27,270    0.9%        UNKNOWN      24,102    1.9%
+```
+
+The gap is **6.5x**, not the ~12-38x the audit's per-modality bands implied. Both
+sides move: the audit's drug control (11.4%) was a regex-selected subset enriched
+for oncology, and its device bands (0.3-5.3%) were ~45% real devices.
+
+SUPERSEDED, do not re-quote: imaging 3.3%, monitoring 0.7%, implant 0.3%,
+surgical 1.2%, IVD 5.3%, drug 11.4%.
+
+### Gate-type prevalence and device specificity
+
+Sample of 5,000 per class. Ratio is (DEVICE + DIAGNOSTIC_TEST) / DRUG.
+
+```
+gate type                              device%   drug%   ratio
+device_compatibility_or_tolerance         7.2     1.7    4.15x
+care_setting                              8.0     3.9    2.04x
+procedural_indication_or_referral        11.2     6.4    1.76x
+anatomical_or_imaging_finding             5.9     6.1    0.97x
+procedural_history_or_existing_device     9.2    10.3    0.89x
+clinical_rating_scale_or_staging         23.4    48.6    0.48x
+numeric_physiologic_threshold            25.0    59.3    0.42x
+temporal_window_from_event               18.6    58.1    0.32x
+specimen_type_or_adequacy                 9.3    36.6    0.25x
+biomarker (what the tool has today)       4.3    21.6    0.20x
+```
+
+### The finding that changes the framing
+
+**The three most common gate types in device trials are MORE common in drug
+trials.** Numeric thresholds, rating scales and temporal windows are 0.32-0.48x
+device-specific. The audit reported them as the top device gates, which was true
+and misleading: they are the top gates in *every* trial.
+
+Two consequences worth acting on. Building numeric thresholds and ordinal scales
+serves BOTH paths, and serves the drug path more — so it is not device work
+being done under a device heading, it is shared work that happens to have been
+found by looking at devices. And the audit's claimed 11-16x enrichment for care
+setting and device compatibility was inflated 2-4x by the denominator; the real
+figures are 2.04x and 4.15x.
+
+Only ONE axis is close to device-exclusive: `device_compatibility_or_tolerance`
+at 4.15x — MRI conditionality, implanted metal, contrast allergy, inability to
+lie still, body habitus against scanner dimensions. A drug trial has no
+equivalent of it.
+
+### Pattern precision, spot-checked before choosing
+
+Read 8 matched sentences per candidate. `device_compatibility` 8/8 genuine;
+`procedural_indication` 8/8; `care_setting` ~6/8 — it matched "high-speed access
+to the internet at home or work" and a participant's own workplace, confirming
+the over-firing suspected in the audit. Its 8.0% is an upper bound.
