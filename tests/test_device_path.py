@@ -117,7 +117,7 @@ def test_the_question_set_declares_the_kind_and_nothing_sniffs_it():
     """A guessed modality is not a smaller version of a declared one."""
     assert load_question_set(CONFIG / "screening_devices.yaml").asset_kind == "device"
     assert load_question_set(CONFIG / "diligence_questions.yaml").asset_kind == "drug"
-    assert load_question_set(CONFIG / "landscape.yaml").asset_kind == "auto"
+    assert load_question_set(CONFIG / "landscape.yaml").asset_kind == "unspecified"
 
     for path in sorted(CONFIG.glob("*.yaml")):
         data = yaml.safe_load(path.read_text()) or {}
@@ -137,11 +137,37 @@ def test_an_undeclared_caller_keeps_the_drug_parser():
     assert runner.name_style == NAME_AS_ASSET
 
 
+def test_unspecified_does_not_sniff_and_reports_the_disagreement_instead():
+    """`unspecified` was called `auto`, which implied inference from the asset
+    string — the one thing the measurement shows cannot work. It resolves to the
+    drug parser and says so when the device reading would differ."""
+    runner = DiligenceRunner(Config(openai_api_key=None,
+                                    data_dir=Path(tempfile.mkdtemp())),
+                             rag=None, trial_store=_store())
+    notes = runner._undeclared_kind_notes("procalcitonin assay")
+    assert notes and "0 trial(s)" in notes[0] and "it finds 1" in notes[0], notes
+    assert "declare" in notes[0].lower()
+
+    # No disagreement, no note — a warning on every run is a warning nobody
+    # reads. An asset absent from the store reads 0 either way, which is the
+    # cleanest agreeing case; "trastuzumab deruxtecan" deliberately DISAGREES in
+    # this fixture (NCT_HALF carries the two halves separately), which is the
+    # whole reason the fixture holds that record.
+    assert runner._undeclared_kind_notes("nonexistent compound") == []
+    assert runner._undeclared_kind_notes("") == []
+    assert runner._undeclared_kind_notes("trastuzumab deruxtecan"), \
+        "the ADC case must report a disagreement — it is the drug-side risk"
+
+
 def test_an_invalid_asset_kind_is_refused_rather_than_defaulted():
-    """A typo'd `asset_kind: devise` silently falling back to the drug parser is
-    the failure mode this whole change is about, arriving through config."""
+    """A typo'd or retired `asset_kind` silently falling back to the drug parser
+    is the failure mode this whole change is about, arriving through config.
+
+    `auto` is used as the probe deliberately: it was the old name for
+    `unspecified`, and a config left on it must fail loudly rather than be
+    quietly accepted as the value it used to mean."""
     bad = Path(tempfile.mkdtemp()) / "q.yaml"
-    bad.write_text("asset_kind: devise\nversion: 1\nname: t\nquestions:\n"
+    bad.write_text("asset_kind: auto\nversion: 1\nname: t\nquestions:\n"
                    "  - id: a\n    question: 'What about {asset}?'\n")
     try:
         load_question_set(bad)

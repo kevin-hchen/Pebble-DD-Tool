@@ -46,18 +46,51 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
 
-#: Every file whose contents can change a landscape answer. A change to any one
-#: of them invalidates every precomputed result, which is the point: the
-#: fingerprint is not a version someone remembers to bump, it is derived.
+#: THE RULE: a file belongs here if changing it can change a precomputed
+#: landscape row — its membership, its order, its status, or its explanation.
+#: Not "is related to landscapes"; not "is imported somewhere". If an edit to
+#: the file could make `build_landscape` return something different, it is in.
+#:
+#: Over-inclusion costs a rebuild nobody needed. Under-inclusion serves stale
+#: precomputed answers behind a gate that reports everything is fine, which is
+#: strictly worse, so the list errs wide.
+#:
+#: `tests/test_precompute_fingerprint.py` enforces the rule STRUCTURALLY: it
+#: traces a real `build_landscape` call and fails if any `medrag/` file that
+#: actually executed is missing from this tuple. That is why the list can be
+#: trusted rather than merely reviewed — see that file for why a static import
+#: closure was not sufficient.
+#:
+#: `medrag/trials/store.py` is the one that got away for a while, and it is
+#: instructive: `build_landscape` takes the store as a PARAMETER, so no import
+#: of it appears anywhere in the landscape call graph and no import-based check
+#: can see it. Every row nevertheless comes out of its SQL.
 FINGERPRINT_SOURCES = (
+    # --- the screen and its vocabulary
     "medrag/markers.py",
     "medrag/biomarker.py",
     "medrag/biomarker_gating.py",
+    "config/markers.yaml",
+    # --- which rows exist, and in what order
     "medrag/landscape.py",
     "medrag/ranking.py",
-    "medrag/precompute.py",
-    "config/markers.yaml",
     "config/ranking.yaml",
+    # --- the SQL every row is selected by. Injected, never imported: invisible
+    #     to any import-graph check, and the single largest source of change.
+    "medrag/trials/store.py",
+    # --- which population a condition resolves to. A synonym added to a query
+    #     set changes set membership, which changes every count and every row.
+    "medrag/trials/queries.py",
+    "config/trial_queries.yaml",
+    # --- the record shape rows are built from. A parse change (a field newly
+    #     kept, or newly dropped) changes what the screen reads.
+    "medrag/trials/client.py",
+    # --- the coverage statement stored beside the rows and rendered with them
+    "medrag/coverage.py",
+    "config/registries.yaml",
+    # --- the fingerprint mechanism itself, so changing how it is computed
+    #     invalidates artifacts built under the old computation
+    "medrag/precompute.py",
 )
 
 SCHEMA = """

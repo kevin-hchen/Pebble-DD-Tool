@@ -28,8 +28,10 @@
 #              are never folded in.
 #   negative   run the deterministic stopped-trial pass against this section
 
-# Indication-first: no asset is typed, so the parser never runs.
-asset_kind: auto
+# Indication-first: no asset is typed, so the parser never runs. Declared
+# rather than left blank so the sweep in tests/test_device_path.py can tell
+# "considered and not applicable" from "nobody thought about it".
+asset_kind: unspecified
 
 version: 1
 name: "Indication-first trial landscape — reference question set (draft)"

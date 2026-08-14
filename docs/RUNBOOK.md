@@ -697,7 +697,6 @@ diligence page, which does prompt.
 | Thing | Impact | Detail |
 |---|---|---|
 | **Python 3.9 is end-of-life** | Security fixes are unreachable | `pip-audit` reports 40 findings against the pinned set; for `requests` and `python-dotenv` the fixed versions are `Requires-Python >=3.10` and cannot be installed here. Moving to 3.11 is the real remediation and nothing else on this list matters as much. |
-| **`CLAUDE.md` is gitignored** | A fresh clone does not contain it | `.gitignore:34`. The document recording every decision that must not be reversed is not in the repo the next person clones. Decide deliberately: publish it (the repo is public) or hand it over out of band. |
 | Known dependency vulnerabilities | Advisory | 40 findings, 10 packages. Direct: `torch` (8), `streamlit` (2), `requests` (1), `python-dotenv` (1). Transitive: `pillow` (18), `transformers` (4), others. CI reports but does not fail on these, because failing on unfixable findings trains people to ignore CI. |
 | `streamlit` pinned to 1.50.0 | Cannot patch without visual QA | `theme.py` targets Streamlit's internal `data-testid` DOM, which is not a public API. The two Streamlit advisories are fixed in 1.53.1+; upgrading needs the visual checks re-run. |
 | `retriever.py:29` numerical warnings | Cosmetic, so far | `invalid value` / `divide by zero` in matmul, from zero-norm vectors. Results still return. Worth investigating before it becomes a silent relevance bug. |
@@ -709,7 +708,7 @@ diligence page, which does prompt.
 
 ## Decisions in CLAUDE.md that must not be reversed
 
-CLAUDE.md is the authority. These are the ones most likely to be "cleaned up" by
+`CLAUDE.md` is the authority, it is in the repository root, and it is TRACKED — it was gitignored until 14 August 2026, which meant a fresh clone got `docs/DECISIONS.md`, a hand-copied snapshot that had drifted 271 lines behind it. `docs/DECISIONS.md` is now a pointer. These are the ones most likely to be "cleaned up" by
 someone who does not know why they exist. Read the full entry there before
 touching any of them.
 

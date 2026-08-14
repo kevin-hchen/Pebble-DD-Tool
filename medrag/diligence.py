@@ -108,7 +108,8 @@ class QuestionSet:
     version: int
     questions: list[DiligenceQuestion]
     path: Path | None = None
-    #: What KIND of asset this set is written for: "drug", "device", or "auto".
+    #: What KIND of asset this set is written for: "drug", "device", or
+    #: "unspecified".
     #:
     #: It decides which parser turns the typed asset into SQL terms, and it is
     #: DECLARED by the question set rather than sniffed from the asset string.
@@ -119,10 +120,21 @@ class QuestionSet:
     #: an ADC separately. Both are two lowercase words; nothing in the string
     #: distinguishes them. The question set knows, so the question set says.
     #:
-    #: "auto" means the drug parser, which is the historical behaviour — chosen
-    #: so that adding this field changes nothing for any caller that has not
-    #: opted in.
-    asset_kind: str = "auto"
+    #: **"unspecified" DOES NOT SNIFF.** It was called "auto", which was a bad
+    #: name for exactly the wrong reason: it implied inference, and inference
+    #: from the asset string is the thing just shown to be impossible. It never
+    #: inferred anything — it resolved to the drug parser and still does, which
+    #: is the historical behaviour and keeps this field from changing anything
+    #: for a caller that has not opted in.
+    #:
+    #: What it does instead of guessing: when an asset IS typed under
+    #: `unspecified`, `run()` puts BOTH parsers over the store once and warns if
+    #: they disagree, naming both counts. That reports the ambiguity to the
+    #: reader rather than resolving it silently in either direction — the same
+    #: choice `biomarker.py` makes when the source text contradicts itself.
+    #: `config/landscape.yaml` is the real "unspecified" case and never triggers
+    #: it, because it is indication-first and types no asset at all.
+    asset_kind: str = "unspecified"
 
     def __len__(self) -> int:
         return len(self.questions)
@@ -227,10 +239,11 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
             )
         )
 
-    kind = str(data.get("asset_kind", "auto")).strip().lower()
-    if kind not in ("auto", "drug", "device"):
+    kind = str(data.get("asset_kind", "unspecified")).strip().lower()
+    if kind not in ("unspecified", "drug", "device"):
         raise ValueError(
-            f"{path.name}: asset_kind must be auto, drug or device — got {kind!r}")
+            f"{path.name}: asset_kind must be unspecified, drug or device — "
+            f"got {kind!r}")
     return QuestionSet(
         name=data.get("name", path.stem),
         version=int(data.get("version", 1)),
@@ -370,6 +383,40 @@ class DiligenceRunner:
                 if anchor.is_about(r)
             ]
         return records
+
+    def _undeclared_kind_notes(self, asset: str) -> list[str]:
+        """An asset typed under an undeclared question set: run BOTH parsers and
+        report a disagreement rather than picking a winner.
+
+        The drug parser is used either way — silence is not an option, and
+        changing the default would move every existing caller. But where the two
+        readings differ, which reading is right cannot be recovered from the
+        string: "sacituzumab govitecan" and "fundus camera" are both two
+        lowercase words and want opposite treatment. So the difference is
+        stated, with both numbers, and the remedy is to declare `asset_kind`.
+
+        Costs one extra query per RUN, not per question, and only when an asset
+        was actually typed.
+        """
+        if self.trial_store is None or not asset.strip():
+            return []
+        try:
+            as_drug = len(self.trial_store.query(intervention=asset, limit=10000))
+            as_device = len(self.trial_store.query(intervention=asset, limit=10000,
+                                                   name_style=NAME_AS_DESCRIPTION))
+        except Exception:
+            return []      # a diagnostic must never be the thing that fails a memo
+        if as_drug == as_device:
+            return []
+        return [
+            f"this question set does not declare `asset_kind`, so “{asset}” was matched "
+            f"with the drug parser and found {as_drug} trial(s). Read as a device "
+            f"DESCRIPTION — each word matched independently — it finds {as_device}. "
+            "Which is correct cannot be told from the string: a two-word drug name is "
+            "one molecule and a two-word device name is a description. Declare "
+            "`asset_kind: drug` or `asset_kind: device` in the question set to remove "
+            "this ambiguity; until then the drug reading is what this memo used."
+        ]
 
     def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
         """Say WHICH agent of a combination emptied the result.
@@ -760,6 +807,10 @@ class DiligenceRunner:
         # QuestionSet.asset_kind for the measurement behind that.
         self.name_style = (NAME_AS_DESCRIPTION if qs.asset_kind == "device"
                            else NAME_AS_ASSET)
+        if qs.asset_kind == "unspecified" and asset.strip():
+            for note in self._undeclared_kind_notes(asset):
+                if note not in self.warnings:
+                    self.warnings.append(note)
         memo = MemoResult(
             asset=asset,
             indication=indication,
