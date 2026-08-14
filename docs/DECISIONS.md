@@ -269,3 +269,51 @@ Read 8 matched sentences per candidate. `device_compatibility` 8/8 genuine;
 `procedural_indication` 8/8; `care_setting` ~6/8 — it matched "high-speed access
 to the internet at home or work" and a participant's own workplace, confirming
 the over-firing suspected in the audit. Its 8.0% is an upper bound.
+
+### Modality is absent as an axis, and what it would take to have one
+
+The registry states `DEVICE`, `DIAGNOSTIC_TEST`, `DRUG`, `PROCEDURE`. It does
+NOT state imaging versus monitoring versus implant versus surgical. That split
+existed only in the parity audit's name regex, and reporting it would be
+inventing a number.
+
+**Every "across five modalities" instruction is therefore unsatisfiable and is
+replaced by: stratify by registry class** — DEVICE, DIAGNOSTIC_TEST,
+DEVICE+DRUG, PROCEDURE, with DRUG as control. This applies to the gate-type
+work and to the Asian-registry work equally.
+
+Recovering a modality axis at all needs a curated device-name table, and
+`config/agents.yaml` has **zero** device entries — it is a drug generic/brand/
+code table. Until one exists, "how does this perform on imaging versus
+implants" is a question this tool cannot answer honestly, and the right answer
+to it is to say so rather than to re-derive the old audit's bands. Queued, not
+built.
+
+### Stage D is the largest coverage win in the store, and is scheduled second for parity, not for value
+
+Recorded because a later reader seeing D after C will otherwise assume D
+mattered less.
+
+`numeric_physiologic_threshold` is the highest-prevalence gate type in the
+entire store: 25.0% of device trials and 59.3% of drug trials. It is by a wide
+margin the largest single increase available in how often the eligibility screen
+answers anything at all, on both paths.
+
+And the baseline is sparser than the device framing suggests. The drug verdict
+rate is **5.9%**, not the 11.4% the audit reported — that figure was a
+regex-selected, oncology-enriched subset. So the honest picture is not "devices
+are broken and drugs work". It is that the screen returns a verdict on roughly
+one drug trial in seventeen and one device trial in a hundred. **Both are
+sparse**, and even the 5.9% is mostly one therapeutic area, because all seven
+curated markers are oncology molecular markers.
+
+Two different goals, which point at different builds and are not collapsed here:
+
+  * *make the screen answer at all* -> numeric thresholds, first, by a distance
+  * *make devices equal to drugs* -> device compatibility, which is Stage C
+
+Stage C is first because the parity commitment in `docs/SCOPE.md` is the one the
+owner has stated most often, and because device compatibility is the only
+candidate axis with no drug counterpart — so it tests whether parity is
+achievable rather than borrowing machinery that already works for drugs. That is
+a reason of parity. It is NOT a judgement that D is worth less.
