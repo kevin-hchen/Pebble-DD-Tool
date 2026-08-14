@@ -113,3 +113,85 @@ Any disagreement between a grader and these labels can be traced to whether it
 turns on this convention or on a genuine misreading of the design, and those are
 different findings. Any measurement against this fixture must report that split
 rather than a single disagreement count.
+
+---
+
+## The diagnostic ground-truth fixture is NEVER edited — including in a v2 pass
+
+`tests/fixtures/diagnostic_ground_truth.json` is content-hashed and frozen. The
+rule is stronger than "do not edit it while measuring": **it is never edited at
+all.** A v2 vocabulary gets a NEW fixture, drawn and hand-read fresh under the
+new vocabulary. An edited-once fixture is a fixture whose provenance nobody can
+reconstruct — was this label from the original blind read, or added later once
+someone had seen what a grader did with it?
+
+### PMID 41028541 — a known label-quality note, and why it stays
+
+*Clinical validation of an AI-based blood testing device for diagnosis and
+prognosis of acute infection and sepsis.* The fixture labels it
+`CONSECUTIVE_COHORT`. The grader returns `CANNOT_GRADE`, on the ground that the
+abstract states neither sampling nor prospective/retrospective.
+
+**The grader is probably right.** The label rested on "emergency-department
+patients presenting with non-specific symptoms" being the intended-use
+population, which is an inference about design from the setting — and the
+reading rule recorded beside the fixture says the opposite: never inferred from
+the journal, the topic, or what such studies usually do.
+
+**It stays as it is, permanently.** The observation was made AFTER seeing grader
+output, so it cannot cleanly re-enter this fixture at any point — not now, and
+not in a v2 pass, because "we already know the grader disagrees here" is exactly
+the knowledge a blind read must not have.
+
+What this is instead: a case the v2 read should handle EXPLICITLY. A vocabulary
+that keeps `CONSECUTIVE_COHORT` and `CANNOT_GRADE` apart needs to say what
+happens when a clinical setting is stated and sampling is not — either the
+setting counts as evidence of a consecutive series or it does not, and v2 should
+decide that in the vocabulary rather than leaving it to each reader.
+
+Recorded so the next person does not rediscover it, and does not "fix" it.
+
+---
+
+## The decision rule for the confirmatory draw, set before drawing
+
+The development figure landed at exactly the bar with no margin, after iterating
+against those labels. Optimisation pressure plus a fresh sample means the
+confirmatory number will very likely be worse. That is expected. Deciding what
+happens in advance is the only thing that makes the result mean anything.
+
+**The confirmatory number is the published number, whatever it is. The
+development figure never appears in `CAPABILITIES.md`.**
+
+| confirmatory misroute rate | what happens |
+|---|---|
+| **<= 10%** | ship; publish the confirmatory figure |
+| **10-20%** | ship anyway; publish the confirmatory figure WITH the pre-registered bar stated beside it, so the miss is on the record |
+| **> 20%** | does not reach a memo. Fix the named pattern, then draw a NEW confirmatory set |
+
+Shipping in the 10-20% band is deliberate, and the reasoning belongs on the
+record rather than in a decision made later under pressure: what this replaces
+is *actively wrong*. The therapeutic map sends a `Validation Study` to tier 4 of
+8 and left 44 of 86 IVD studies unclassified or bottom-tier. A grader that
+misroutes 15% is a large improvement on one that is systematically wrong, and
+saying so plainly beats withholding it.
+
+**Never re-grade the same 40.** A confirmatory set is confirmatory once. If the
+grader is changed after seeing it, the next measurement needs a new draw.
+
+**Zero ordering inversions remains a hard gate at every level.** An inversion on
+the confirmatory set is a stop-and-report regardless of the misroute rate — it
+is the failure that tells a reader the evidence is stronger than it is.
+
+### Development-set figures, for the record only (14 Aug 2026, 110 studies)
+
+Stated here so they are not mistaken later for the published number:
+
+```
+misroutes                6/110  = 5.5%   (bar <= 10%)
+coverage (routed)      101/110  = 91.8%
+declined CANNOT_TELL     9/110  =  8.2%
+exact tier              35/52   = 67.3%
+within one tier         33/33 comparable pairs
+ordering inversions      0
+```

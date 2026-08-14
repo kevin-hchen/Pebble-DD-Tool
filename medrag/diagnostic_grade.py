@@ -76,6 +76,24 @@ CANNOT_GRADE = "cannot-grade"
 #: so this hierarchy does not apply to it and the therapeutic one does.
 NOT_DIAGNOSTIC = "not-diagnostic"
 
+#: The ROUTING decision, which is a different question from the tier and needs
+#: its own third state for the same reason the tier has `CANNOT_GRADE`.
+#:
+#: Routing was binary, and a binary router has to send every record somewhere.
+#: A primary study about a device that never uses accuracy vocabulary —
+#: "Association Between Lung Ultrasound Patterns and Pneumonia" — then lands on
+#: the therapeutic map and is given a confident tier on the wrong scale, which
+#: is the precise harm this module exists to remove. Eight of the development
+#: set do that.
+#:
+#: `CANNOT_TELL` declines instead. A declined study gets no tier from either
+#: hierarchy and is reported as unrouted. That is worse for coverage and better
+#: for the reader, which is the trade this codebase makes everywhere else:
+#: NOT_MENTIONED, NOT_ASSESSED, UNVERIFIED, and CANNOT_GRADE one layer down.
+ROUTE_DIAGNOSTIC = "diagnostic"
+ROUTE_THERAPEUTIC = "therapeutic"
+ROUTE_CANNOT_TELL = "cannot-tell"
+
 _RANK = {key: rank for key, rank, _ in TIERS}
 _LABEL = {key: label for key, _, label in TIERS}
 _LABEL[CANNOT_GRADE] = "Diagnostic study, design not stated"
@@ -220,6 +238,18 @@ _TYPE_NOT_A_STUDY = {"review", "editorial", "comment", "news", "practice guideli
                      "published erratum", "biography", "interview"}
 _TYPE_SYNTHESIS = {"meta-analysis", "systematic review"}
 
+#: A test, device or marker named in the TITLE — i.e. the study's subject is a
+#: test rather than a treatment. Checked on the title alone: an abstract
+#: mentions a scanner in passing, a title states what the paper is about.
+_TEST_IN_TITLE = re.compile(
+    r"\b(test|assay|screening|screen\b|diagnos\w+|detect\w+|imaging|scan\b|"
+    r"ultrasound|ultrasonograph\w+|sonograph\w+|MRI|magnetic resonance|CT\b|"
+    r"tomograph\w+|radiograph\w+|mammograph\w+|angiograph\w+|scintigraph\w+|"
+    r"ECG|EKG|electrocardiogra\w+|EEG|oximet\w+|monitor\w*|sensor|wearable|"
+    r"biomarker|marker\b|troponin|d-dimer|procalcitonin|calprotectin|"
+    r"algorithm|artificial intelligence|machine learning|"
+    r"polysomnograph\w+|capnograph\w+|glucose monitoring|device)\b", re.I)
+
 #: Evidence that subjects were studied, rather than discussed.
 _HAS_SAMPLE = re.compile(
     r"(\b\d[\d,]{1,6}\s+(patients|participants|subjects|men|women|children|"
@@ -235,14 +265,22 @@ _HAS_SAMPLE = re.compile(
     re.I | re.M)
 
 
-def is_diagnostic_study(title: str, abstract: str,
-                        publication_types: list[str] | None = None) -> tuple[bool, str]:
-    """THE SELECTION RULE. Returns (applies, why).
+def route(title: str, abstract: str,
+          publication_types: list[str] | None = None) -> tuple[str, str]:
+    """THE SELECTION RULE. Returns (route, why) — three outcomes, not two.
 
-    `applies=False` sends the record to the therapeutic grader untouched. It is
-    never a judgement that the study is weak, and it is not a default: a record
-    that looks like a diagnostic study and states no design returns True here
-    and `CANNOT_GRADE` from the grader, which is the honest pair.
+      ROUTE_DIAGNOSTIC   grade on this hierarchy
+      ROUTE_THERAPEUTIC  grade on `evidence_grade`; this module does not apply
+      ROUTE_CANNOT_TELL  a primary study whose SUBJECT is a test but which
+                         states no accuracy, prognostic or strategy question.
+                         Declined by both hierarchies rather than assigned to
+                         one of them.
+
+    The third outcome is not a hedge. Routing a diagnostic study to the
+    therapeutic map is what gives a validation study tier 4 of 8, and a router
+    with only two outputs must do that to every study it cannot read. Declining
+    costs coverage, which is reported; misrouting costs the reader, which is
+    not recoverable from the output.
     """
     types = {t.strip().lower() for t in (publication_types or [])}
     text = f"{title}\n{abstract}"
@@ -252,30 +290,55 @@ def is_diagnostic_study(title: str, abstract: str,
     strategy_signal = bool(_STRATEGY_TRIAL.search(text)) and bool(
         _RANDOMISED_STRATEGY.search(text))
     if not (diagnostic_signal or prognostic_signal or strategy_signal):
-        return False, "no accuracy, prognostic or screening-strategy vocabulary"
+        # No question-defining vocabulary. Two very different records land here:
+        # a therapy trial or a narrative review (correctly therapeutic), and a
+        # primary study whose subject IS a test but whose abstract never says
+        # what it measured. Only the second is undecidable.
+        if _HAS_SAMPLE.search(text) and _TEST_IN_TITLE.search(title) \
+                and not (types & _TYPE_NOT_A_STUDY) and not _NOT_A_STUDY.search(text):
+            return ROUTE_CANNOT_TELL, (
+                "a primary study whose subject is a test or device, stating no "
+                "accuracy, prognostic or strategy question — which hierarchy applies "
+                "cannot be read from the record")
+        return ROUTE_THERAPEUTIC, "no accuracy, prognostic or screening-strategy vocabulary"
 
     # A synthesis OF accuracy studies is a diagnostic study; a narrative review
     # that merely discusses them is not. The publication type separates them,
     # which is why it is checked before the prose.
     if types & _TYPE_SYNTHESIS:
-        return True, "systematic review or meta-analysis carrying accuracy vocabulary"
+        return ROUTE_DIAGNOSTIC, "systematic review or meta-analysis carrying accuracy vocabulary"
 
     if types & _TYPE_NOT_A_STUDY:
-        return False, f"publication type is {sorted(types & _TYPE_NOT_A_STUDY)[0]}"
+        return ROUTE_THERAPEUTIC, f"publication type is {sorted(types & _TYPE_NOT_A_STUDY)[0]}"
     if _NOT_A_STUDY.search(text):
-        return False, "the abstract describes a review, guideline or case report"
+        return ROUTE_THERAPEUTIC, "the abstract describes a review, guideline or case report"
 
     # A STUDY has subjects. A narrative review that happens to use the words
     # "reference standard" does not, and that is what let six reviews through on
     # the first pass. Requiring a countable sample or an explicit methods
     # section is the difference between a study of a test and prose about one.
     if not _HAS_SAMPLE.search(text):
-        return False, "accuracy vocabulary but no sample, cohort or methods section stated"
+        return ROUTE_THERAPEUTIC, \
+            "accuracy vocabulary but no sample, cohort or methods section stated"
 
     if strategy_signal and not diagnostic_signal:
-        return True, "randomised comparison of screening or testing strategies"
-    return True, ("prognostic vocabulary in the abstract" if prognostic_signal
-                  and not diagnostic_signal else "accuracy vocabulary in the abstract")
+        return ROUTE_DIAGNOSTIC, "randomised comparison of screening or testing strategies"
+    return ROUTE_DIAGNOSTIC, ("prognostic vocabulary in the abstract" if prognostic_signal
+                              and not diagnostic_signal
+                              else "accuracy vocabulary in the abstract")
+
+
+def is_diagnostic_study(title: str, abstract: str,
+                        publication_types: list[str] | None = None) -> tuple[bool, str]:
+    """Backwards-compatible two-way view of `route`.
+
+    `CANNOT_TELL` reports False here — it is not a diagnostic study as far as
+    this hierarchy is concerned — but a caller that needs to tell a decline from
+    a therapeutic routing must call `route` directly. Kept so the boolean
+    reading is available without making the three-way one optional.
+    """
+    decision, why = route(title, abstract, publication_types)
+    return decision == ROUTE_DIAGNOSTIC, why
 
 
 # ------------------------------------------------------------------- the tiering
@@ -342,8 +405,13 @@ def grade_diagnostic(title: str, abstract: str,
     design is a randomised strategy comparison, then sampling (QUADAS-2 patient
     selection), then verification (QUADAS-2 flow and timing).
     """
-    applies, why = is_diagnostic_study(title, abstract, publication_types)
-    if not applies:
+    decision, why = route(title, abstract, publication_types)
+    if decision == ROUTE_CANNOT_TELL:
+        # Declined by BOTH hierarchies. Not `NOT_DIAGNOSTIC`, which would send it
+        # to the therapeutic map and hand it a confident tier on a scale that
+        # may not apply.
+        return _grade(CANNOT_GRADE, why)
+    if decision != ROUTE_DIAGNOSTIC:
         return _grade(NOT_DIAGNOSTIC, why)
 
     types = {t.strip().lower() for t in (publication_types or [])}
