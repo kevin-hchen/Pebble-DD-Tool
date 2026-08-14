@@ -38,7 +38,24 @@ what the company asserts.
 - **IPs cannot leave.** Security and confidentiality matter.
 - The information must be **100% accurate to what the study actually says.**
 - **Every claim cited, and cited cleanly.**
-- **Two to three pages maximum** for a memo.
+- ~~Two to three pages maximum for a memo.~~ **RELEASED 13 August 2026.**
+  Memo length is no longer a hard constraint. This was an owner decision, not a
+  build convenience, and it is recorded here rather than quietly dropped.
+
+  Measured state at the time of the decision, so the number is not lost:
+  **7 pages when nothing is found**, **11 for a well-evidenced device**,
+  **24 for a well-evidenced drug**. 7 is the floor — a memo that finds nothing
+  cannot currently be shorter than that.
+
+  Composition of a well-evidenced memo, by character count:
+  evidence blocks 46.3%, source lists 26.4%, headers and coverage 21.0%.
+  That makes length a renderer and question-count matter rather than a
+  prose-trimming one, which is why trimming was never going to reach 2-3 pages.
+
+  A summary-first structure — a standalone 2-3 page front section with the
+  evidence behind it — remains available as a small renderer change if the
+  owner wants it later. It is not being built now. See `docs/DECISIONS.md`.
+
 - Free to run.
 - Usable by someone non-technical. No terminal. Least friction — from the
   website.

@@ -19,11 +19,18 @@ whether a build choice is in scope, and a silent change to one of them is a
 silent change to what the tool is.
 
 Deliberately NOT asserted: that the tool currently SATISFIES these constraints.
-It does not — a memo is 7 to 24 pages against a two-to-three page constraint,
-and the device path is not equally gated. This file pins the target so the gap
-stays measurable; a test that failed on the gap would have to be deleted or
-weakened to ship anything, which is how a target gets quietly lowered to meet
+It does not — the device path is not equally gated. This file pins the target so
+the gap stays measurable; a test that failed on the gap would have to be deleted
+or weakened to ship anything, which is how a target gets quietly lowered to meet
 the build instead of the other way round.
+
+The page-length constraint is the worked example of the alternative, and of why
+this file has a `RELEASED_CONSTRAINTS` list. It was released by the owner on
+13 August 2026 rather than met, and the release is pinned as firmly as the
+constraint was: the file must still name it, must carry the date, and must carry
+the measurement it was decided against. A shorter constraint list on its own
+cannot be told apart from someone deleting the line their build could not
+satisfy.
 """
 
 from __future__ import annotations
@@ -48,9 +55,39 @@ HARD_CONSTRAINTS = (
     "**IPs cannot leave.**",
     "**100% accurate to what the study actually says.**",
     "**Every claim cited, and cited cleanly.**",
-    "**Two to three pages maximum**",
     "Free to run.",
     "Usable by someone non-technical.",
+)
+
+#: A constraint the owner RELEASED, pinned as deliberately as it was pinned when
+#: it was in force.
+#:
+#: "Two to three pages maximum" was a hard constraint until 13 August 2026. It
+#: is not in HARD_CONSTRAINTS any more, and without this a future reader finds a
+#: shorter list and cannot tell whether the line was decided away or quietly
+#: dropped to make a failing test pass — which is exactly what
+#: `test_every_hard_constraint_is_stated_verbatim`'s own failure message warns
+#: about ("if this was deliberate, the owner changed what the tool is for and
+#: this test should be updated in the same commit").
+#:
+#: So the release is now the thing under test: the file must SAY it was
+#: released, must carry the date, and must carry the measurement the decision
+#: was taken against. A silent re-tightening fails here too, which is the
+#: property that makes this a pin rather than a deletion.
+RELEASED_CONSTRAINTS = (
+    ("Two to three pages maximum", "RELEASED 13 August 2026"),
+)
+
+#: The numbers the release was decided against. Pinned because a released
+#: constraint with no measurement beside it is indistinguishable from one that
+#: was found inconvenient.
+RELEASE_EVIDENCE = (
+    "**7 pages when nothing is found**",
+    "**11 for a well-evidenced device**",
+    "**24 for a well-evidenced drug**",
+    "evidence blocks 46.3%",
+    "source lists 26.4%",
+    "headers and coverage 21.0%",
 )
 
 #: The scope line this whole audit turns on. Quoted in full rather than as a
@@ -92,6 +129,42 @@ def test_the_drugs_and_devices_line_is_stated_verbatim():
         "docs/SCOPE.md no longer states, verbatim, that drugs and devices are "
         "screened equally and that both paths must be equally real, tested and gated"
     )
+
+
+def test_a_released_constraint_says_so_rather_than_vanishing():
+    """A shorter constraint list is ambiguous; a stated release is not.
+
+    Pinning the release is what distinguishes "the owner decided this" from
+    "someone deleted the line the build could not meet". Both produce a file
+    without the constraint in it; only one of them is honest.
+    """
+    text = SCOPE.read_text()
+    for constraint, marker in RELEASED_CONSTRAINTS:
+        assert constraint in text, (
+            f"docs/SCOPE.md no longer mentions {constraint!r} at all. A released "
+            "constraint must remain visible with its release recorded — deleting it "
+            "outright loses the fact that it was ever in force."
+        )
+        assert marker in text, (
+            f"{constraint!r} appears in docs/SCOPE.md without {marker!r}. It must be "
+            "readable as a decision with a date, not as a constraint that is simply "
+            "no longer being met."
+        )
+        assert constraint not in "".join(HARD_CONSTRAINTS), (
+            f"{constraint!r} is both released and still pinned as a hard constraint"
+        )
+
+
+def test_the_release_carries_the_measurement_it_was_decided_against():
+    """A released constraint with no numbers beside it reads as a constraint
+    that was found inconvenient."""
+    text = SCOPE.read_text()
+    for fact in RELEASE_EVIDENCE:
+        assert fact in text, (
+            f"docs/SCOPE.md no longer records {fact!r}. The page-length release was "
+            "taken against a specific measurement, and dropping it leaves a future "
+            "reader unable to tell what state the decision was made in."
+        )
 
 
 def test_the_recurring_failure_is_named_with_its_three_examples():
