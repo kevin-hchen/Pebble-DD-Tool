@@ -61,3 +61,55 @@ If it is built later, the thing to preserve is that the front section must not
 become a *second* place where evidence is rendered. `coverage.render_lines` is
 one function precisely because three renderers drifted before; a summary that
 re-derives its numbers instead of reusing them would reintroduce that.
+
+---
+
+## Two limits found while hand-reading the diagnostic ground truth (14 Aug 2026)
+
+Recorded because they were discovered by reading 110 abstracts, and the next
+person should not have to rediscover them the same way.
+
+### 1. The frozen vocabulary conflates prognostic ASSOCIATION with prognostic PREDICTION
+
+`PROGNOSTIC_MODEL` is defined as "development and/or validation of a prediction
+model". PMID 36889038 — faecal haemoglobin concentration followed against a
+national death register — is a prognostic **association cohort**: a marker
+tested for association with a future outcome, with no model developed or
+validated. It carries `PROGNOSTIC_MODEL` because that was the closest value in
+a vocabulary fixed before the sample was drawn, and the mismatch is written into
+its `reason` field.
+
+**Not fixed, deliberately.** The vocabulary was fixed first precisely so it
+could not be reshaped by what turned up, and editing it mid-read would have made
+every label before that point incomparable with every label after.
+
+**First item for a v2 vocabulary.** The split wanted is roughly
+`PROGNOSTIC_ASSOCIATION` (a marker tested against a future outcome) versus
+`PROGNOSTIC_MODEL` (a multivariable model developed, internally validated, or
+externally validated) — the distinction PROBAST and the TRIPOD statement draw,
+and the same distinction that separates "this is associated with outcome" from
+"this predicts outcome for an individual". Two of 110 studies are affected, so
+it changes nothing about the current measurement; it will matter as soon as
+prognostic studies are a target rather than a residual.
+
+### 2. A sampling convention was settled mid-read, and reasonable people could draw it elsewhere
+
+CEBM separates a validating cohort (1b) from a non-consecutive study (3b) on
+sampling. Most abstracts state neither "consecutive" nor "selected". The
+convention applied uniformly from that point on:
+
+- **prospective** study in a defined care population, sampling unstated ->
+  `CONSECUTIVE_COHORT`
+- **retrospective** record review, sampling unstated -> `NONCONSECUTIVE_COHORT`
+
+The reasoning: retrospective selection from records is where verification bias
+actually lives, and prospective enrolment in a care setting is the defining
+feature of a clinical cohort. But this is a judgement, not a reading of the
+text, and someone could reasonably require the word "consecutive" before
+awarding 1b — which would move a number of studies down one tier.
+
+**This is why `sampling` and `timing` are recorded per study in the fixture.**
+Any disagreement between a grader and these labels can be traced to whether it
+turns on this convention or on a genuine misreading of the design, and those are
+different findings. Any measurement against this fixture must report that split
+rather than a single disagreement count.
