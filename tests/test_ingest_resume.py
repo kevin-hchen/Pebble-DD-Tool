@@ -334,15 +334,26 @@ def test_the_backfill_grades_a_v8_family_whose_own_numbers_fall_short_partial():
 
 
 def test_the_backfill_does_not_re_derive_columns_an_v8_file_already_has():
-    """v8 -> v9 touches coverage rows only. Recomputing 15,000 intervention
-    token blobs that are already correct is not free, and a migration step that
-    runs when its version gap is already closed is how two steps start
-    overwriting each other."""
+    """A migration step must not run when its own version gap is already closed.
+
+    v8 already holds correct `intervention_tokens`, so recomputing 15,000 blobs
+    is wasted work and is how two steps start overwriting each other. The
+    biomarker census is a different step with a different gap — v13 moved it —
+    and it SHOULD run here, which the assertions below keep apart."""
     path = _db()
     _v8_store(path, fetched=6, reported=6, n_records=6)
 
     result = migrate_derived_columns(path)
-    assert result["rows"] == 0, "no trial rows should be rewritten for a v8 file"
+    assert result["token_rows"] == 0, (
+        "no intervention_tokens blob should be rewritten for a v8 file — that is "
+        "the step whose version gap is already closed"
+    )
+    # The census IS recomputed, and must be: v13 changed the matcher by adding
+    # NOT_ASSESSABLE, so a stored census computed under the old rules would
+    # disagree with the live screen. That is the divergence the parity gate
+    # exists to catch, so this asserts the recompute happened rather than
+    # asserting the migration did nothing.
+    assert result["census_rows"] == 6, result
 
     conn = sqlite3.connect(str(path))
     assert conn.execute("PRAGMA user_version").fetchone()[0] == STORE_VERSION

@@ -142,6 +142,22 @@ EXCLUDED = "EXCLUDED"
 ELIGIBLE_BY_EXCLUSION = "ELIGIBLE_BY_EXCLUSION"
 NOT_MENTIONED = "NOT_MENTIONED"
 
+#: THE FIFTH STATE. The record raises this axis in a form that cannot be
+#: compared against a query.
+#:
+#: Distinct from NOT_MENTIONED, which asserts the record never raised the axis
+#: at all. A trial whose inclusion criteria say "the tumour must have been
+#: assessed for MSI-H status per a standard local testing method" HAS raised
+#: MSI status; it has simply not said which way it resolves. Reporting that as
+#: NOT_MENTIONED is a false statement about the record, and it is the shape that
+#: also covers a threshold with no stated units, an unrecognised ordinal scale,
+#: and "clinically significant" / "at investigator discretion" / "per
+#: institutional protocol".
+#:
+#: It is counted and shown, never folded into a residual, and it never outranks
+#: a real direction — see both reducers.
+NOT_ASSESSABLE = "NOT_ASSESSABLE"
+
 SOURCE_LABELS = {
     "eligibility_criteria": "eligibility criteria",
     "detailed_description": "detailed description",
@@ -196,6 +212,7 @@ class MarkerDef:
 @dataclass
 class MarkerSignal:
     category: str   # own_required | own_excluded | opp_required | opp_excluded
+                    # | own_unassessable | opp_unassessable
     span: str       # the criterion sentence that produced it
     source: str     # which text field it came from
 
@@ -492,14 +509,27 @@ def is_explicit_match(mdef: MarkerDef, span: str) -> bool:
 
 
 def split_signals(signals: list[MarkerSignal]):
-    """Bucket a signal list into the four categories. Each module applies its
-    own precedence over these buckets — see the module docstring."""
+    """Bucket a signal list into the four DIRECTIONAL categories. Each module
+    applies its own precedence over these buckets — see the module docstring.
+
+    Unassessable signals are deliberately NOT returned here. They are not a
+    fifth direction competing with the other four; they are the absence of a
+    direction on an axis the record did raise, and every caller must let a real
+    direction win over one. `unassessable_signals` returns them separately so a
+    caller has to ask for them, rather than receiving them in a tuple position
+    it might treat like the others."""
     return (
         [s for s in signals if s.category == "own_required"],
         [s for s in signals if s.category == "own_excluded"],
         [s for s in signals if s.category == "opp_required"],
         [s for s in signals if s.category == "opp_excluded"],
     )
+
+
+def unassessable_signals(signals: list[MarkerSignal]):
+    """Sentences that RAISED the axis without permitting a comparison."""
+    return [s for s in signals
+            if s.category in ("own_unassessable", "opp_unassessable")]
 
 
 def collect_signals(
@@ -519,6 +549,7 @@ def collect_signals(
     eligibility criterion for a trial that has one.
     """
     registry = MARKERS if markers is None else markers
+    held: list[MarkerSignal] = []
     opp = registry.get(mdef.opposite) if mdef.opposite else None
     own_re = _compiled(mdef)
     opp_re = _compiled(opp) if opp else None
@@ -528,9 +559,24 @@ def collect_signals(
             continue
         default_section = "unknown" if source == "eligibility_criteria" else "description"
         found: list[MarkerSignal] = []
+        unassessable: list[MarkerSignal] = []
 
         for section, sentence in iter_criteria(text, default_section=default_section):
             if _is_test_requirement(sentence):
+                # The axis IS raised — "the tumour must have been assessed for
+                # MSI-H status" names the marker — but the sentence states a
+                # test, not a result, so nothing can be compared against a
+                # query. That is NOT_ASSESSABLE, and it is not NOT_MENTIONED.
+                #
+                # Until now this sentence contributed nothing and the trial fell
+                # through to NOT_MENTIONED, which asserts the record never
+                # raised the axis. It did.
+                if own_re.search(sentence):
+                    unassessable.append(MarkerSignal(
+                        "own_unassessable", sentence.strip(), source))
+                elif opp_re is not None and opp_re.search(sentence):
+                    unassessable.append(MarkerSignal(
+                        "opp_unassessable", sentence.strip(), source))
                 continue
             ctx = _context(section, sentence)
 
@@ -557,4 +603,10 @@ def collect_signals(
 
         if found:
             return found
-    return []
+        if unassessable:
+            # Held, not returned yet. A later field may carry a real directional
+            # statement, and a direction always outranks "we were told to test
+            # for it" — the same rule that lets a detailed description fill a
+            # genuine gap without ever overriding a real eligibility criterion.
+            held = held or unassessable
+    return held

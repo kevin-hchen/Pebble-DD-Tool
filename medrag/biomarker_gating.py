@@ -48,6 +48,7 @@ from .markers import (  # noqa: F401  (re-exported for existing importers)
     MARKER_KEYS,
     MARKER_LABELS,
     MARKERS,
+    NOT_ASSESSABLE,
     NOT_MENTIONED,
     REQUIRED,
     MarkerDef,
@@ -98,6 +99,15 @@ def _reduce(mdef: MarkerDef, signals: list) -> MarkerFlag:
     if own_exc or opp_req:
         s = (own_exc or opp_req)[0]
         return MarkerFlag(mdef.key, EXCLUDED, s.span, s.source)
+    # Checked LAST, after every direction. A sentence that raised the axis
+    # without permitting a comparison never outranks one that stated a
+    # direction — C-800-25 mandates an MSI test in its inclusion criteria AND
+    # excludes MSI-H two lines later, and it is ELIGIBLE_BY_EXCLUSION, not
+    # unassessable.
+    unassessable = _m.unassessable_signals(signals)
+    if unassessable:
+        s = unassessable[0]
+        return MarkerFlag(mdef.key, NOT_ASSESSABLE, s.span, s.source)
     return MarkerFlag(mdef.key, NOT_MENTIONED)
 
 

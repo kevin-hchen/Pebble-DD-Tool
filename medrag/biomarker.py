@@ -50,6 +50,16 @@ ELIGIBLE = "ELIGIBLE"
 ELIGIBLE_BY_EXCLUSION = "ELIGIBLE BY EXCLUSION"
 EXCLUDED = "EXCLUDED"
 UNCLEAR = "UNCLEAR"
+#: The record raised the axis without permitting a comparison — a test mandated
+#: with no result stated, a threshold with no units, an unrecognised scale.
+#:
+#: SPACE-separated, like every other value here and unlike
+#: `markers.NOT_ASSESSABLE`. That difference is deliberate and pre-existing:
+#: this module's values are read by a human in a patient-facing table, while the
+#: census's are underscore-separated SQL LIKE tokens. Same state, two spellings,
+#: for two audiences — see CLAUDE.md.
+NOT_ASSESSABLE = "NOT ASSESSABLE"
+
 NOT_MENTIONED = "NOT MENTIONED"
 
 
@@ -132,6 +142,17 @@ def _reduce(mdef: MarkerDef, signals: list) -> BiomarkerMatch:
     if excluded_leaning:
         s = (own_exc or opp_req)[0]
         return BiomarkerMatch(EXCLUDED, s.span, mdef.key, True, s.source)
+    # Checked after every direction, and kept DISTINCT from UNCLEAR. They are
+    # different failures and a patient reads them differently: UNCLEAR means the
+    # record says two contradictory things, so a human must adjudicate;
+    # NOT_ASSESSABLE means the record raised the axis and said nothing that can
+    # be compared, so there is nothing to adjudicate. Collapsing the second into
+    # the first would invite a reader to look for a contradiction that is not
+    # there; collapsing it into NOT_MENTIONED would deny the axis was raised.
+    unassessable = _m.unassessable_signals(signals)
+    if unassessable:
+        s = unassessable[0]
+        return BiomarkerMatch(NOT_ASSESSABLE, s.span, mdef.key, True, s.source)
     return BiomarkerMatch(NOT_MENTIONED, "", mdef.key, True)
 
 

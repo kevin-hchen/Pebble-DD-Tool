@@ -45,6 +45,7 @@ from medrag.biomarker import (  # noqa: E402
 )
 from medrag.biomarker_gating import ELIGIBLE_BY_EXCLUSION as G_ELIGIBLE_BY_EXCLUSION
 from medrag.biomarker_gating import EXCLUDED as G_EXCLUDED
+from medrag.biomarker_gating import NOT_ASSESSABLE as G_NOT_ASSESSABLE
 from medrag.biomarker_gating import NOT_MENTIONED as G_NOT_MENTIONED
 from medrag.biomarker_gating import REQUIRED as G_REQUIRED
 from medrag.biomarker_gating import gate_markers
@@ -100,13 +101,26 @@ def test_ras_wild_type_real_mountaineer_phrasing_excludes_ras():
 # ------------------------------------------------- defect 2: testing != stating
 
 
-def test_documented_status_sentence_carries_no_signal():
+def test_documented_status_sentence_is_not_assessable_not_unmentioned():
     """STELLAR-303's actual RAS sentence: documents that a status was recorded,
-    states no direction. Must not flip RAS to REQUIRED or EXCLUDED."""
-    text = ("Inclusion Criteria:\n"
-           "* Documented rat sarcoma (RAS) status (mutant or wild-type [WT]), "
-           "by tissue-based analysis.")
-    assert gate_markers(text)["RAS"].status == G_NOT_MENTIONED
+    states no direction.
+
+    It must not flip RAS to REQUIRED or EXCLUDED — that was always the point,
+    and it still holds. What CHANGED in v13 is the other half: it used to come
+    back NOT_MENTIONED, which asserts the record never raised RAS at all. The
+    record plainly does raise it. `NOT_ASSESSABLE` says the true thing: the axis
+    is there and the sentence permits no comparison.
+    """
+    status = gate_markers(text := (
+        "Inclusion Criteria:\n"
+        "* Documented rat sarcoma (RAS) status (mutant or wild-type [WT]), "
+        "by tissue-based analysis."))["RAS"].status
+    assert status == G_NOT_ASSESSABLE, status
+    assert status not in (G_REQUIRED, G_EXCLUDED), (
+        "the original property: a documented-status sentence states no direction "
+        "and must never produce one"
+    )
+    assert text        # the sentence is carried to the reader; see the flag's span
 
 
 def test_assessed_for_status_does_not_outrank_a_real_exclusion():

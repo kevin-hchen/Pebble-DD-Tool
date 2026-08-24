@@ -92,7 +92,12 @@ from .client import STOPPED_STATUSES, TrialRecord
 # missing field lives in a module the API will return on its own. Hence
 # `_REFETCHABLE_FROM` below — a third category between "recompute offline" and
 # "delete and start over".
-STORE_VERSION = 12
+# v13 adds NOT_ASSESSABLE to the biomarker census. The gating tokens are a
+# DERIVED column, so a matcher change forces a bump — leaving them would mean
+# every landscape COUNT reflecting the old four states while the live screen
+# reflects five, which is exactly the divergence the census/live parity gate
+# exists to catch. Pure recomputation from stored text, no re-fetch.
+STORE_VERSION = 13
 
 #: The backfill's record of what has been ASKED. Separate from the column, which
 #: records what has been ANSWERED — an ID the registry does not return leaves the
@@ -312,7 +317,7 @@ def _intervention_clause(intervention: str, params: list, join: str = "AND",
 #: outright, because the missing columns hold data only a re-fetch can supply
 #: (v4's fetch provenance, v5's detailed_description) and inventing them would
 #: be worse than the refusal.
-_BACKFILLABLE_FROM = frozenset({7, 8, 9, 10})
+_BACKFILLABLE_FROM = frozenset({7, 8, 9, 10, 12})
 
 #: Schema versions whose gap needs the REGISTRY but not a re-ingest.
 #:
@@ -508,7 +513,9 @@ def migrate_derived_columns(path: str | Path) -> dict:
         # rules while the live screen reflects the new ones. That divergence is
         # exactly what the census/live equality gate exists to catch.
         census: list = []
-        if version < 11:
+        if version < 13:      # v11 introduced this step; v13 re-runs it for
+                              # NOT_ASSESSABLE, which is a matcher change and so
+                              # must move the stored census with it.
             rows = conn.execute(
                 "SELECT nct_id, eligibility_criteria, detailed_description, "
                 "brief_summary, keywords FROM trials").fetchall()
@@ -537,9 +544,16 @@ def migrate_derived_columns(path: str | Path) -> dict:
                 conn.executemany(
                     "UPDATE query_coverage SET status = ?, held = ? WHERE set_key = ?", graded)
             conn.execute(f"PRAGMA user_version = {STORE_VERSION}")
-        return {"migrated": True, "from_version": version, "rows": len(updates),
+        # `updates` is the v8 intervention_tokens backfill and `census` is the
+        # v11/v13 biomarker recompute. Reporting only the first told an operator
+        # "0 record(s) recomputed" after a run that had just rewritten the census
+        # for 241,298 trials — a migration that looks like a no-op is one nobody
+        # trusts ran.
+        return {"migrated": True, "from_version": version,
+                "rows": max(len(updates), len(census)),
+                "token_rows": len(updates), "census_rows": len(census),
                 "graded": [(k, s) for s, _h, k in graded],
-                "membership": membership_check, "census_rows": len(census),
+                "membership": membership_check,
                 "reason": ""}
     finally:
         conn.close()
