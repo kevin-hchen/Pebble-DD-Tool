@@ -612,6 +612,35 @@ class TrialStore:
         if version == STORE_VERSION:
             return
         self.conn.close()
+        # A store NEWER than the code is a different fault with the OPPOSITE
+        # remedy, and it is checked FIRST because every branch below assumes the
+        # store is behind. Such a store lacks nothing: a later revision wrote it,
+        # so it holds more than this code knows how to read, not less. The thing
+        # that has to move is the CODE.
+        #
+        # Until this branch existed the final `else` caught it, so the message
+        # said "built by an older version" — false — and handed the operator
+        # `rm <store>` plus a re-ingest. Following that destroys a verified
+        # 241,298-record store to recover data it already has, on a diagnosis
+        # that is backwards. A destructive instruction given on a wrong
+        # diagnosis is worse than a crash: a crash stops, this proceeds.
+        #
+        # The branch states what to KEEP and what to check out, and deliberately
+        # does not spell out the destructive command in order to forbid it — a
+        # reader skimming, or a text match, sees the instruction and not its
+        # negation. Same rule as the caveats phrasing.py lints. See CLAUDE.md.
+        if version > STORE_VERSION:
+            raise TrialStoreSchemaError(
+                f"the trial database at {self.path} was built by a NEWER version "
+                f"of this tool (schema v{version}, this code is v{STORE_VERSION}). "
+                "The store is intact and needs no re-fetch: it holds more than "
+                "this code can read, not less. Keep the store and move the code — "
+                f"check out the revision that declares STORE_VERSION = {version}:\n"
+                f"    git log -S 'STORE_VERSION = {version}' -- medrag/trials/store.py\n"
+                "  If no revision in history declares it, the store was written "
+                "by uncommitted work, and the only code that can read it is that "
+                "working tree."
+            )
         # Two different remedies, and telling them apart matters: some gaps need
         # a re-fetch, and some are a pure recomputation of data already in the
         # file. Sending an operator to re-download 12,000 records for a column
