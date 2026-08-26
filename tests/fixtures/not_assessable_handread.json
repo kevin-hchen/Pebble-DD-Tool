@@ -1,0 +1,402 @@
+[
+ {
+  "nct_id": "NCT00680901",
+  "title": "LOGiC - Lapatinib Optimization Study in ErbB2 (HER2) Positive Gastric Cancer: A Phase III Global, Blinded Study Designed to Evaluate Clinical Endpoints and Safety of Chemotherapy Plus Lapatinib",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be REQUIRED",
+  "reason": "HER2 amplification by FISH is required (HER2-positive gastric cancer trial); 'assessed by the local or designated central laboratory' neutralised a stated requirement."
+ },
+ {
+  "nct_id": "NCT01904968",
+  "title": "Impact of Methylation Alterations in Colon Cancer: Epidemiology and Prognosis",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "brief_summary"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Methylation/pyrosequencing prose in the brief summary. Eligibility criteria name no RAS direction and no RAS match at all."
+ },
+ {
+  "nct_id": "NCT01947023",
+  "title": "Dabrafenib and Lapatinib in Treating Patients With Refractory Thyroid Cancer That Cannot Be Removed by Surgery",
+  "not_assessable_markers": [
+   "BRAF_V600E"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:EXCLUDED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "BRAF_V600E should be REQUIRED",
+  "reason": "'thyroid cancer with a BRAF V600E or V600K ... mutation' is a stated requirement; 'histologically or cytologically confirmed' neutralised it."
+ },
+ {
+  "nct_id": "NCT02098954",
+  "title": "Erlotinib Combined With Chemotherapy in TKI Resistant Non-Small Cell Lung Cancers",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "EGFR-TKI lung trial; span is enrolment prose in the detailed description. Eligibility names no RAS."
+ },
+ {
+  "nct_id": "NCT02177656",
+  "title": "Motivational Interviewing Tailored Intervention for Patients With Heart Failure (MITI-HF)",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Heart-failure motivational-interviewing trial. Span is trial-design prose; eligibility contains no RAS or sarcoma match whatsoever."
+ },
+ {
+  "nct_id": "NCT02586987",
+  "title": "A Study to Assess the Safety, Tolerability and Anti-tumour Activity of Ascending Doses of Selumetinib in Combination With MEDI4736 and Selumetinib in Combination With MEDI4736 and Tremelimumab in Patients With Advanced Solid Tumours",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "MSS ELIGIBLE_BY_EXCLUSION, MSI_H EXCLUDED",
+  "reason": "'if MSI status is known, non-high MSI status' plus 'Patients with known MSI-high status will be excluded'. A direction is stated; 'MSI status will be evaluated based on ... local MSI testing' neutralised it."
+ },
+ {
+  "nct_id": "NCT02685059",
+  "title": "Addition of PD-L1 Antibody MEDI4736 to a Taxane-anthracycline Chemotherapy in Triple Negative Breast Cancer",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
+  "reason": "'centrally confirmed ER negative/PR negative/HER-2 negative' states HER2-negative; 'centrally confirmed' neutralised it."
+ },
+ {
+  "nct_id": "NCT03220477",
+  "title": "Pembrolizumab (Immunotherapy Drug) in Combination With Guadecitabine and Mocetinostat (Epigenetic Drugs) for Patients With Advanced Lung Cancer.",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "KRAS is named only to say which OTHER test is unnecessary ('unless a KRAS mutation is detected in which case EGFR/ALK testing is not required'). Axis raised, no eligibility direction."
+ },
+ {
+  "nct_id": "NCT03351959",
+  "title": "Complete Pathologic Response Rectal Cancers",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Span is epidemiological background prose in the detailed description. Eligibility names no RAS."
+ },
+ {
+  "nct_id": "NCT03598348",
+  "title": "Evaluate the Efficacy of Maintenance Treatment With Capecitabine Plus Apatinib in Advanced Gastric Cancer",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
+  "reason": "'patients with HER2-negative disease' is a stated requirement; 'were tested for tumor HER2 status' neutralised it."
+ },
+ {
+  "nct_id": "NCT04508140",
+  "title": "Study of BO-112 With Pembrolizumab for Colorectal or Gastric/GEJ Cancer With Liver Metastasis",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:EXCLUDED BRAF_V600E:NOT_MENTIONED HER2_AMP:REQUIRED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "prose states MSS; a direction, not NOT_ASSESSABLE",
+  "reason": "MSS appears only in detailed-description prose describing the study aim. Eligibility is silent, so the field fallback fired and produced a verdict rather than a direction."
+ },
+ {
+  "nct_id": "NCT05400681",
+  "title": "Liquid Biopsy for ctDNA in Peritoneal Lavage and Blood in Pancreatic Cancer",
+  "not_assessable_markers": [
+   "KRAS_G12D"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:REQUIRED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_ASSESSABLE",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Span is laboratory-processing prose (centrifuge tubes, FFPE). Eligibility names no KRAS G12D."
+ },
+ {
+  "nct_id": "NCT05425940",
+  "title": "Study of XL092 + Atezolizumab vs Regorafenib in Participants With Metastatic Colorectal Cancer",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:ELIGIBLE_BY_EXCLUSION MSI_H:EXCLUDED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "STELLAR-303. 'Documented RAS status (mutant or wild-type [WT])' admits both arms explicitly. Genuinely not assessable; MSS verdict on this trial is unaffected."
+ },
+ {
+  "nct_id": "NCT05619172",
+  "title": "A Study of Nanrilkefusp Alfa (SOT101) in Combination With Cetuximab to Evaluate the Efficacy and Safety in Patients With Colorectal Cancer",
+  "not_assessable_markers": [
+   "KRAS_G12C",
+   "KRAS_G12D"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:EXCLUDED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_ASSESSABLE KRAS_G12D:NOT_ASSESSABLE",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "KRAS_G12C/KRAS_G12D should be EXCLUDED",
+  "reason": "The criterion is 'RAS wild type as confirmed by:' followed by the assay panel. RAS is correctly EXCLUDED, but a G12C/G12D patient is excluded by that same requirement and reads NOT ASSESSABLE. NOTE: neutralised by _ASSAY_PANEL as well as _is_test_requirement, so fix 2 as scoped does NOT resolve this one."
+ },
+ {
+  "nct_id": "NCT05700669",
+  "title": "Study to Assess Safety and Efficacy of AsiDNA in Combination with Olaparib in Participants with Recurrent Solid Tumors",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'Participants must have documented status of ER, PR, and HER2' mandates a test and states no direction."
+ },
+ {
+  "nct_id": "NCT05742607",
+  "title": "IPH5201 and Durvalumab in Patients With Resectable Non-Small Cell Lung Cancer (MATISSE)",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'Patients with documented KRAS mutations do not require EGFR/ALK status' names KRAS only to waive another test."
+ },
+ {
+  "nct_id": "NCT05860335",
+  "title": "Efficacy and Safety of Toripalimab Combined With AP-induced Chemotherapy Followed in Non-metastatic IVB Hypopharyngeal Cancer",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H"
+  ],
+  "span_sources": [
+   "brief_summary"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Hypopharyngeal cancer; span is brief-summary prose about study goals. Eligibility names neither MSS nor MSI-H."
+ },
+ {
+  "nct_id": "NCT06257758",
+  "title": "A Phase 1/2 Study of VIO-01 in Participants With Recurrent Solid Tumors",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'must have documented status of ER, PR, and HER2 according to ASCO-CAP criteria' is a test mandate with no direction."
+ },
+ {
+  "nct_id": "NCT06264180",
+  "title": "VO and Nivolumab vs Physician's Choice in Advanced Melanoma That Progressed on Anti-PD-1 & Anti-CTLA-4 Drugs [IGNYTE-3]",
+  "not_assessable_markers": [
+   "BRAF_V600E"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'documented BRAF V600 mutation status OR must consent to BRAF V600 testing' admits both; the later BRAF sentence conditions prior therapy, not eligibility."
+ },
+ {
+  "nct_id": "NCT06331975",
+  "title": "Radiomics and Radiogenomics of Non-small Cell Lung Cancer",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "should be NOT_MENTIONED",
+  "reason": "Radiomics study; span is detailed-description prose about the study group. Eligibility names no RAS."
+ },
+ {
+  "nct_id": "NCT06941818",
+  "title": "HS-IT101 Injection in the Treatment of Advanced Melanoma",
+  "not_assessable_markers": [
+   "BRAF_V600E"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'Subjects with BRAF V600 mutations must have failed BRAF-targeted therapy' conditions prior therapy for mutation carriers; it does not gate eligibility on BRAF status."
+ },
+ {
+  "nct_id": "NCT07030569",
+  "title": "RADIomics to Predict HER2 Status And T-DXd Efficacy in Metastatic Breast Cancer: the RADIOSPHER2 Study",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "detailed_description"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "PROSE_SOURCED",
+  "correct_verdict_if_wrong": "",
+  "reason": "Span is radiomics-model prose in the detailed description. Eligibility mentions HER2 only as 'Unknown HER2 status' in exclusions, which the marker pattern does not match, so the field fallback fired."
+ },
+ {
+  "nct_id": "NCT07116577",
+  "title": "Radiotherapy Combined QL1706, TAS-102 and Bevacizumab in mCRC",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'Documented KRAS and BRAF mutation status (mutant or wild-type) must be available' admits both arms explicitly."
+ },
+ {
+  "nct_id": "NCT07198165",
+  "title": "SCRT Followed by CAPOX + Bev ± PD-1 Inhibitor for TNT in LARC",
+  "not_assessable_markers": [
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:ELIGIBLE_BY_EXCLUSION MSI_H:EXCLUDED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'RAS mutation status is permitted regardless' states outright that RAS does not gate entry."
+ },
+ {
+  "nct_id": "NCT07514065",
+  "title": "TSL2109 Capsules in Advanced Solid Tumor Patients: Safety, Tolerability, PK and Preliminary Efficacy",
+  "not_assessable_markers": [
+   "HER2_AMP"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
+  "reason": "'HR-positive, HER2-negative breast cancer' states HER2-negative; 'Histologically or cytologically confirmed' neutralised it."
+ },
+ {
+  "nct_id": "NCT07546812",
+  "title": "Study of Denikitug (GS-1811) Given Alone or With Nivolumab or Chemotherapy in Adults With Metastatic Gastric, Gastroesophageal Junction (GEJ), and Esophageal Adenocarcinomas",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "MSS ELIGIBLE_BY_EXCLUSION, MSI_H EXCLUDED",
+  "reason": "Exclusion criterion 'Documented microsatellite instability-high (MSI-H) or deficient mismatch repair (dMMR) disease by local PCR'. MSI-H excluded; 'Documented ... by local PCR' neutralised it."
+ },
+ {
+  "nct_id": "NCT07631871",
+  "title": "An Exploratory Study of Zanidatamab in HER2-positive Advanced Tumor After at Least One Line of Standard Therapy",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H",
+   "RAS"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:REQUIRED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "BELONGS",
+  "correct_verdict_if_wrong": "",
+  "reason": "'For CRC patients: documented RAS status (wild-type or mutant)' admits both; the MSS/MSI-H mention conditions prior anti-PD-L1 therapy rather than entry."
+ },
+ {
+  "nct_id": "NCT07645118",
+  "title": "Brachytherapy Followed by Nivolumab Prior to Surgery in Rectal Cancer",
+  "not_assessable_markers": [
+   "MSS",
+   "MSI_H"
+  ],
+  "span_sources": [
+   "eligibility_criteria"
+  ],
+  "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "MSS should be REQUIRED, MSI_H EXCLUDED",
+  "reason": "'Proficient mismatch repair (pMMR) status ... and/or microsatellite instability-low (MSI-L) status' REQUIRES pMMR, a positive MSS variant; 'as determined by immunohistochemistry' neutralised it. An MSS patient is shown NOT ASSESSABLE for a trial that requires their marker."
+ }
+]
