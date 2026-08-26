@@ -317,3 +317,42 @@ owner has stated most often, and because device compatibility is the only
 candidate axis with no drug counterpart — so it tests whether parity is
 achievable rather than borrowing machinery that already works for drugs. That is
 a reason of parity. It is NOT a judgement that D is worth less.
+
+---
+
+## A hand-read is performed against the complete record — recorded 27 August 2026
+
+**The rule.** When a label is produced by reading a record, it is read from the
+COMPLETE record — the whole eligibility block, the whole abstract — never from
+an excerpt, a truncated span, or a dossier summary generated to make the reading
+convenient. The fixture that stores the labels records WHICH it was, per row or
+in a README beside it, so a future reader can tell whether this failure mode
+applies to it.
+
+**Why, with the case.** The 28-trial `NOT_ASSESSABLE` hand-read
+(`tests/fixtures/not_assessable_handread.json`) was performed against a
+generated dossier that printed the first 170 characters of each matching
+sentence. Two rows — NCT05700669 and NCT06257758 — were labelled BELONGS on that
+basis. Both criterion blocks end:
+
+> "Participants with HER2 positive disease are not eligible for enrollment."
+
+past the end of what was printed. Both records state a direction; both labels
+were wrong, and wrong in the same way, because the same excerpt boundary hid the
+same clause. The corrected split is 9 prose-sourced / 11 direction-swallowed /
+8 belongs — 20 wrong of 28, not 18.
+
+**What makes this worth a standing rule rather than a correction.** The defect
+is in the METHOD, not in the reading. A hand-read is the control this project
+falls back on when every automated gate is clean — it is what caught the Stage B
+emission being wrong on most of the records it fired on. A control with a silent
+truncation in it produces confident labels that are wrong in a correlated way,
+and it then freezes them into a fixture that everything downstream is measured
+against. That is worse than no control, because it looks like one.
+
+**Applies to.** `not_assessable_handread.json` (28, per-row `source_span`),
+`diagnostic_ground_truth.json` (110) and `diagnostic_confirmatory.json` (40),
+whose span is stated in `diagnostic_ground_truth.README.md`: title, abstract and
+PubMed publication types — the complete record available for a published study.
+`tests/test_not_assessable_handread.py::test_every_row_records_the_span_it_was_read_from`
+and `tests/test_handread_provenance.py` enforce it.

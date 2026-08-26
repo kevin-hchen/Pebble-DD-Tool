@@ -49,13 +49,20 @@ netguard.install()
 FIXTURE = Path(__file__).resolve().parent / "fixtures" / "not_assessable_handread.json"
 
 #: sha256 as committed, alongside the labels and before either fix was written.
-FIXTURE_SHA256 = "aa60fe194fd2420dd3398917366c76809fadfe629b620826682ac4a745d512a0"
+FIXTURE_SHA256 = "26e919b312bc521ba97e085d5a3ad8349a100be99ff14b41e530ab24744d6820"
 
 VERDICTS = ("PROSE_SOURCED", "DIRECTION_SWALLOWED", "BELONGS")
 
-#: The split as hand-read on the v13 census (commit 2161d73). Pinned so a later
-#: re-read that disagrees has to say so in a commit rather than overwrite it.
-RECORDED = {"PROSE_SOURCED": 9, "DIRECTION_SWALLOWED": 9, "BELONGS": 10}
+#: The split as hand-read on the v13 census (commit 2161d73), CORRECTED once.
+#: Pinned so a later re-read that disagrees has to say so in a commit rather
+#: than overwrite it.
+#:
+#: The original read recorded 9/9/10. NCT05700669 and NCT06257758 were labelled
+#: BELONGS from a 170-character dossier excerpt; both criterion blocks end
+#: "Participants with HER2 positive disease are not eligible for enrollment",
+#: past the end of what was read. Both are DIRECTION_SWALLOWED. See
+#: docs/DECISIONS.md — a hand-read is performed against the complete record.
+RECORDED = {"PROSE_SOURCED": 9, "DIRECTION_SWALLOWED": 11, "BELONGS": 8}
 
 
 def _load():
@@ -78,6 +85,21 @@ def test_every_trial_carries_a_verdict_and_a_reason():
         assert e["verdict"] in VERDICTS, f"{e['nct_id']}: bad verdict {e['verdict']!r}"
         assert e["reason"].strip(), f"{e['nct_id']}: no reasoning recorded"
         assert e["not_assessable_markers"], f"{e['nct_id']}: no marker recorded"
+
+
+def test_every_row_records_the_span_it_was_read_from():
+    """The method defect that produced two wrong labels, made visible.
+
+    Two rows were labelled from a truncated excerpt and both were wrong in the
+    same way. A fixture that does not say what was read cannot be audited for
+    that failure mode, so every row states its source span.
+    """
+    for e in _load():
+        assert e.get("source_span", "").strip(), (
+            f"{e['nct_id']}: no source_span recorded. A hand-read label whose "
+            "source is unknown cannot be checked for the excerpt-truncation "
+            "failure — see docs/DECISIONS.md."
+        )
 
 
 def test_a_wrong_verdict_states_what_it_should_have_been():

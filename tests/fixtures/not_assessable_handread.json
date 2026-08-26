@@ -11,7 +11,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "HER2_AMP should be REQUIRED",
-  "reason": "HER2 amplification by FISH is required (HER2-positive gastric cancer trial); 'assessed by the local or designated central laboratory' neutralised a stated requirement."
+  "reason": "HER2 amplification by FISH is required (HER2-positive gastric cancer trial); 'assessed by the local or designated central laboratory' neutralised a stated requirement.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT01904968",
@@ -25,7 +26,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Methylation/pyrosequencing prose in the brief summary. Eligibility criteria name no RAS direction and no RAS match at all."
+  "reason": "Methylation/pyrosequencing prose in the brief summary. Eligibility criteria name no RAS direction and no RAS match at all.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT01947023",
@@ -39,7 +41,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:EXCLUDED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "BRAF_V600E should be REQUIRED",
-  "reason": "'thyroid cancer with a BRAF V600E or V600K ... mutation' is a stated requirement; 'histologically or cytologically confirmed' neutralised it."
+  "reason": "'thyroid cancer with a BRAF V600E or V600K ... mutation' is a stated requirement; 'histologically or cytologically confirmed' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT02098954",
@@ -53,7 +56,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "EGFR-TKI lung trial; span is enrolment prose in the detailed description. Eligibility names no RAS."
+  "reason": "EGFR-TKI lung trial; span is enrolment prose in the detailed description. Eligibility names no RAS.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT02177656",
@@ -67,7 +71,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Heart-failure motivational-interviewing trial. Span is trial-design prose; eligibility contains no RAS or sarcoma match whatsoever."
+  "reason": "Heart-failure motivational-interviewing trial. Span is trial-design prose; eligibility contains no RAS or sarcoma match whatsoever.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT02586987",
@@ -82,7 +87,8 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "MSS ELIGIBLE_BY_EXCLUSION, MSI_H EXCLUDED",
-  "reason": "'if MSI status is known, non-high MSI status' plus 'Patients with known MSI-high status will be excluded'. A direction is stated; 'MSI status will be evaluated based on ... local MSI testing' neutralised it."
+  "reason": "'if MSI status is known, non-high MSI status' plus 'Patients with known MSI-high status will be excluded'. A direction is stated; 'MSI status will be evaluated based on ... local MSI testing' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT02685059",
@@ -96,7 +102,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
-  "reason": "'centrally confirmed ER negative/PR negative/HER-2 negative' states HER2-negative; 'centrally confirmed' neutralised it."
+  "reason": "'centrally confirmed ER negative/PR negative/HER-2 negative' states HER2-negative; 'centrally confirmed' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT03220477",
@@ -110,7 +117,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "KRAS is named only to say which OTHER test is unnecessary ('unless a KRAS mutation is detected in which case EGFR/ALK testing is not required'). Axis raised, no eligibility direction."
+  "reason": "KRAS is named only to say which OTHER test is unnecessary ('unless a KRAS mutation is detected in which case EGFR/ALK testing is not required'). Axis raised, no eligibility direction.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT03351959",
@@ -124,7 +132,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Span is epidemiological background prose in the detailed description. Eligibility names no RAS."
+  "reason": "Span is epidemiological background prose in the detailed description. Eligibility names no RAS.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT03598348",
@@ -138,7 +147,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
-  "reason": "'patients with HER2-negative disease' is a stated requirement; 'were tested for tumor HER2 status' neutralised it."
+  "reason": "'patients with HER2-negative disease' is a stated requirement; 'were tested for tumor HER2 status' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT04508140",
@@ -153,7 +163,8 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:EXCLUDED BRAF_V600E:NOT_MENTIONED HER2_AMP:REQUIRED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "prose states MSS; a direction, not NOT_ASSESSABLE",
-  "reason": "MSS appears only in detailed-description prose describing the study aim. Eligibility is silent, so the field fallback fired and produced a verdict rather than a direction."
+  "reason": "MSS appears only in detailed-description prose describing the study aim. Eligibility is silent, so the field fallback fired and produced a verdict rather than a direction.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT05400681",
@@ -167,7 +178,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:REQUIRED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_ASSESSABLE",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Span is laboratory-processing prose (centrifuge tubes, FFPE). Eligibility names no KRAS G12D."
+  "reason": "Span is laboratory-processing prose (centrifuge tubes, FFPE). Eligibility names no KRAS G12D.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT05425940",
@@ -181,7 +193,8 @@
   "gating": "MSS:ELIGIBLE_BY_EXCLUSION MSI_H:EXCLUDED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "STELLAR-303. 'Documented RAS status (mutant or wild-type [WT])' admits both arms explicitly. Genuinely not assessable; MSS verdict on this trial is unaffected."
+  "reason": "STELLAR-303. 'Documented RAS status (mutant or wild-type [WT])' admits both arms explicitly. Genuinely not assessable; MSS verdict on this trial is unaffected.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT05619172",
@@ -196,7 +209,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:EXCLUDED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_ASSESSABLE KRAS_G12D:NOT_ASSESSABLE",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "KRAS_G12C/KRAS_G12D should be EXCLUDED",
-  "reason": "The criterion is 'RAS wild type as confirmed by:' followed by the assay panel. RAS is correctly EXCLUDED, but a G12C/G12D patient is excluded by that same requirement and reads NOT ASSESSABLE. NOTE: neutralised by _ASSAY_PANEL as well as _is_test_requirement, so fix 2 as scoped does NOT resolve this one."
+  "reason": "The criterion is 'RAS wild type as confirmed by:' followed by the assay panel. RAS is correctly EXCLUDED, but a G12C/G12D patient is excluded by that same requirement and reads NOT ASSESSABLE. NOTE: neutralised by _ASSAY_PANEL as well as _is_test_requirement, so fix 2 as scoped does NOT resolve this one.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT05700669",
@@ -208,9 +222,10 @@
    "eligibility_criteria"
   ],
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
-  "verdict": "BELONGS",
-  "correct_verdict_if_wrong": "",
-  "reason": "'Participants must have documented status of ER, PR, and HER2' mandates a test and states no direction."
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
+  "reason": "CORRECTED 2026-08-27. Originally labelled BELONGS from a 170-character dossier excerpt. The full criterion block ends 'iv. Participants with HER2 positive disease are not eligible for enrollment' — a stated direction, past the end of the excerpt. The mandate clause ('must have documented status of ER, PR, and HER2') is real but is not the whole criterion.",
+  "source_span": "complete eligibility_criteria block (re-read)"
  },
  {
   "nct_id": "NCT05742607",
@@ -224,7 +239,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'Patients with documented KRAS mutations do not require EGFR/ALK status' names KRAS only to waive another test."
+  "reason": "'Patients with documented KRAS mutations do not require EGFR/ALK status' names KRAS only to waive another test.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT05860335",
@@ -239,7 +255,8 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Hypopharyngeal cancer; span is brief-summary prose about study goals. Eligibility names neither MSS nor MSI-H."
+  "reason": "Hypopharyngeal cancer; span is brief-summary prose about study goals. Eligibility names neither MSS nor MSI-H.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT06257758",
@@ -251,9 +268,10 @@
    "eligibility_criteria"
   ],
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
-  "verdict": "BELONGS",
-  "correct_verdict_if_wrong": "",
-  "reason": "'must have documented status of ER, PR, and HER2 according to ASCO-CAP criteria' is a test mandate with no direction."
+  "verdict": "DIRECTION_SWALLOWED",
+  "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
+  "reason": "CORRECTED 2026-08-27. Same cause and same wording as NCT05700669: the block ends 'Participants with HER2 positive disease are not eligible for enrollment', outside the excerpt the label was read from.",
+  "source_span": "complete eligibility_criteria block (re-read)"
  },
  {
   "nct_id": "NCT06264180",
@@ -267,7 +285,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'documented BRAF V600 mutation status OR must consent to BRAF V600 testing' admits both; the later BRAF sentence conditions prior therapy, not eligibility."
+  "reason": "'documented BRAF V600 mutation status OR must consent to BRAF V600 testing' admits both; the later BRAF sentence conditions prior therapy, not eligibility.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT06331975",
@@ -281,7 +300,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "should be NOT_MENTIONED",
-  "reason": "Radiomics study; span is detailed-description prose about the study group. Eligibility names no RAS."
+  "reason": "Radiomics study; span is detailed-description prose about the study group. Eligibility names no RAS.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT06941818",
@@ -295,7 +315,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_ASSESSABLE HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'Subjects with BRAF V600 mutations must have failed BRAF-targeted therapy' conditions prior therapy for mutation carriers; it does not gate eligibility on BRAF status."
+  "reason": "'Subjects with BRAF V600 mutations must have failed BRAF-targeted therapy' conditions prior therapy for mutation carriers; it does not gate eligibility on BRAF status.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07030569",
@@ -309,7 +330,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "PROSE_SOURCED",
   "correct_verdict_if_wrong": "",
-  "reason": "Span is radiomics-model prose in the detailed description. Eligibility mentions HER2 only as 'Unknown HER2 status' in exclusions, which the marker pattern does not match, so the field fallback fired."
+  "reason": "Span is radiomics-model prose in the detailed description. Eligibility mentions HER2 only as 'Unknown HER2 status' in exclusions, which the marker pattern does not match, so the field fallback fired.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07116577",
@@ -323,7 +345,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'Documented KRAS and BRAF mutation status (mutant or wild-type) must be available' admits both arms explicitly."
+  "reason": "'Documented KRAS and BRAF mutation status (mutant or wild-type) must be available' admits both arms explicitly.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07198165",
@@ -337,7 +360,8 @@
   "gating": "MSS:ELIGIBLE_BY_EXCLUSION MSI_H:EXCLUDED RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'RAS mutation status is permitted regardless' states outright that RAS does not gate entry."
+  "reason": "'RAS mutation status is permitted regardless' states outright that RAS does not gate entry.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07514065",
@@ -351,7 +375,8 @@
   "gating": "MSS:NOT_MENTIONED MSI_H:NOT_MENTIONED RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_ASSESSABLE KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "HER2_AMP should be EXCLUDED",
-  "reason": "'HR-positive, HER2-negative breast cancer' states HER2-negative; 'Histologically or cytologically confirmed' neutralised it."
+  "reason": "'HR-positive, HER2-negative breast cancer' states HER2-negative; 'Histologically or cytologically confirmed' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07546812",
@@ -366,7 +391,8 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "MSS ELIGIBLE_BY_EXCLUSION, MSI_H EXCLUDED",
-  "reason": "Exclusion criterion 'Documented microsatellite instability-high (MSI-H) or deficient mismatch repair (dMMR) disease by local PCR'. MSI-H excluded; 'Documented ... by local PCR' neutralised it."
+  "reason": "Exclusion criterion 'Documented microsatellite instability-high (MSI-H) or deficient mismatch repair (dMMR) disease by local PCR'. MSI-H excluded; 'Documented ... by local PCR' neutralised it.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07631871",
@@ -382,7 +408,8 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_ASSESSABLE BRAF_V600E:NOT_MENTIONED HER2_AMP:REQUIRED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "BELONGS",
   "correct_verdict_if_wrong": "",
-  "reason": "'For CRC patients: documented RAS status (wild-type or mutant)' admits both; the MSS/MSI-H mention conditions prior anti-PD-L1 therapy rather than entry."
+  "reason": "'For CRC patients: documented RAS status (wild-type or mutant)' admits both; the MSS/MSI-H mention conditions prior anti-PD-L1 therapy rather than entry.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  },
  {
   "nct_id": "NCT07645118",
@@ -397,6 +424,7 @@
   "gating": "MSS:NOT_ASSESSABLE MSI_H:NOT_ASSESSABLE RAS:NOT_MENTIONED BRAF_V600E:NOT_MENTIONED HER2_AMP:NOT_MENTIONED KRAS_G12C:NOT_MENTIONED KRAS_G12D:NOT_MENTIONED",
   "verdict": "DIRECTION_SWALLOWED",
   "correct_verdict_if_wrong": "MSS should be REQUIRED, MSI_H EXCLUDED",
-  "reason": "'Proficient mismatch repair (pMMR) status ... and/or microsatellite instability-low (MSI-L) status' REQUIRES pMMR, a positive MSS variant; 'as determined by immunohistochemistry' neutralised it. An MSS patient is shown NOT ASSESSABLE for a trial that requires their marker."
+  "reason": "'Proficient mismatch repair (pMMR) status ... and/or microsatellite instability-low (MSI-L) status' REQUIRES pMMR, a positive MSS variant; 'as determined by immunohistochemistry' neutralised it. An MSS patient is shown NOT ASSESSABLE for a trial that requires their marker.",
+  "source_span": "dossier excerpt, 170 chars, plus every eligibility sentence matching the marker or its opposite"
  }
 ]
