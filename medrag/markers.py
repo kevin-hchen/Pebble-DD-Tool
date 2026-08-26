@@ -571,12 +571,29 @@ def collect_signals(
                 # Until now this sentence contributed nothing and the trial fell
                 # through to NOT_MENTIONED, which asserts the record never
                 # raised the axis. It did.
-                if own_re.search(sentence):
-                    unassessable.append(MarkerSignal(
-                        "own_unassessable", sentence.strip(), source))
-                elif opp_re is not None and opp_re.search(sentence):
-                    unassessable.append(MarkerSignal(
-                        "opp_unassessable", sentence.strip(), source))
+                #
+                # ONLY from eligibility criteria. A detailed description or a
+                # brief summary may fill a genuine gap with a real DIRECTION —
+                # that is what the field fallback is for — but it must never
+                # manufacture a verdict where eligibility is silent. Emitting
+                # from prose put `RAS: NOT_ASSESSABLE` on NCT02177656, a
+                # heart-failure motivational-interviewing trial whose
+                # eligibility text contains no RAS or sarcoma match at all, off
+                # a sentence of trial-design prose. That inverts the rule this
+                # module already states for the fallback: supplementary text
+                # fills a gap, it never overrides — and manufacturing a verdict
+                # from silence is the strongest form of overriding.
+                #
+                # Measured on the 28 records that carried NOT_ASSESSABLE: this
+                # clears 9 of 9 prose-sourced verdicts and touches nothing else.
+                # See tests/fixtures/not_assessable_handread.json.
+                if source == "eligibility_criteria":
+                    if own_re.search(sentence):
+                        unassessable.append(MarkerSignal(
+                            "own_unassessable", sentence.strip(), source))
+                    elif opp_re is not None and opp_re.search(sentence):
+                        unassessable.append(MarkerSignal(
+                            "opp_unassessable", sentence.strip(), source))
                 continue
             ctx = _context(section, sentence)
 
