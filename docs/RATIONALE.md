@@ -40,6 +40,7 @@ rule.
 * [20. Known-unverified — what has never run for real](#20-known-unverified-what-has-never-run-for-real)
 * [21. Deliberately not built, and the complete FDA surface](#21-deliberately-not-built-and-the-complete-fda-surface)
 * [22. Device-parity decisions, recorded 13 August 2026](#22-device-parity-decisions-recorded-13-august-2026)
+* [23. The uniform suppression invariant was tested and REJECTED](#23-the-uniform-suppression-invariant-was-tested-and-rejected)
 
 ---
 
@@ -2444,6 +2445,126 @@ re-measured against the authoritative field the moment one exists. The
 audit's per-modality gate-rate bands (imaging 3.3%, monitoring 0.7%, implant
 0.3%, surgical 1.2%, IVD 5.3%) were all measured through that regex and must be
 re-measured against `intervention_types` before being quoted again.
+
+---
+
+## 23. The uniform suppression invariant was tested and REJECTED
+
+Measured 27 August 2026. Recorded the way the `outcomesModule` rejection in §22
+is recorded, and for the same reason: so nobody re-runs the experiment in six
+months and gets the same answer at the same cost. This is the second experiment
+this project has rejected on measurement.
+
+### What was specified
+
+> No suppression filter may consume a sentence that states a direction after its
+> determination verb.
+
+Applied uniformly to every filter of that shape, rather than as a second patch
+aimed at the one case that exposed the problem.
+
+### The complete filter enumeration, so nobody re-derives it
+
+| filter | location | reached via |
+|---|---|---|
+| `_TEST_REQUIREMENT` | `markers.py:400` | `_is_test_requirement` |
+| `_ASSAY_PANEL` | `markers.py:432` | `_is_test_requirement` |
+
+**Two patterns, one gate, one call site** (`collect_signals`, line 565). That is
+the whole set. Because both already funnel through one gate, the invariant only
+needed implementing once — as a per-marker veto (`_states_a_result`) with
+`_suppresses()` as the single combining point, so a third pattern added later
+would inherit it.
+
+Checked and ruled out, so absence from the table means "looked and found
+nothing": `diagnostic_grade.py` has four regexes using determination verbs
+(lines 164, 184, 260, 359), but they are positive detectors for accuracy
+language and blinding — they classify studies and never neutralise a marker
+sentence. `chunking.py` and `validation.py` have loop `continue`s on empty
+sections. `_EXCL_CUES` / `_INCL_CUES` are section cues, not suppressors.
+
+### Why it cannot be expressed in direction vocabulary
+
+**MSS and MSI-H marker names are built from the words that signal direction.**
+MSI-H is *microsatellite instability-**high***; MSS is *microsatellite
+**stable***; pMMR is ***proficient** mismatch repair*. So the rule "the marker's
+own matched text carries a direction" is true for **every** MSI-H mention, and
+consequently every test-mandate sentence about MSI status reads as a result.
+
+That is not a tuning problem. The vocabulary a direction test would key on and
+the vocabulary the marker names are made of are the same words, so no weighting
+of that word list separates them.
+
+The consequence was immediate and decisive: C-800-25 — one of the six MSS
+ground-truth trials — went `ELIGIBLE BY EXCLUSION` -> `UNCLEAR`. Its inclusion
+line ("The tumor must have been assessed for MSI-H or dMMR status per a standard
+local testing method") began producing a REQUIRED signal that contradicted its
+real exclusion criterion two lines later. That is precisely the bug
+`_is_test_requirement` was built to fix, returning — the failure mode of
+narrowing a filter until an old bug comes back.
+
+### Per-cause outcome against the frozen 28
+
+| cause | n | cleared | still NOT_ASSESSABLE |
+|---|---|---|---|
+| prose-sourced | 9 | 9 | 0 |
+| direction swallowed | 9 | 7 | 2 |
+| belongs *(control)* | 10 | 2 **over-corrected** | 8 |
+
+Both over-corrections (NCT05700669, NCT06257758) were assigned `HER2_AMP:
+REQUIRED` where the record supports EXCLUDED — a **wrong direction**, which is
+the pre-registered stop-and-report. Note those two rows were themselves
+mislabelled BELONGS at the time; see the fixture correction. The fix was wrong
+about them regardless, and in the more dangerous direction.
+
+### The blast radius, and a correction to the first number reported
+
+**6 direction-to-different-direction inversions** on the colorectal set (12,095
+trials), five of them toward REQUIRED.
+
+```
+  NCT00397384  RAS    REQUIRED              -> EXCLUDED
+  NCT01814501  RAS    EXCLUDED              -> REQUIRED
+  NCT05608044  MSI_H  EXCLUDED              -> REQUIRED
+  NCT06330064  MSS    EXCLUDED              -> REQUIRED
+  NCT06784947  MSS    ELIGIBLE_BY_EXCLUSION -> REQUIRED
+  NCT07213570  RAS    EXCLUDED              -> REQUIRED
+```
+
+**An earlier report of "102 inversions" was a measurement artifact and is
+superseded.** That figure compared the STORED reduced census against an ad-hoc
+"first signal wins" reading rather than against `biomarker_gating.gate_markers`,
+the reducer that actually built the column, so most of the difference was the
+measurement rather than the code. Re-measured through the real reducer: 6.
+Smaller in count, worse in character — REQUIRED admits a patient the trial
+excludes, whereas the discarded 102 were dominated by `REQUIRED -> EXCLUDED`,
+the safe direction. The lesson is narrow and worth keeping: when diffing a
+derived column, drive the function that derived it.
+
+### Why 6 inversions was still enough to stop
+
+Some of them are probably **corrections**. A "RAS wild-type" trial arguably
+*should* read RAS EXCLUDED, and NCT00397384 moves exactly that way. That is the
+point rather than a mitigation: none of the six is validated, and six
+unvalidated direction changes is already past what a 28-trial fixture can grade.
+The pre-registered bar was zero wrong directions, two were confirmed wrong, and
+the six-trial ground truth broke. Continuing would have meant tuning the
+direction word list until the fixture agreed — fitting to the test set, which
+the plan forbids explicitly.
+
+### What is left open
+
+`NCT05619172` and `NCT01947023` remain documented residuals. The structural
+approach that is probably right — keying off whether a marker's own match is an
+assertion or an operand of "assessed for X or Y status" — is unattemptable until
+criteria segmentation is correct, because both defects act on the same
+sentences. `iter_criteria` does not split enumerated criteria ("i. ... iv. ..."),
+so an excluding clause inherits the polarity of the inclusion block it sits in;
+measuring filters against badly segmented input measures the wrong thing.
+
+The attempt is not kept as a patch. It is reproducible from this section, and a
+patch that does not apply cleanly six months from now is worse than a
+description that still reads.
 
 ---
 

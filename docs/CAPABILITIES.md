@@ -81,3 +81,41 @@ never edited, because an edited-once fixture has no reconstructible provenance.
 * **PMID 36618287** carries no `Review` publication type despite reading as a
   narrative review, which is why the grader routed it diagnostic. A defensible
   disagreement rather than a clear grader error.
+
+---
+
+## Biomarker verdicts — what is NOT measured
+
+**A trial that REQUIRES a marker can currently return no verdict on that marker,
+and the tool does not know when this is happening.**
+
+`NOT_ASSESSABLE` means the record raised the biomarker axis and stated nothing
+comparable. It is correct on most records that carry it, and it fails in the
+safe direction — no verdict rather than a wrong one. But two filters
+(`_TEST_REQUIREMENT` and `_ASSAY_PANEL`, `medrag/markers.py`) can consume a
+sentence that DOES state a direction, and when they do the marker goes silent.
+
+The worked case, hand-read and recorded: **NCT07645118 requires "Proficient
+mismatch repair (pMMR) status"** — pMMR is a positive MSS variant — and reads
+`NOT_ASSESSABLE` because "as determined by immunohistochemistry" consumed the
+sentence. An MSS patient is shown no verdict on a trial that requires their
+marker.
+
+**The measured rate, on the only population hand-read:** of 28 trials carrying
+`NOT_ASSESSABLE` on the v13 census, 11 had a real direction swallowed this way,
+8 genuinely belonged, and 9 were emitted from non-eligibility prose (that third
+group is fixed — see `f8c80db`). So on that sample roughly **11 of 28 were
+silent on a direction the record states**. That sample is the 28 records the
+verdict fired on, not a random draw, so it does not generalise to a store-wide
+rate — and no store-wide rate has been measured.
+
+**There is no detector.** Nothing in the tool flags a trial whose direction was
+swallowed; it is indistinguishable from a trial that genuinely states none. The
+only way found so far is reading the records.
+
+**Why it is not fixed.** A uniform narrowing of both filters was implemented,
+measured and rejected — it broke one of the six MSS ground-truth trials and
+produced two wrong directions. The root cause is upstream: `iter_criteria` does
+not split enumerated criteria, so filter work sits on badly segmented input.
+Full reasoning and the measurement: `docs/RATIONALE.md` §23. Residual cases are
+recorded per-trial in `tests/fixtures/not_assessable_handread.json`.
