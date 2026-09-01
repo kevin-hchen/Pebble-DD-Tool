@@ -41,6 +41,7 @@ rule.
 * [21. Deliberately not built, and the complete FDA surface](#21-deliberately-not-built-and-the-complete-fda-surface)
 * [22. Device-parity decisions, recorded 13 August 2026](#22-device-parity-decisions-recorded-13-august-2026)
 * [23. The uniform suppression invariant was tested and REJECTED](#23-the-uniform-suppression-invariant-was-tested-and-rejected)
+* [24. The heading-line defect in `iter_criteria` — MEASURED, NOT YET FIXED](#24-the-heading-line-defect-in-iter_criteria--measured-not-yet-fixed)
 
 ---
 
@@ -2597,25 +2598,168 @@ units read before this was written):
 2. **Splitting has a ceiling of 115 of 137, about 84%.** The 22 `NONE` cases
    cannot be reached by any splitting rule and need clause-level polarity.
 3. **`iter_criteria` has a larger defect than under-splitting, in the same
-   function.** It treats ANY line *containing* the substring "inclusion
-   criteria" or "exclusion criteria" as a section heading, and on a heading line
-   yields only the text after the first colon. A criterion that merely mentions
-   the phrase — "…provided that they meet other inclusion and exclusion
-   criteria" — therefore flips the section for every unit after it and discards
-   the text before its first colon. 19,247 trials contain such a line; 3,705
-   lose more than 25 characters of criterion text outright, 537,578 characters
-   store-wide. Driven through `gate_markers` against a start-anchored heading
-   test (`scripts/heading_anchor_delta.py`), it changes **81 verdicts across 60
-   trials, of which 71 are direction-to-different-direction inversions** —
-   twelve times the 6 that stopped the attempt described above. The worked case:
-   NCT07127822, titled *"Assessing Iparomlimab and Tuvonralimab in Recurrent or
-   Metastatic MSI-H/dMMR Gastric Cancer"*, whose inclusion criterion 5 reads
-   *"Confirmed by PCR or NGS as microsatellite instability-high (MSI-H)"*,
-   currently reads `MSI_H: EXCLUDED`.
+   function — see §24, which is the next code item and comes BEFORE
+   segmentation.** It treats any line *containing* "inclusion criteria" or
+   "exclusion criteria" as a section heading, so a criterion that merely
+   mentions the phrase flips the section for every unit after it. 71
+   direction-to-different-direction inversions store-wide, twelve times the 6
+   that stopped the attempt described above. Kept as a pointer rather than
+   repeated here so the two cannot drift; §24 holds the numbers, the worked case
+   and the remedy.
 
 The attempt is not kept as a patch. It is reproducible from this section, and a
 patch that does not apply cleanly six months from now is worse than a
 description that still reads.
+
+---
+
+## 24. The heading-line defect in `iter_criteria` — MEASURED, NOT YET FIXED
+
+Found 1 September 2026 while hand-reading complete records for the criteria
+segmentation ground truth (§23's "what is left open"). It is **not** the defect
+that work was scoped to, it lives in the same function, and it is larger. It
+gets its own section because a defect recorded only as an aside inside the
+section about a different defect is a defect nobody finds.
+
+**This is the next code item, ahead of segmentation.** The reason is in
+"Why this goes first" below, and it is not a priority call about size.
+
+### The mechanism
+
+`markers.iter_criteria` decides section state like this:
+
+```python
+low = line.lower()
+if "inclusion criteria" in low:
+    section = "inclusion"
+    rest = line.split(":", 1)[1].strip() if ":" in line else ""
+    ...
+```
+
+Two independent faults in those four lines:
+
+**A. Section flip.** The test is `in`, not a match at the start of the line. Any
+criterion that *mentions* the phrase sets the section for every unit that
+follows it. The phrase turns up in ordinary criterion prose constantly —
+*"…provided that they meet other inclusion and exclusion criteria"*, *"Other
+protocol-defined inclusion/exclusion criteria apply"*, *"recovered to ≤Grade 1
+or to levels specified in the inclusion/exclusion criteria"*. Where the trailing
+phrase is "exclusion criteria", an entire inclusion block is read as exclusion,
+and every marker in it takes the wrong polarity.
+
+**B. Colon truncation.** On any line judged to be a heading, only the text
+*after the first colon* is yielded. Everything before it is discarded and
+reaches no marker, no FTS index and no reader. On a record written as one long
+line — which is common, see §23's sample — that is most of the criteria.
+
+The two compound: a mid-line mention makes the line a "heading", which then
+truncates it.
+
+### The four measured numbers
+
+Whole store, 241,254 trials with eligibility text.
+
+| | |
+|---|---:|
+| trials containing a heading phrase that does not start its line | **19,247** |
+| trials losing >25 characters of criterion text to colon truncation | **3,705** |
+| characters of criterion text discarded store-wide | **537,578** |
+| verdict changes vs a start-anchored heading test, through `gate_markers` | **81** across 60 trials |
+| — of which direction-to-different-direction **inversions** | **71** |
+
+`scripts/heading_line_damage.py` produces the first three;
+`scripts/heading_anchor_delta.py` the last two. The delta is measured by driving
+`gate_markers` twice — once with the shipped `iter_criteria`, once with the
+anchored variant — never by counting lines and inferring what they must do. That
+is §23's own lesson: when diffing a derived column, drive the function that
+derived it. The 71 is **twelve times** the 6 inversions that were judged enough
+to stop the §23 attempt.
+
+The 81 break down `EXCLUDED → REQUIRED` 32, `REQUIRED → EXCLUDED` 26,
+`EXCLUDED → ELIGIBLE_BY_EXCLUSION` 7, `ELIGIBLE_BY_EXCLUSION → EXCLUDED` 6,
+`NOT_MENTIONED → EXCLUDED` 5, `NOT_MENTIONED → REQUIRED` 5. The 26
+`REQUIRED → EXCLUDED` are markers reading REQUIRED **today** that the anchored
+reading puts at EXCLUDED — the dangerous direction, live.
+
+### The worked case
+
+**NCT07127822.** Title: *"Assessing Iparomlimab and Tuvonralimab in Recurrent or
+Metastatic MSI-H/dMMR Gastric Cancer"*. Inclusion criterion 5: *"Confirmed by
+PCR or next-generation sequencing (NGS) as microsatellite instability-high
+(MSI-H)"*.
+
+Its criterion 7 ends *"…provided that they meet other inclusion and exclusion
+criteria;"*. That line therefore reads as an exclusion heading:
+
+- `section` flips to `exclusion` for the whole block,
+- everything before the line's first colon — criteria 1 through 4 — is dropped.
+
+Result at HEAD: `MSI_H: EXCLUDED`, `MSS: ELIGIBLE_BY_EXCLUSION`. A trial that
+enrols only MSI-H patients is recorded as excluding them, and the landscape
+screen will hide it from exactly the population it is recruiting.
+
+Nothing about this record is unusual. It is not malformed, the phrasing is
+routine, and no gate in the suite fires on it.
+
+### The remedy
+
+**Anchor the heading test at the start of the line.** The phrase must open the
+line, after at most an enumeration marker and a short qualifier (`Key`, `Main`,
+`Participant`, `Patient`, `Subject`) — which is how the registry actually writes
+headings, and is what `scripts/heading_anchor_delta.py` implements as its
+measurement instrument. That instrument is deliberately **not** committed as the
+fix: it sizes the defect, and what ships should be decided on its own terms,
+with the colon-truncation half addressed too rather than inherited.
+
+Pre-registered when the fix is written, matching §23's bars: every one of the 71
+inversions verified individually with the record quoted, split by whether it
+moves toward `REQUIRED`; census/live parity 12/12; the six-trial MSS ground truth
+holding at 4 of 6 with zero rank inversions.
+
+### Why this goes first, ahead of segmentation
+
+Not because it is bigger. Because **segmentation cannot be measured against
+input this defect corrupts.**
+
+`markers._context` assigns polarity to a unit from its section tag, and
+`collect_signals` then classifies every marker match inside that unit against
+it. Splitting a unit correctly and then handing the pieces a wrong section tag
+produces the wrong direction just as reliably as not splitting it — so a
+segmentation fix graded on records whose sections are wrong is measuring the
+wrong thing. That is the same argument §23 makes for why the suppression fix had
+to wait for segmentation, one layer further up.
+
+Consequence for the segmentation work, stated so it is not re-derived: **the
+segmentation sample must be re-drawn after this lands.** The 32 units already
+hand-read (`docs/segmentation_handread_partial.json`) were read against units
+whose section tag may itself be wrong — NCT07127822 is one of the 32 and is
+exactly that case — so those labels are evidence, not ground truth, until
+re-drawn.
+
+### A correction to §23's population figure, from the same hand-read
+
+**The 137 marker-bearing mixed-polarity units is a PROXY UPPER BOUND, not a
+count of the defect.** Membership is decided by a regex looking for an admitting
+cue and an excluding cue in one unit. Hand-read against complete records, **21
+of the first 32 drawn units were genuinely mixed — about 66% precision — which
+puts the true population nearer 90 than 137.**
+
+The false positives are systematic rather than random, which is why they are
+listed rather than averaged away. Each is an admitting clause wearing exclusion
+grammar:
+
+| text | why it is not an exclusion |
+|---|---|
+| *"unless participant was ineligible to receive them"* | a widening carve-out — it admits more people |
+| *"ineligible for curative resection"* | describes the required disease state |
+| *"must not be breastfeeding"* | a requirement on the participant, satisfiable |
+| *"may not be limited to"* | introduces a non-exhaustive list |
+
+The ranking between separator classes is unaffected — sentence and semicolon
+still dominate enumeration by an order of magnitude — so §23's corrected framing
+stands. Only the absolute numbers move. **Any figure quoted off that proxy must
+name it as a proxy**, which is the same rule §22 states for a number derived
+from a proxy signal.
 
 ---
 
