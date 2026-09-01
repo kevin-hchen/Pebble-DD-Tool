@@ -36,11 +36,38 @@ Assigned to a **clause read alone**, by its effect on eligibility — never
 inherited from the section heading it sits under. The heading is exactly what
 the code gets wrong, so grading against it would grade the defect as correct.
 
-| value | the clause, read alone, states |
+| value | satisfying the clause makes the participant |
 |---|---|
-| `ADMITTING` | a condition that must hold, or a state that is permitted, for a participant to enrol |
-| `EXCLUDING` | a condition that disqualifies a participant |
-| `NEITHER` | no eligibility direction of its own — a definition, a heading fragment, a cross-reference, a note, or a mandate to *perform a test* without stating a result |
+| `ADMITTING` | **eligible** — it is a requirement they meet |
+| `EXCLUDING` | **ineligible** — it names a class that is turned away |
+| `NEITHER` | neither — it states no condition on the participant at all: a heading fragment, a definition, a cross-reference, a note |
+
+> **AMENDED 1 September 2026, 32 units into the read, and the amendment is
+> recorded rather than folded in.** The original wording was *"a condition that
+> must hold, or a state that is permitted"* versus *"a condition that
+> disqualifies"*, with test mandates parked in `NEITHER`. That boundary did not
+> survive contact with the corpus, in two places:
+>
+> * ***"must not have received irinotecan previously"***. Under the original
+>   wording this reads as excluding — it is stated with a negation — which would
+>   have made nearly every inclusion block in the registry `MIXED_POLARITY` and
+>   the gate meaningless. Satisfying it (not having had irinotecan) makes you
+>   **eligible**, so it is `ADMITTING`. The rewritten test — *does satisfying
+>   the clause admit or refuse?* — decides this without appeal to grammar, which
+>   is the same reason §23's direction-vocabulary approach failed.
+> * **a test mandate is two facts, not one.** *"Participants must have
+>   documented status of ER, PR, and HER2"* IS a condition on the participant,
+>   so as a **clause** it is `ADMITTING`; it states no value, so for the
+>   **marker** it carries no direction. Those are different axes and the
+>   original definition conflated them by making the clause `NEITHER`. Clause
+>   polarity is what segmentation must not mix; marker direction is what
+>   `_classify` decides afterwards. They are recorded separately.
+>
+> The amendment moves the gate in the **strict** direction — more units now
+> qualify as `MIXED_POLARITY`, not fewer — so it cannot be a fit to a result.
+> It is flagged here because a definition changed after records were seen is
+> exactly the failure this README's ordering exists to prevent, and burying it
+> would be worse than the change itself.
 
 A unit is `MIXED_POLARITY` iff it contains at least one `ADMITTING` **and** at
 least one `EXCLUDING` clause. Otherwise `SINGLE_POLARITY`.
@@ -70,6 +97,18 @@ verdict.
 | `ENUMERATION` | 12 | yes — roman, arabic, lettered, parenthesised, bulleted or dash-led, appearing *inside* a unit |
 | `NONE` | 22 | **no** |
 | | **137** | |
+
+> **The 137 is an UPPER BOUND, not a count of the defect.** Class membership is
+> decided by a regex proxy — a unit holding both an admitting cue and an
+> excluding cue. Hand-reading the first 32 drawn units found **21 genuinely
+> mixed and 11 not**, so the proxy runs at about **66% precision** and the true
+> mixed population is nearer 90 than 137. The false positives are systematic
+> rather than random, which is why they are listed here instead of averaged
+> away: *"unless the participant was ineligible to receive them"* (a widening
+> carve-out), *"ineligible for curative resection"* (a required disease state),
+> *"must not be breastfeeding"* (a requirement), *"may not be limited to"* (a
+> non-exhaustive list). Every one is an admitting clause wearing exclusion
+> grammar. Any number quoted off the proxy must name it as a proxy.
 
 `NONE` is stated here, before any work, because it is the ceiling. Two clauses
 of opposite polarity inside one sentence with nothing between them cannot be

@@ -2562,6 +2562,57 @@ sentences. `iter_criteria` does not split enumerated criteria ("i. ... iv. ...")
 so an excluding clause inherits the polarity of the inclusion block it sits in;
 measuring filters against badly segmented input measures the wrong thing.
 
+**CORRECTION, 1 September 2026 — the sentence above names the minority case,
+and a reader who acts on it will fix 9% of the problem.** Enumeration is a real
+separator and it is the rarest one. Measured over the whole store (241,254
+trials, 3,946,369 units; `scripts/enum_styles.py`), bucketing every unit that
+holds both an admitting and an excluding cue by **what separates the two
+clauses**, and restricting to units naming a curated marker — the population
+that can actually flip a verdict:
+
+| separator between the two clauses | marker-bearing units | splittable? |
+|---|---|---|
+| plain sentence boundary, no marker of any kind | 60 | yes |
+| semicolon | 43 | yes |
+| **any enumeration marker** | **12** | yes |
+| nothing at all — both clauses inside one sentence | 22 | **no** |
+| | 137 | |
+
+So polarity mixing is overwhelmingly **intra-sentence and intra-semicolon**.
+The two records this section itself names, NCT05700669 and NCT06257758, land in
+*different* classes — the first is a roman-numbered block on one line, the
+second has no enumeration marker at all and mixes across a plain sentence
+boundary. A fix keyed on enumeration repairs the first and leaves the second
+exactly where it is.
+
+Three further corrections to this section, all found by hand-reading complete
+records against the draw (`docs/segmentation_handread_partial.json`, 32 of 60
+units read before this was written):
+
+1. **The 137 is a proxy upper bound, not a count.** Hand-read, 21 of the first
+   32 were genuinely mixed — about 66% precision. The false positives are
+   systematic: admitting clauses wearing exclusion grammar ("unless the
+   participant was ineligible to receive them", "ineligible for curative
+   resection", "must not be breastfeeding"). The true population is nearer 90.
+2. **Splitting has a ceiling of 115 of 137, about 84%.** The 22 `NONE` cases
+   cannot be reached by any splitting rule and need clause-level polarity.
+3. **`iter_criteria` has a larger defect than under-splitting, in the same
+   function.** It treats ANY line *containing* the substring "inclusion
+   criteria" or "exclusion criteria" as a section heading, and on a heading line
+   yields only the text after the first colon. A criterion that merely mentions
+   the phrase — "…provided that they meet other inclusion and exclusion
+   criteria" — therefore flips the section for every unit after it and discards
+   the text before its first colon. 19,247 trials contain such a line; 3,705
+   lose more than 25 characters of criterion text outright, 537,578 characters
+   store-wide. Driven through `gate_markers` against a start-anchored heading
+   test (`scripts/heading_anchor_delta.py`), it changes **81 verdicts across 60
+   trials, of which 71 are direction-to-different-direction inversions** —
+   twelve times the 6 that stopped the attempt described above. The worked case:
+   NCT07127822, titled *"Assessing Iparomlimab and Tuvonralimab in Recurrent or
+   Metastatic MSI-H/dMMR Gastric Cancer"*, whose inclusion criterion 5 reads
+   *"Confirmed by PCR or NGS as microsatellite instability-high (MSI-H)"*,
+   currently reads `MSI_H: EXCLUDED`.
+
 The attempt is not kept as a patch. It is reproducible from this section, and a
 patch that does not apply cleanly six months from now is worse than a
 description that still reads.

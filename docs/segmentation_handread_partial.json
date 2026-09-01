@@ -1,0 +1,790 @@
+[
+  {
+    "nct_id": "NCT05700669",
+    "title": "Study to Assess Safety and Efficacy of AsiDNA in Combination with Olaparib in Participants with Recurrent Solid Tumors",
+    "set_key": "breast,ovarian,prostate",
+    "unit_index": 7,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "i. Histologically or cytologically confirmed recurrent breast cancer. ii. Advanced stage, metastatic disease as documented by imaging. iii. Participants must have documented status of ER, PR, and Human epidermal growth factor receptor 2 (HER2) according to ASCOCAP criteria prior to study entry. Participants must have had a biopsy to confirm hormone receptor status in the metastatic setting prior to study entry. Note: Participants with hormone receptor-positive (estrogen and/or progesterone receptor-positive) disease must have received and progressed on at least one endocrine therapy (adjuvant or metastatic), or have disease that the treating physician believes to be inappropriate for endocrine therapy. Endocrine therapy must have been completed at least 7 days before study treatment. iv. Participants with HER2 positive disease are not eligible for enrollment. v. Participants with ER+ tumors should have progressed on prior CDK4/6 inhibitors (in addition to hormonal therapy) to be eligible. vi. Participants with TNBC should have received sacituzumab prior to study enrollment.",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "EXCLUDING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Roman-numbered i.-vi. block on ONE line in the inclusion section. Clause iv 'Participants with HER2 positive disease are not eligible for enrollment' is excluding; clause iii is a test mandate naming HER2 with no result. Acceptance case.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT01982448",
+    "title": "Cisplatin vs Paclitaxel for Triple Negative Breast Cancer",
+    "set_key": "breast",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "1. Participants must meet the following criteria on screening examination to be eligible to participate in the study 2. Pathologic documentation of invasive breast cancer by biopsy (FNA alone is not adequate). 3. AJCC clinical stage I with T1 \\> 1.5 cm, stage II or III invasive breast cancer. 4. Participants with multicentric or bilateral disease are eligible if at least one lesion meets stage eligibility criteria for the study and no tumor is HER2-positive. 5. Tumors must be HER2 negative defined as HER2 0 or 1+ by immunohistochemistry (IHC) assays and /or lack of gene amplification by FISH defined as a ratio \\< 2 on invasive tumor by local review. 6. ER and PgR status by IHC must be known. Tumor must be ER and PR negative (\u22645% staining) by local review. 7. Known BRCA1/2 (BReast CAncer) status is not required for study entry. However patients known to have a germline deleterious BRCA1/2 mutation should be encouraged to consider a preoperative trial specifically designed for BRCA1/2 carriers, if available. 8. Breast imaging should include imaging of the ipsilateral axilla. For subjects with a clinically positive axilla, a needle aspiration, core biopsy or SLN procedure will be performed to confirm the presence of metastatic disease in the lymph nodes. For patients with a clinically negative axilla, baseline assessment of the axilla will be performed at the discretion of the treating investigator. For patients with pathologically positive axillary lymph nodes prior to preoperative therapy, a level I and II lymph node dissection at the time of definitive surgery is recommended. 9. Patients with a prior history of contra-lateral breast cancer are eligible if they have no evidence of recurrence of their initial primary breast cancer within the last 5 years. 10. Women \u2265 18 years of age. 11. ECOG performance status \u22641 (see Appendix A). 12. Laboratory Evaluation 1) Absolute neutrophil count (ANC) \u2265 1,500 / mm3 2) Platelet count \u2265 100,000/ mm3 3) Bilirubin \u2264 1.5x upper limit of normal (ULN), for patients with Gilbert syndrome, direct bilirubin will be measured instead of total bilirubin 4) ALT, AST \u22643.0 x ULN ALK Phos \\<2.5 x ULN 5) Creatinine \u2264 1.5 mg/dl or creatinine clearance \u2265 60 cc/min 6) Hemoglobin \u2265 9 mg/dl 7) Use of an effective means of contraception is required in subjects of childbearing potential since study agents are known to be teratogenic. Should a woman become pregnant or suspect she is pregnant while participating in this study, she should inform her treating physician immediately. Women of child-bearing potential and men must agree to use adequate contraception (barrier method of birth control; abstinence) prior to study entry and for the duration of study participation. 8) Ability to understand and the willingness to sign a written informed consent document 9) Individuals with a history of other malignancies are eligible if they have been disease-free for at least 5 years and are deemed by the investigator to be at low risk for recurrence of that malignancy and did not receive prior chemotherapy. Individuals with the following cancers are eligible if diagnosed and treated within the past 5 years: cervical cancer in situ, and basal cell or squamous cell carcinoma of the skin. 10) Patient must be willing to undergo mandatory research biopsy and blood draw. Prior to biopsy procedures patients must be able to be off medications that could increase the risk of bleeding Exclusion Criteria: 1. Participants with axillary adenopathy only are not eligible for this study. 2. Prior chemotherapy: Prior non-taxane or platinum containing chemotherapy will be allowed if the prior exposure was at least 5 years ago and the exposure is thought not to potentially interact with the primary outcome of the trial or put the patient at undue risk, and should be reviewed with study PI on a case by case basis. 3. Any prior treatment for the current breast cancer, including chemotherapy, hormonal therapy, radiation or experimental therapy. 4. Ipsilateral breast recurrence, unless prior treatment consisted of excision alone for DCIS or breast conserving treatment and hormonal therapy for DCIS or invasive breast cancer. 5. Ongoing use of any other investigational or study agents. 6. Peripheral neuropathy of any etiology \\> grade 1 (NCI CTCAE Version 4.0- Appendix B) 7. Significant hearing loss that would prevent cisplatin administration. 8. Renal dysfunction for which exposure to cisplatin would be unsafe or require cisplatin dose modification (i.e., Cre \\> 1.5 mg/dl or GFR \\< 60 cc/min).",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "The record contains no newlines, so the whole of it \u2014 inclusion criteria AND the exclusion list \u2014 is one unit tagged 'inclusion'. 'Tumors must be HER2 negative' admits; 'Participants with axillary adenopathy only are not eligible' excludes.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT02103062",
+    "title": "Phase 2 Study With Abraxane (Nab\u00aePaclitaxel) in Metastatic Colorectal Cancer",
+    "set_key": "colorectal",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "- 1. Subject is \u2265 18 years old at the time of signing the Informed Consent Form 2. Subject has histological or cytological diagnosis of adenocarcinoma of the colon or rectum, with evidence of metastasis 3. Subject has a known KRAS mutation status (mutated or wild-type). NRAS mutation status may be unknown. 4. Subject has documented disease progression \u2264 2 months after the last administration of the last standard therapy. a. Subjects treated with oxaliplatin in the adjuvant setting, should have progressed during or within 6 months of completion of adjuvant therapy 5. Subject has either received prior treatment or was not a candidate for prior treatment, with fluoropyrimidine, oxaliplatin, irinotecan and an anti-VEGF therapy (e.g. bevacizumab or ziv-aflibercept); and if RAS wild-type tumors, an anti-EGFR therapy (e.g. cetuximab or panitumumab). 6. Subject has Eastern Cooperative Oncology Group performance status 0 or 1 7. Subject has radiographically-documented measurable disease, as per Response Evaluation Criteria in Solid Tumors version 1.1 criteria 8. Subject has adequate organ functions, evidenced by the following: a. Aspartate Aminotransferase (SGOT), Alanine Transaminase (SGPT) \u2264 2.5 \u00d7 upper limit of normal range, or \\< 5 x upper limit of normal range if liver metastasis present b. Total bilirubin \u2264 1.5 \u00d7 upper limit of normal range c. Creatinine \u2264 1.5 \u00d7 upper limit of normal range 9. Subject has adequate bone marrow function, evidenced by the following: a. Absolute neutrophil count \u2265 1.5 \u00d7 109 cells/millimeters3 b. Platelets \u2265 100 \u00d7 109 cells/millimeters3 (transfusion independent, defined as not receiving platelet transfusions within 7 days prior to laboratory sample) c. Hemoglobin \u2265 9 grams/decilitre (transfusion is permitted to fulfill this criterion) 10. Females of child-bearing potential (defined as a sexually mature woman who (1) has not undergone hysterectomy \\[the surgical removal of the uterus\\] or bilateral oophorectomy \\[the surgical removal of both ovaries\\] or (2) has not been naturally postmenopausal for at least 24 consecutive months \\[i.e., has had menses at any time during the preceding 24 consecutive months\\]) must: a. Either commit to true abstinence\\* from heterosexual contact (which must be reviewed on a monthly basis), or agree to use, and be able to comply with, effective contraception without interruption, 28 days prior to starting Investigational Product therapy (including dose interruptions), and for 3 months following the last dose of Investigational Product; and b. Have a negative serum pregnancy test (\u03b2 -human Chorionic Gonadotrophin) result at screening and agree to ongoing pregnancy testing during the course of the study, and after the end of study therapy. This applies even if the subject practices true abstinence\\* from heterosexual contact. \\* True abstinence is acceptable when this is in line with the preferred and usual lifestyle of the subject. Note: Periodic abstinence (e.g, calendar, ovulation, symptothermal, post-ovulation methods) and withdrawal are not acceptable methods of contraception. 11. Male subjects must practice true abstinence\\* or agree to use a condom during sexual contact with a pregnant female or a female of childbearing potential while participating in the study, during dose interruptions and for 6 months following Investigational Product discontinuation, even if he has undergone a successful vasectomy. 12. Subject must understand and voluntarily sign an Informed Consent Form prior to any study related assessments or procedures being conducted. 13. Subject must be able to adhere to the study visit schedule and other protocol requirements. Exclusion Criteria: - 1. Subject has current or a history of brain metastasis. In subjects who are symptomatic, a brain scan is required to exclude metastasis. 2. Subject has \u2265 National Cancer Institute Common Terminology Criteria for Adverse Events grade 2 peripheral neuropathy at screening 3. Subject has had prior treatment with regorafenib 4. Subject has received radiotherapy \u2264 4 weeks or limited field radiation for palliation \u2264 2 weeks prior to starting Investigational Product, and/or from whom \u2265 30% of the bone marrow was irradiated. Radiation therapy to a target lesion is permitted only if there has been clear progression of the lesion since radiation was completed. 5. Subject has had major surgery within 14 days prior to starting Investigational Product or has not recovered from postoperative complications 6. Subject has not recovered from the acute toxic effects of prior anticancer therapy, radiation or major /significant trauma 7. Subject has a history of allergy or hypersensitivity to nab-paclitaxel or any of the excipients 8. Subject has a known history of the following within 6 months prior to enrollment (the decision to include the subject in the study): a myocardial infarction, severe/unstable angina pectoris, coronary/peripheral artery bypass graft, New York Heart Association Class III-IV heart failure, uncontrolled hypertension, clinically significant cardiac dysrhythmia or Electrocardiogram abnormality, cerebrovascular accident, transient ischemic attack, or seizure disorder 9. Subject has a known infection with hepatitis B or C, or history of human immunodeficiency virus infection, or subject receiving immunosuppressive or myelosuppressive medications that would in the opinion of the investigator, increase the risk of serious neutropenic complications 10. Subject has an active, uncontrolled bacterial, viral, or fungal infection(s) requiring systemic therapy, defined as ongoing signs/symptoms related to the infection without improvement despite appropriate antibiotics, antiviral therapy, and/or other treatment 11. Subject has any other malignancy within 5 years prior to enrolment, with the exception of adequately treated in-situ carcinoma of the cervix, uteri, or non-melanomatous skin cancer (all treatment of which should have been completed 6 months prior to enrollment) 12. Subject has a history of connective tissue disorders (eg, lupus, scleroderma, arteritis nodosa) 13. Subject has a history of interstitial lung disease , history of slowly progressive dyspnea and unproductive cough, sarcoidosis, silicosis, idiopathic pulmonary fibrosis, pulmonary hypersensitivity pneumonitis or multiple allergies 14. Subject has any other concurrent severe and/or uncontrolled medical condition that would, in the investigator's judgment, contraindicate subject participation in the clinical study (e.g. chronic pancreatitis, chronic active hepatitis, etc.) 15. Subject is enrolled in any other clinical protocol or investigational study with an interventional agent or assessments that may interfere with study procedures 16. Subject has any significant medical condition, laboratory abnormality, or psychiatric illness that would prevent the subject from participating in the study 17. Subject has any condition that confounds the ability to interpret data from the study 18. Subject is unwilling or unable to comply with study procedures 19. Subject is a pregnant or nursing female",
+    "markers_named": [
+      "RAS"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "NOT_ASSESSABLE"
+    },
+    "reason": "Whole record in one unit again. Criterion 3 is 'Subject has a known KRAS mutation status (mutated or wild-type)' \u2014 the axis is raised and BOTH values are admitted, so no direction is stated. HEAD reads EXCLUDED off 'if RAS wild-type tumors'.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT03147287",
+    "title": "Palbociclib After CDK and Endocrine Therapy (PACE)",
+    "set_key": "breast,geographic_atrophy",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "-Participants must have histologically confirmed hormone receptor positive (HR+) HER2 negative metastatic or locally recurrent unresectable invasive breast cancer. ER, PR and HER2 measurements should be performed according to institutional guidelines, in a CLIA-approved setting. Cut-off values for positive/negative staining should be in accordance with current ASCO/CAP (American Society of Clinical Oncology/College of American Pathologists) guidelines. -Men and pre- and postmenopausal women are eligible. Ongoing monthly GNRH agonist is required in pre-menopausal women or male participants for at least 4 weeks prior to study entry. -Participants must have radiological or objective evidence of progression on an endocrine and CDK 4/6 inhibitor regimen in the metastatic setting, and/or relapse/progression during or within 12 months of completion of an endocrine and CDK4/6 inhibitor regimen in the adjuvant setting. --Participants must have previously been exposed to CDK4/6 inhibitor therapy in combination with endocrine therapy. Exposure to any prior CDK4/6 inhibitor, (including palbociclib, abemaciclib, and ribociclib) is allowed. Patients may have a line of endocrine therapy after combination endocrine and CDK4/6 inhibitor exposure. --Participants must have remained on prior endocrine and CDK4/6 therapy in the metastatic setting without progression for at least 6 months prior to study entry. --It is not mandatory to have a CDK 4/6 inhibitor containing regimen as the most recent treatment. -Participants may have 0-1 prior lines of cytotoxic chemotherapy in the metastatic setting. -Prior endocrine therapy in the metastatic setting may include any aromatase inhibitor (AI) or tamoxifen, but may not include prior fulvestrant. In the metastatic setting, 1-2 prior lines of endocrine therapy are allowed. -Participants may have received radiotherapy for palliative purpose, but must not be experiencing \\> grade 1 treatment related toxicities, and must have completed treatment \\> 14 days prior to registration. -Age \u226518 years. Because no dosing or adverse event data are currently available on the use of study agents in participants \\<18 years of age, children are excluded from this study. -ECOG performance status 0-1 (see Appendix A). -Participants must have normal organ and marrow function as defined below: -Absolute neutrophil count \\> 1,500/\u00b5L --Platelets \\> 100,000/\u00b5L --Hemoglobin \\> 9g/dL --Total bilirubin \\< 1.5 x institutional upper limit of normal (ULN) (participants with documented Gilbert's disease are allowed total bilirubin up to 1.5X ULN) --AST (SGOT)/ALT (SGPT) \\< 2.5 x institutional ULN, or \u2264 5 x ULN for subjects with documented metastatic disease to the liver. --Creatinine \\< institutional ULN or creatinine clearance \\> 60 mL/min/1.73 m2 for subjects with creatinine levels above institutional ULN. --Baseline QTc \\< 480 ms -The effects of palbociclib and avelumab on the developing human fetus are unknown. If, for any reason, a woman should become pregnant or suspect that she is pregnant while participating in this study, she should inform her treating physician immediately. Women of childbearing age, women who are made postmenopausal through use of GNRH agonists, and men must agree to use adequate contraception for the duration of protocol treatment and for at least 60 days after the last dose of study medication if the risk of contraception exists. -Adequate contraception is defined as one highly effective non-hormonal form of contraception or two effective forms of non-hormonal contraception by the participant and/or partner. -Highly Effective Non-Hormonal Contraception -Methods of birth control which result in a low failure rate (i.e., less than 1% per year) when used consistently and correctly are considered highly-effective forms of contraception. -The following non-hormonal methods of contraception are acceptable: --True abstinence when this is in line with the preferred and usual lifestyle of the participant. \\[Periodic abstinence (e.g., calendar, ovulation, symptothermal post-ovulation methods) and withdrawal are not acceptable methods of contraception\\]. --Male sterilization (with appropriate post-vasectomy documentation of the absence of sperm in the ejaculate). For female participants, the vasectomized male partner should be the sole partner. OR -Effective Non-Hormonal Contraception Alternatively two of the following effective forms of contraception may be used instead: --Placement of non-hormonal intrauterine device (IUD) or intrauterine system (IUS). Consideration should be given to the type of device being used, as there is higher failure rates quoted for certain types, e.g., steel or copper wire. --Condom with spermicidal foam/gel/film/cream/suppository. --Occlusive cap (diaphragm or cervical/vault caps) with spermicidal foam/gel/film/cream/suppository. --The use of barrier contraceptives should always be supplemented with the use of spermicide. The following should be noted: --Failure rates indicate that, when used alone, the diaphragm and condom are not highly effective forms of contraception. Therefore, the use of additional spermicides does confer additional theoretical contraceptive protection. --However, spermicides alone are ineffective at preventing pregnancy when the whole ejaculate is spilled. Therefore, spermicides are not a barrier method of contraception and should not be used alone. It should be noted that two forms of effective contraception are required. A double barrier method is acceptable, which is defined as condom and occlusive cap (diaphragm or cervical/vault caps) with spermicidal foam/gel/film/cream /suppository. -Premenopausal women must have a negative serum or urine pregnancy test. Pregnancy testing does not need to be pursued in female participants who are: --Age \\> 60 years; or --Age \\< 60 with intact uterus and amenorrhea for 12 consecutive months or more AND estrogen (estradiol) levels within postmenopausal range; or --Status-post bilateral oophorectomy, total hysterectomy, or bilateral tubal ligation. -Participant must be able to swallow and retain oral medication. -Ability to understand and the willingness to sign a written informed consent document Exclusion Criteria: -Participants who have had endocrine, chemotherapy, and/or biologic therapy within 14 days prior to entering the study or those who have not recovered from any prior treatment-related toxicities (must recover to no more than grade 1. Alopecia, sensory neuropathy Grade \u2264 2, or other Grade \u2264 2 toxicity not constituting a safety risk based on investigator's judgment are acceptable). -Participants who are receiving concurrent therapy with other investigational agents. -Rapidly progressive, symptomatic, visceral spread of disease placing participant at risk of life-threatening complications in the short term. -Participants with active brain metastases. Stable treated brain metastases are allowed (this includes participants who have documented radiologic stability at least 4 weeks after radiotherapy, and do not require systemic steroids for management of symptoms from CNS metastatic lesions). -Participants who have discontinued prior palbociclib for toxicity, or have needed more than one dose or schedule reduction for toxicity from prior palbociclib therapy. If a participant required a single dose reduction during prior palbociclib therapy and tolerated it well, for example prior dosing at 100 mg qd 3 weeks on 1 week off schedule, than that dose may be selected for this trial. -History of allergic reactions to palbociclib or attributed to compounds of similar chemical or biologic composition to palbociclib. -Known prior severe hypersensitivity to investigational product or any component in its formulations, including known severe hypersensitivity reactions to monoclonal antibodies (NCI CTCAE v4.03 Grade \u2265 3) -Participants receiving any medications or substances that are strong inhibitors or inducers of CYP3A isoenzymes are ineligible. Lists including medications and substances known or with the potential to interact with the CYP3A isoenzymes are provided in Appendix B, and can also be found within Section 5.4. Because the lists of these agents are constantly changing, it is important to regularly consult a frequently-updated list such as http://medicine.iupui.edu/clinpharm/ddis/table.aspx; medical reference texts such as the Physicians' Desk Reference may also provide this information. As part of the enrollment/informed consent procedures, the participant will be counseled on the risk of interactions with other agents, and what to do if new medications need to be prescribed or if the participant is considering a new over-the-counter medicine or herbal product. -Current use of drugs listed in Appendix C that are known to prolong the QT interval (See Appendix C) -Prior organ transplantation including allogenic stem-cell transplantation -Current use of immunosuppressive medication, except for the following: a. intranasal, inhaled, topical steroids, or local steroid injection (e.g., intra-articular injection); b. Systemic corticosteroids at physiologic doses \u2264 10 mg/day of prednisone or equivalent; c. Steroids as premedication for hypersensitivity reactions (e.g., CT scan premedication). -Uncontrolled intercurrent illness including, but not limited to: ongoing or active infection requiring systemic therapy, clinically significant cardiovascular disease including: cerebral vascular accident/stroke (\\< 6 months prior to enrollment), myocardial infarction (\\< 6 months prior to enrollment), unstable angina, congestive heart failure (\u2265 New York Heart Association Classification Class II), or serious cardiac arrhythmia requiring medication, uncontrolled diabetes mellitus, or psychiatric illness/social situations that would limit compliance with study requirements. Ability to comply with study requirements is to be assessed by each investigator at the time of screening for study participation. -Active autoimmune disease that might deteriorate when receiving an immuno-stimulatory agent. Participants with diabetes type I, vitiligo, psoriasis, or hypo- or hyperthyroid diseases not requiring immunosuppressive treatment are eligible. -Known history of testing positive for HIV or known acquired immunodeficiency syndrome, or need to receive combination antiretroviral therapy for HIV -Known history of immune-mediated conditions including colitis, inflammatory bowel disease requiring steroid or immunosuppressive therapy, pneumonitis, or pulmonary fibrosis. -Hepatitis B virus (HBV) or hepatitis C virus (HCV) infection at screening (positive HBV surface antigen or HCV RNA if anti-HCV antibody screening test positive) -Live vaccination within 4 weeks of the first dose of avelumab -Pregnant women are excluded from this study because effect of palbociclib and avelumab on a developing fetus is unknown. Breastfeeding should be discontinued prior to entry onto the study. -Individuals with a history of a different malignancy are ineligible except for the following circumstances. Individuals with a history of other malignancies are eligible if they have been disease-free for at least 3 years and are deemed by the investigator to be at low risk for recurrence of that malignancy. Individuals with the following cancers are eligible if diagnosed and treated within the past 5 years: ductal carcinoma in situ of the breast, cervical cancer in situ, and basal cell or squamous cell carcinoma of the skin",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Whole record in one unit. 'must have histologically confirmed HR+ HER2 negative ... breast cancer' requires HER2-negative; the exclusion list follows in the same unit.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT04991740",
+    "title": "A Study of JNJ-78306358 in Participants With Advanced Stage Solid Tumors",
+    "set_key": "colorectal,ovarian,renal_cell",
+    "unit_index": 3,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "Progressed during or after the following prior therapies for metastatic disease, unless participant was ineligible to receive them: a) RCC: clear cell histology: an antiangiogenic agent and an immune checkpoint inhibitor, administered as 1 or more lines of therapy. For papillary renal carcinoma 1 line of systemic therapy; b. CRC: at least 2 lines of therapy including a fluoropyrimidine, oxaliplatin, and irinotecan given with or without antiangiogenic therapies or epidermal growth factor receptor (EGFR) antibodies. In addition, prior treatment with anti-programmed cell death protein 1 (PD1) antibody is required for high microsatellite instability (MSI-H) CRC; c. ovarian cancer: at least 2 lines of therapy, including at least 1 line with platinum. Maintenance therapy after completion of platinum-containing regimen, example with bevacizumab or a poly- Adenosine di-phosphate (ADP) ribose polymerase inhibitor will not count as a separate line of therapy; d. other tumor types: at least 2 lines of systemic therapy",
+    "markers_named": [
+      "MSI_H"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "NOT_ASSESSABLE"
+    },
+    "reason": "Proxy false positive: 'unless participant was ineligible to receive them' WIDENS the criterion, it does not exclude. MSI-H appears only as 'prior treatment with anti-PD1 is required for MSI-H CRC' \u2014 a prior-therapy condition on a subpopulation, not a gate. Not reachable by splitting; the fragment alone still reads REQUIRED.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT05629949",
+    "title": "A Multicenter, Double-blind, Randomized, Parallel-group, Phase III Study of the Efficacy and Safety of QL1701 Plus Docetaxel Versus Herceptin\u00ae Plus Docetaxel as First Line Therapy in Patients With HER2-positive Metastatic Breast Cancer",
+    "set_key": "breast",
+    "unit_index": 2,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "Histologically or cytologically confirmed adenocarcinoma of the breast that is HER2-positive by molecular pathology \\[IHC or fluorescence in situ hybridization (FISH)\\]; (4) Locally recurrent or metastatic breast cancer (including patients with first diagnosis of metastatic breast cancer) that cannot be treated with radical surgery or radiotherapy has an indication of taxane antitumor drug therapy regimen (according to the NCCN or Chinese treatment guidelines); (5) No systemic chemotherapy or targeted drug therapy for metastatic breast cancer has been performed in the past. If endocrine therapy has been performed, it must be stopped at least 2 weeks before enrollment; For patients who had received relevant neoadjuvant or adjuvant therapy in the past, HER2- related drugs should have been discontinued for at least 12 months before enrollment, and other non-HER2-related drugs should have been discontinued for at least 1 month before enrollment.",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "REQUIRED"
+    },
+    "reason": "Proxy false positive: 'cannot be treated with radical surgery' describes a required disease state. Trial is HER2-positive metastatic breast cancer; HER2 genuinely required.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT06993506",
+    "title": "Real-world Study of SKB264 Monotherapy or Combination Therapy in Recurrent or Metastatic HER2-negative Breast Cancer",
+    "set_key": "breast",
+    "unit_index": 2,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "For TNBC Cohort: -Histological/cytological confirmed of triple-negative breast cancer (TNBC) from the most recent pre-SKB264 biopsy/pathological report, with: HER2 negative: immunohistochemistry (IHC) of 0 or 1+; if is 2+ by IHC, negative HER2 expression must be confirmed by fluorescence in situ hybridization (FISH); Estrogen and progesterone receptor negative means that less than 1% of the cells express hormone receptors as indicated by IHC; -Locally advanced, recurrent, or metastatic disease (locally advanced disease should be confirmed by investigators as ineligible for curative resection); 2.2) For HR+/HER2- BC Cohort: -Histological/cytological confirmed of HR+/HER2- breast cancer from the most recent pre-SKB264 biopsy/pathological report, with: HER2 negative: IHC of 0 or 1+; if is 2+ by IHC, negative HER2 expression must be confirmed by FISH; HR positive: Hormone receptor-positive (HR, ER, or PR status) was defined as \u22651% expression by IHC.-Locally advanced, recurrent, or metastatic disease (locally advanced disease should be confirmed by investigators as ineligible for curative resection);",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Proxy false positive: 'ineligible for curative resection' describes the disease state that admits. Both cohorts require HER2 negative.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07127822",
+    "title": "Assessing Iparomlimab and Tuvonralimab in Recurrent or Metastatic MSI-H/dMMR Gastric Cancer",
+    "set_key": "gastric",
+    "unit_index": 0,
+    "section_as_tagged": "exclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "5. Confirmed by PCR or next-generation sequencing(NGS) as microsatellite instability-high(MSI-H) . Patients with mismatch repair defecient identified by immunohistochemistry need to undergo PCR/NGS verification as MSI-H before treatment 6. Patients should not receive systematic anti-tumor treatment before, and for those who have received induction chemotherapy, concurrent radiochemotherapy, or neoadjuvant/adjuvant chemotherapy for curative purposes, the recurrence time must be at least 6 months from the end of the last treatment; 7. Agree to provide archived tumor tissue specimens or fresh tissue samples of primary or metastatic lesions within 3 years; If the patinet is unable to provide tumor tissue samples, they can be enrolled after evaluation by the researcher, provided that they meet other inclusion and exclusion criteria; 8. Patients must have at least one measurable lesion defined by RECIST 1.1. 9. European Cooperative Oncology Group (ECOG) \u22641 10. No severe cardiac dysfunction, left ventricular ejection fraction \u2265 50%; 11. Patients must meet the following criteria at screening and before preconditioning (baseline). If any laboratory test result is abnormal referring to the following criteria,",
+    "markers_named": [
+      "MSI_H"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "REQUIRED"
+    },
+    "reason": "NOT a segmentation failure. Criterion 7 contains the phrase 'provided that they meet other inclusion and exclusion criteria', which iter_criteria treats as a SECTION HEADING: the section flips to 'exclusion' and everything before the line's first colon (criteria 1-4) is discarded. An MSI-H/dMMR gastric trial whose criterion 5 is 'Confirmed by PCR or NGS as MSI-H' therefore reads MSI_H: EXCLUDED.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07244874",
+    "title": "Sac-TMT Combined With Toripalimab for First-line Treatment of PD-L1 Positive a/mTNBC",
+    "set_key": "breast",
+    "unit_index": 1,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "Based on the pathological report of the latest biopsy or other pathological specimens, the histology and/or cytology are confirmed as invasive breast cancer, and the following conditions are met: a) Pathological classification: ER \\<= 10%, PR \\<= 10%; HER2 negative (IHC 0, 1+, 2+and FISH negative); Note: Subjects with initial histopathological diagnosis of HR\\>10% or HER2+breast cancer and recent pathological findings of metastatic lesions meeting the above conditions are allowed to be included in the study. b) Tumor staging: locally advanced, recurrent, or metastatic tumors that cannot be surgically removed; Note: Patients who have received perioperative treatment in the past are required to have a disease-free survival period of \\>= 6 months;",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Proxy false positive: 'cannot be surgically removed' is a required disease state. HER2 negative (IHC 0/1+/2+ FISH-negative) required.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07396090",
+    "title": "Study of KRAS-Specific Vaccine in Patients With KRAS-Mutated Solid Tumors",
+    "set_key": "pancreatic",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "\uff081\uff09Age 18-75 years\uff0cMale or female \uff1b \uff082\uff09Participants with ECOG score of 0-1 and the life expectancy \u22656 months\uff1b \uff083\uff09Sufficient organ function as defined by the following criteria: creatinine clearance of \u226545 mL/min;Serum AST and serum ALT, \u22643.0 x ULN (\u22645 x ULN for patients with liver metastases); Total bilirubin (TBIL) and alkaline phosphatase (AKP or ALP) \u22642.0 \u00d7 ULN (except for congenital hyperbilirubinemia, such as Gilbert syndrome, the direct bilirubin may be \u22641.5 \u00d7 ULN); for patients with liver and/or bone metastases, alkaline phosphatase \u22645.0 \u00d7 ULN; Left ventricular ejection fraction \u226545% (by echocardiography or MUGA) (4) pregnancy test for women must be negative, and or must not be breastfeeding; participants with childbearing potential must agree to use effective contraception from the signing of the informed consent form until 1 year after the use of the study drug; (5) Willing to sign the informed consent form (ICF); \uff086\uff09HLA-A\\*1101+ Participants with histologically confirmed advanced solid tumors (such as pancreatic ductal adenocarcinoma, non-small cell lung cancer, etc.) and harboring at least one of the targeted KRAS mutants \uff08G12C/D/R/V\uff09; (7)Participants who have failed standard treatment or who have no standard treatment options or who have minimal residual disease (MRD) after standard treatment , as well as those have unresectable locally advanced or metastatic solid tumors but currently unsuitable for standard treatment.",
+    "markers_named": [
+      "RAS",
+      "KRAS_G12C"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "REQUIRED",
+      "KRAS_G12C": "REQUIRED"
+    },
+    "reason": "Proxy false positive: 'must not be breastfeeding' is a requirement on the participant, not a class turned away. Criterion 6 requires a targeted KRAS mutant.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07411599",
+    "title": "Dual Administration Of Intraperitoneal And Intravenous TROP2-Directed CAR-NK With TGF-Beta Receptor 2 (TGFBR2) Knock Out (KO) Therapy For Colorectal Cancer-Related Peritoneal Carcinomatosis: A Phase 1/2 Trial (\"Chip-CRC Trial\")",
+    "set_key": "colorectal",
+    "unit_index": 5,
+    "section_as_tagged": "unknown",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "Participant s must have histologically confirmed microsatellite stable (MSS) CRC-related PM that is not amenable to curative resection (participant determined not to be a candidate for CRS +/- HIPEC by surgical oncologist with expertise in peritoneal surface malignancies) and for which standard curative treatment is no longer effective (they have progressed through at least one line of standard systemic chemotherapy and/or are intolerant of systemic chemotherapy in the opinion of their primary medical oncologist). \u2022 MSS status must be confirmed either by immunohistochemistry (IHC) or polymerase chain reaction (PCR)-based genetic analysis. Participants with MSI-H tumors are ineligible. \u2022 Participant must have never undergone a prior HIPEC operation (CRS without HIPEC is OK) \u2022 Participant s with a prior or concurrent malignancy whose natural history or treatment does not interfere with the safety or efficacy assessment of the investigational regimen are eligible for this trial.",
+    "markers_named": [
+      "MSS",
+      "MSI_H"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "NEITHER",
+      "EXCLUDING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSS": "REQUIRED",
+      "MSI_H": "EXCLUDED"
+    },
+    "reason": "Genuine bullet-separated mix inside one unit: 'must have histologically confirmed microsatellite stable (MSS) CRC' admits, 'Participants with MSI-H tumors are ineligible' excludes. Section is 'unknown', so _context resolves the WHOLE unit from cues and both markers collapse onto one value.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07630077",
+    "title": "Trastuzumab Rezetecan(SHR-A1811) Combined With Ivonescimab (AK112) in Locally Advanced or Metastatic Non-small Cell Lung Cancer Harboring HER2 Gene Abnormalities",
+    "set_key": "nsclc",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "ENUMERATION",
+    "stratum": "MIXED",
+    "unit": "18 - 75 years old (at the time of signing the informed consent form); 3. ECOG PS score: 0 - 1 point; 4. Expected survival period: more than 3 months; 5. According to the International Association for the Study of Lung Cancer and the 8th edition of the American Joint Committee on Cancer's Lung Cancer TNM staging system, patients with locally advanced (stage IIIB/III C), metastatic or recurrent (stage IV) NSCLC that cannot be treated surgically and cannot receive radical concurrent radiotherapy and chemotherapy, and whose cancer is confirmed by cytology or histology, are eligible for this study. (Note: Mixed tumors will be classified according to the main cell type; if there is a small cell component, the subject does not meet the inclusion criteria); 6. Cohort 1: Previous first-line treatment failed, and HER2 amplification or overexpression (2+ or 3+) is required; Cohort 2: Patients who received no systematic treatment at the initial diagnosis, with HER2 amplification or overexpression (2+ or 3+), and with PD-L1 \u2265 1%; 7. At least one measurable lesion must be present according to the RECIST 1.1 standard. Lesions that have received radiotherapy cannot be regarded as target lesions unless there is a clear progression after radiotherapy; 8. Patients must have adequate organ and bone marrow functions, defined as follows:",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "ADMITTING",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "REQUIRED"
+    },
+    "reason": "Criterion 5's parenthetical 'if there is a small cell component, the subject does not meet the inclusion criteria' excludes, inside an otherwise admitting block. HER2 amplification/overexpression required by both cohorts.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT06257758",
+    "title": "A Phase 1/2 Study of VIO-01 in Participants With Recurrent Solid Tumors",
+    "set_key": "breast,ovarian,prostate",
+    "unit_index": 9,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Participants must have documented status of ER, PR, and HER2 according to American Society of Clinical Oncology, College of American Pathologists (ASCO-CAP) criteria prior to study entry. Participants must have had a biopsy to confirm hormone receptor status in the metastatic setting prior to study entry. Participants with HER2 positive disease are not eligible for enrollment.",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Three plain sentences, NO enumeration marker of any kind \u2014 the '3.' that leads the line is stripped correctly. The excluding clause is simply the third sentence. Acceptance case, and the one that shows enumeration splitting alone is insufficient.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT00265850",
+    "title": "Cetuximab and/or Bevacizumab Combined With Combination Chemotherapy in Treating Patients With Metastatic Colorectal Cancer",
+    "set_key": "colorectal",
+    "unit_index": 6,
+    "section_as_tagged": "unknown",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Only patients with a wildtype K-ras gene as determined by the laboratory at the SWOG Solid Tumor Repository or by a local CLIA-certified laboratory are eligible. Patients with a mutation in the K-ras gene are ineligible. All patients must have available for analysis of K-ras status at least one H and E slide and one paraffin block of the previously resected primary colorectal tumor and/or a tumor deposit. For patients registered and randomized based on local CLIA-certified laboratory results, SWOG analysis will be confirmatory only.",
+    "markers_named": [
+      "RAS"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "NEITHER",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "EXCLUDED"
+    },
+    "reason": "Mixed, but both marker-bearing clauses point the SAME way ('Only patients with a wildtype K-ras gene are eligible' / 'Patients with a mutation in the K-ras gene are ineligible'). A control: polarity mixing does not always change a verdict.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT02046421",
+    "title": "Carboplatin, Gemcitabine Hydrochloride, and Mifepristone in Treating Patients With Advanced Breast Cancer or Recurrent or Persistent Ovarian Epithelial, Fallopian Tube, or Primary Peritoneal Cancer",
+    "set_key": "breast,ovarian",
+    "unit_index": 5,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Patients with both ER positive and ER negative breast cancer are eligible for this study. Patients with HER2 positive disease will be excluded from participation in this study.",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Only the EXCLUDING sentence names HER2, and it sits in an inclusion-tagged unit, so the marker takes inclusion polarity. Live inversion toward REQUIRED at HEAD.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT02614456",
+    "title": "Combination of Interferon-gamma and Nivolumab for Advanced Solid Tumors",
+    "set_key": "renal_cell",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Patients must have a histologically or cytologically confirmed metastatic solid tumor that has shown clinical or pre-clinical evidence of responding to anti-PD-1 therapy or the capacity to up-regulate PD-L1. These tumor types may include but may not be limited to: RCC, UC, melanoma, non small cell lung cancer (NSCLC), small cell lung cancer, squamous cell cancer of the head and neck (SCCHN), ovarian carcinoma, triple negative breast cancer, gastric cancer, microsatellite instability expressing (MSI-high) colon cancer, hepatocellular carcinoma, mesothelioma, gastrointestinal stromal tumors, endometrial carcinoma, liposarcomas, chondrosarcomas, and uterine sarcomas. Patients with solid tumor types not listed above may be enrolled at the discretion of the Principal Investigator.",
+    "markers_named": [
+      "MSI_H"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "NEITHER",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "NOT_ASSESSABLE"
+    },
+    "reason": "Proxy false positive on 'may not be limited to'. MSI-H appears only inside an explicitly non-exhaustive list of illustrative tumour types; no gate is stated.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT03568448",
+    "title": "Monitoring Response to Neoadjuvant Chemotherapy in HER2 Negative Breast Cancer Using High-speed MR Spectroscopic Imaging",
+    "set_key": "breast",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Have a biopsy proven HER2 negative (by IHC or FISH) breast cancer per standard clinical criteria (per ASCO-CAP guidelines). Although patients with hormone-receptor positive (ER+ and/or PR+) disease will be included, patients with tumor features indicative of luminal A intrinsic sub-type will be excluded from this study. Excluding features are:",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Note the middle sentence is ITSELF a mix with no separator ('patients with HR+ disease will be included, patients with luminal A features will be excluded'). A SENTENCE-class unit can contain a NONE-class mix inside one of its sentences.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT04381650",
+    "title": "A Study of TAK-981 Given With Pembrolizumab in Participants With Select Advanced or Metastatic Solid Tumors",
+    "set_key": "colorectal,melanoma,nsclc",
+    "unit_index": 2,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Note: In Phase 1, participants with nonsquamous NSCLC and known driver mutations/genomic aberrations (e.g., epidermal growth factor receptor (EGFR), B-Raf proto-oncogene mutation V600E \\[BRAF V600E\\], and ROS proto-oncogene 1 \\[ROS1\\] sensitizing mutations, neurotrophic receptor tyrosine kinase \\[NRTK\\] gene fusions, and anaplastic lymphoma kinase \\[ALK\\] rearrangements) must have also shown progressive disease after treatment with a commercially available targeted therapy. In Phase 2, participants with driver mutations are not eligible.",
+    "markers_named": [
+      "BRAF_V600E"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "BRAF_V600E": "NOT_ASSESSABLE"
+    },
+    "reason": "BRAF V600E is named only as an example in a list of driver mutations, and the two sentences state OPPOSITE gates for Phase 1 and Phase 2. No single direction is assessable from the record.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT05076552",
+    "title": "A Study to Assess the Safety, Pharmacokinetics, and Antitumor Activity of Oral TACH101 in Participants With Advanced or Metastatic Cancer",
+    "set_key": "colorectal",
+    "unit_index": 3,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Phase 1b: Participants must have advanced or metastatic gastrointestinal tumors, or high microsatellite instability colorectal cancer (MSI-H CRC) that has progressed or was non-responsive or intolerant to standard therapy (e.g., fluoropyrimidine and oxaliplatin with or without bevacizumab), or, in the opinion of the investigator, is not a candidate for, or would be unlikely to tolerate or derive significant clinical benefit from, appropriate standard of care therapy. Participants with potentially curative therapy will not be enrolled (e.g., participants with CRC and oligometastatic disease who are candidates for resection). Participants with MSI-H CRC must have received a prior line of therapy with a checkpoint inhibitor. Note: For both Phase 1a and 1b, if a participant has available therapies but is determined to be ineligible by the investigator due to being unlikely to tolerate or benefit from available therapies, the reason for this must be documented in the medical record and case report form.",
+    "markers_named": [
+      "MSI_H"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "ADMITTING",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "REQUIRED"
+    },
+    "reason": "'Participants with potentially curative therapy will not be enrolled' excludes, between two admitting sentences. MSI-H CRC is named as an admitted entry route.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT05684965",
+    "title": "XTX301 in Patients With Advanced Solid Tumors",
+    "set_key": "breast,head_neck,melanoma,nsclc,ovarian,prostate",
+    "unit_index": 4,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "ii. Cohort 2B: melanoma. Must have unresectable or metastatic melanoma previously treated with 1 to 2 lines of therapy in the recurrent or metastatic setting. Unless contraindicated, prior therapy must have included a PD-1/PD-L1 inhibitor alone or in combination. Patients with known BRAF V600-activating mutation must have previously received targeted therapy per local and institutional standard of care. Note: patients with uveal melanoma are excluded.",
+    "markers_named": [
+      "BRAF_V600E"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "NEITHER",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "BRAF_V600E": "NOT_ASSESSABLE"
+    },
+    "reason": "'Note: patients with uveal melanoma are excluded' is the excluding tail. BRAF V600 appears only as a prior-therapy condition \u2014 those patients ARE eligible \u2014 so no gate.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT06149481",
+    "title": "Phase I/II Study of the Combination Immunotherapy Regimen: SX-682, TriAdeno Vaccine, Retifanlimab and IL-15 Agonist N-803 (STAR15) for Metastatic Colorectal Cancer (mCRC)",
+    "set_key": "colorectal",
+    "unit_index": 1,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Participants must have received, been ineligible to receive, or refused to receive two lines of standard systemic therapy i.e., a fluoropyrimidine with oxaliplatin or irinotecan with bevacizumab, regorafenib, trifluridine, and (if history of RAS wild-type) EGFR-targeted therapy. Participants must have received one line of systemic checkpoint inhibitor if history of advanced microsatellite instability-high \\[MSI-H/dMMR\\]) metastatic colon cancer.",
+    "markers_named": [
+      "MSI_H",
+      "RAS"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "NOT_ASSESSABLE",
+      "RAS": "NOT_ASSESSABLE"
+    },
+    "reason": "Proxy false positive on 'been ineligible to receive', which is part of an admitting requirement. Both markers appear only inside prior-therapy conditions.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT07070466",
+    "title": "Ivonescimab in Comb. With FOLFOX in Advanced HER2 Neg. GEA",
+    "set_key": "gastric,head_neck",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SENTENCE",
+    "stratum": "MIXED",
+    "unit": "Patients must have a pathologically confirmed diagnosis of adenocarcinoma of the esophagus, gastroesophageal junction, stomach. Squamous cell tumors are excluded. Patients with locally tested HER2 positive tumors (HER2+) tumors are excluded.",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "Trial title is 'Ivonescimab in Comb. With FOLFOX in Advanced HER2 Neg. GEA'. The unit's third sentence excludes HER2+ tumours, inside an inclusion-tagged unit. Live inversion toward REQUIRED at HEAD, on a trial whose own title says HER2-negative.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT00126581",
+    "title": "Erlotinib Hydrochloride With or Without Carboplatin and Paclitaxel in Treating Patients With Stage III-IV Non-small Cell Lung Cancer",
+    "set_key": "geographic_atrophy,nsclc",
+    "unit_index": 1,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Pathology block or unstained slides from initial or subsequent diagnosis must be available for sequencing of EGFR, K-ras, Erb-2 and B-raf; patients need to have had at least a core biopsy; patients whose diagnosis was made through a fine needle aspirate will not have sufficient material for mutational analysis and are not eligible",
+    "markers_named": [
+      "RAS"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "NOT_ASSESSABLE"
+    },
+    "reason": "K-ras is named inside an assay panel ('available for sequencing of EGFR, K-ras, Erb-2 and B-raf') with no result stated \u2014 the documented panel-sentence residual.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT01744171",
+    "title": "Vaccine Therapy in Treating Patients With Advanced Stage III-IV Melanoma",
+    "set_key": "melanoma",
+    "unit_index": 14,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Stage IV patients must have refused, be ineligible for, or have failed at least one non-vaccine based systemic therapy (such as, high dose IL-2, dacarbazine/temozolomide, ipilimumab, or participation in a clinical trial); patients who are BRAF V600E mutation positive need to have failed, refused, or be ineligible for at least 2 lines of therapy (vemurafenib plus one other regimen)",
+    "markers_named": [
+      "BRAF_V600E"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "BRAF_V600E": "NOT_ASSESSABLE"
+    },
+    "reason": "Proxy false positive: 'be ineligible for' is inside an admitting requirement. BRAF V600E carries only an extra prior-therapy condition, not a gate.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT01989585",
+    "title": "Testing the Addition of Navitoclax to the Combination of Dabrafenib and Trametinib in People Who Have BRAF Mutant Melanoma",
+    "set_key": "cll,melanoma",
+    "unit_index": 30,
+    "section_as_tagged": "exclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "History of another malignancy; exception: patients who have been disease-free for 3 years (depending upon tumor type studied or clinical setting, 3 or 5 years can be used; e.g., for advanced melanoma and pancreatic studies 3 years is more appropriate due to aggressiveness of the disease, while 5 years can be more appropriate for prostate or ovarian cancer or adjuvant setting when life expectancy is longer), or patients with a history of completely resected non-melanoma skin cancer and/or patients with indolent secondary malignancies, are eligible; consult the CTEP medical monitor if unsure whether second malignancies meet the requirements specified above; exception: patients with history of RAS mutation-positive tumors are not eligible regardless of interval from the current study; prospective RAS testing is not required; however, if the results of previous RAS testing are known, they must be used in assessing eligibility",
+    "markers_named": [
+      "RAS"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "EXCLUDING",
+      "ADMITTING",
+      "NEITHER",
+      "EXCLUDING",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "EXCLUDED"
+    },
+    "reason": "Semicolon-chained exceptions inside an exclusion-section unit: an admitting carve-out ('patients disease-free for 3 years are eligible') sits between two excluding clauses. The mirror-image mix, and the marker clause is excluding.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT02224781",
+    "title": "Dabrafenib and Trametinib Followed by Ipilimumab and Nivolumab or Ipilimumab and Nivolumab Followed by Dabrafenib and Trametinib in Treating Patients With Stage III-IV BRAFV600 Melanoma",
+    "set_key": "melanoma",
+    "unit_index": 10,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "NOTE: Any patient with BRAF V600 mutant melanoma (whether cutaneous, acral or mucosal primary) who meets the eligibility criteria is eligible for participation in this trial; patients with uveal melanoma are not eligible for this trial",
+    "markers_named": [
+      "BRAF_V600E"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "BRAF_V600E": "REQUIRED"
+    },
+    "reason": "'Any patient with BRAF V600 mutant melanoma ... is eligible' admits; 'patients with uveal melanoma are not eligible' excludes. Only the admitting clause names BRAF.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT02886585",
+    "title": "Pembrolizumab In Central Nervous System Metastases",
+    "set_key": "glioblastoma,melanoma",
+    "unit_index": 38,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Patients with newly diagnosed, previously untreated primary tumors that present with brain metastases should not forego available therapy that has demonstrated a definitive overall survival benefit as firstline therapy for metastatic disease; therefore, in cases of previously untreated systemic solid tumors only those patients for whom there is no available therapy with definitive overall survival benefit, those that have failed at least one line of prior therapy for their primary tumor, or those refusing standard therapy will be eligible for this study. Specifically, for patients with previously untreated primary tumors, the following diagnoses will be excluded: HER2-positive breast cancer; small cell lung cancer; NSCLC with targetable genomic tumor aberrations (e.g. EGFR, ALK).",
+    "markers_named": [
+      "HER2_AMP"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "HER2_AMP": "EXCLUDED"
+    },
+    "reason": "'the following diagnoses will be excluded: HER2-positive breast cancer; small cell lung cancer; ...' is the excluding tail of an inclusion-tagged unit. Live inversion.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT03365882",
+    "title": "S1613, Trastuzumab and Pertuzumab or Cetuximab and Irinotecan Hydrochloride in Treating Patients With Locally Advanced or Metastatic HER2/Neu Amplified Colorectal Cancer That Cannot Be Removed by Surgery",
+    "set_key": "colorectal,geographic_atrophy",
+    "unit_index": 3,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "All patients must have molecular testing performed in a Clinical Laboratory Improvement Act (CLIA) certified lab which includes which includes KRAS and NRAS gene and exon 15 of BRAF gene (BRAF V600E mutation); patients with any known activating mutation in exon 2 \\[codons 12 and 13\\], exon 3 \\[codons 59 and 61\\] and exon 4 \\[codons 117 and 146\\]) of KRAS/NRAS genes and in exon 15 (BRAFV600E mutation) of BRAF gene are not eligible",
+    "markers_named": [
+      "RAS",
+      "BRAF_V600E"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "EXCLUDED",
+      "BRAF_V600E": "EXCLUDED"
+    },
+    "reason": "S1613. The test mandate admits; 'patients with any known activating mutation in ... KRAS/NRAS ... and in exon 15 (BRAFV600E) ... are not eligible' excludes. HEAD reads BOTH markers REQUIRED \u2014 two live inversions toward REQUIRED in one unit.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT04607668",
+    "title": "Trilaciclib, a CDK 4/6 Inhibitor, in Patients Receiving FOLFOXIRI/Bevacizumab for Metastatic Colorectal Cancer (mCRC):",
+    "set_key": "colorectal",
+    "unit_index": 1,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Proficient mismatch repair/microsatellite stable (pMMR/MSS), histologically or cytologically-confirmed adenocarcinoma of the colon or rectum. Patients with any BRAF or KRAS mutation status (wild type or mutant) are eligible. If historical pMMR/MSS and/or BRAF V600E mutational status are not known, a tumor specimen (archival or fresh biopsy) must be sent for testing and results must be available at the time of randomization in interactive web response system (IWRS). If testing cannot be completed using a standard clinical assay performed institutionally/locally, the tumor specimen may be sent to the Sponsor's designated central laboratory for analysis; only historical KRAS mutational status will be collected (ie, no testing required prior to study entry). Note: Any sample sent for MSS/BRAF analysis will be in addition to that required per Inclusion Criterion 5.",
+    "markers_named": [
+      "MSS",
+      "RAS",
+      "BRAF_V600E"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "NEITHER",
+      "NEITHER",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "MSS": "REQUIRED",
+      "RAS": "NOT_ASSESSABLE",
+      "BRAF_V600E": "NOT_ASSESSABLE"
+    },
+    "reason": "Proxy false positive. The record states POSITIVELY that there is no gate: 'Patients with any BRAF or KRAS mutation status (wild type or mutant) are eligible'. HEAD reads both REQUIRED off the surrounding test mandate.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT05003037",
+    "title": "Surufatinib Combined With Toripalimab and Chemotherapy in the Treatment of Non-Small Cell Lung Cancer",
+    "set_key": "nsclc",
+    "unit_index": 7,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Prior to enrollment, the patient must be confirmed to carry one of the following driver gene mutations, including but not limited to: EGFR mutation, ALK fusion, ROS1 and RET fusion; BRAF mutation, ERBB2 (HER2) amplification/mutation, MET amplification, MET exon 14 skipping mutation, and NTRK fusion. Patients with KRAS mutations are not permitted (assigned to Cohort 2). EGFR mutation cases are not expected to exceed 50% of all enrolled patients in Cohort 2.",
+    "markers_named": [
+      "RAS"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING",
+      "NEITHER"
+    ],
+    "expected_marker_verdicts": {
+      "RAS": "EXCLUDED"
+    },
+    "reason": "The admitting list of driver mutations deliberately omits KRAS; the next sentence is 'Patients with KRAS mutations are not permitted'. Live inversion toward REQUIRED.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT05239546",
+    "title": "Single Arm Study of Neoadjuvant Dostarlimab in Stage II and III Deficient Mismatch Repair Colon Cancers",
+    "set_key": "colorectal",
+    "unit_index": 3,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "Biopsy specimen for diagnosis of dMMR Colon cancer should have enough tissue for minimum 4 and max 6 adjacent unstained FFPE slides (4\u00b5m each) as determined by Protocol Pathologist Dr. Anthony Snow for CD3+ and CD8+ analysis. If there is not enough tissue present in original sample, a repeat colonoscopy and biopsy may be performed; otherwise patient is not eligible.",
+    "markers_named": [
+      "MSI_H"
+    ],
+    "verdict": "MIXED_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "EXCLUDING"
+    ],
+    "expected_marker_verdicts": {
+      "MSI_H": "REQUIRED"
+    },
+    "reason": "'otherwise patient is not eligible' is the excluding tail. The dMMR gate itself is stated elsewhere in the record \u2014 a neoadjuvant dostarlimab trial in dMMR colon cancer \u2014 so the record-level expectation is REQUIRED.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  },
+  {
+    "nct_id": "NCT06663319",
+    "title": "A Study of JNJ-89402638 for Metastatic Colorectal and Gastric Cancers",
+    "set_key": "colorectal,gastric",
+    "unit_index": 0,
+    "section_as_tagged": "inclusion",
+    "separator_class": "SEMICOLON",
+    "stratum": "MIXED",
+    "unit": "For Part 1 (dose escalation), Part 2 (Arm A \\[JNJ-89402638 monotherapy\\]): Have histologically or cytologically confirmed diagnosis of colorectal adenocarcinoma (CRC) progressing after 2 or more prior lines of standard therapy in the metastatic/unresectable setting; For Part 2 Arm B (JNJ-89402638 + bevacizumab or biosimilar): Have histologically or cytologically confirmed diagnosis of CRC progressing after 2 or more prior lines of standard therapy in the metastatic/unresectable setting; For Part 2 Arm C (JNJ-89402638 + FOLFOX/bevacizumab or biosimilar): Have histologically or cytologically confirmed diagnosis of microsatellite stable (MSS) or proficient mismatch repair (pMMR) CRC progressing after 1 or more prior lines of standard therapy in the metastatic/unresectable setting. Participants must have previously received a fluoropyrimidine and irinotecan doublet (such as FOLFIRI); For Part 2 Arm D (JNJ-89402638 + FOLFIRI/bevacizumab or biosimilar): Have histologically or cytologically confirmed diagnosis of MSS or pMMR CRC progressing after 1 prior line of standard therapy in the metastatic/unresectable setting. Must not have received irinotecan previously for metastatic disease; For Part 2 Arm E (JNJ-89402638 monotherapy in mGAC): Have histologically or cytologically confirmed diagnosis of gastric adenocarcinoma or gastroesophageal junction adenocarcinoma progressing after 1 or more prior lines of standard therapy in the metastatic/unresectable setting",
+    "markers_named": [
+      "MSS"
+    ],
+    "verdict": "SINGLE_POLARITY",
+    "clause_polarities": [
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING",
+      "ADMITTING"
+    ],
+    "expected_marker_verdicts": {
+      "MSS": "REQUIRED"
+    },
+    "reason": "Proxy false positive: 'Must not have received irinotecan previously' is a requirement on the participant, not a class turned away. Arms C and D require MSS/pMMR.",
+    "source_span": "complete unit as yielded by iter_criteria, verbatim and un-elided, read beside the complete eligibility_criteria of the complete registry record"
+  }
+]
