@@ -296,6 +296,52 @@ def test_keywords_are_the_last_resort_supplementary_source():
     assert m_.status == ELIGIBLE and m_.source == "keywords"
 
 
+# ------------------------------------------------- acronym plurals are not markers
+
+
+def test_an_acronym_plural_is_not_the_marker_it_spells():
+    """"RAs" is the plural of RA, not RAS.
+
+    The marker patterns are compiled case-insensitively — they must be, the
+    registry writes "Kras", "kras" and "Ras" — so `\\bK?RAS\\b` also matched "RAs".
+    Measured store-wide, that put a RAS verdict on 180 trials with no oncology
+    content at all: "GLP-1 RAs" and "GIP RAs" (receptor agonists) across diabetes
+    and obesity trials, "TPO-RAs" on an ITP trial, and "research assistants
+    (RAs)" on behavioural trials. All 180 changed to NOT_MENTIONED and none of
+    them contained a genuine RAS match anywhere.
+    """
+    for text, expected in [
+        ("Prior treatment with glucagon-like-peptide-1 receptor agonists (GLP-1 RAs)", False),
+        ("RAs will obtain the participants' outcome values from the record", False),
+        ("Thrombopoietin receptor agonists (TPO-RAs) were given", False),
+        # Every spelling the registry actually uses for the gene must survive.
+        ("Tumor is KRAS wild-type", True),
+        ("Kras mutation in codon 12 or 13", True),
+        ("RAS-mutated metastatic colorectal cancer", True),
+        ("NRAS mutation detected", True),
+        ("activation of the Ras pathway was documented", True),
+    ]:
+        flags = gate_markers(f"Inclusion Criteria:\n* {text}")
+        named = flags["RAS"].status != G_NOT_MENTIONED
+        assert named is expected, (
+            f"RAS {'should' if expected else 'should NOT'} be read from "
+            f"{text!r}; got status {flags['RAS'].status}"
+        )
+
+
+def test_the_acronym_plural_rule_does_not_reject_ordinary_marker_spellings():
+    """The rule is narrow on purpose: two or more capitals then a LOWERCASE s.
+    Anything that rejects "KRAS" or "MSS" would silence real gates."""
+    from medrag.markers import _is_acronym_plural
+
+    for spelling in ("RAS", "ras", "Ras", "KRAS", "Kras", "kras", "NRAS",
+                     "MSS", "MSI", "HER2", "BRAF", "G12C"):
+        assert not _is_acronym_plural(spelling), (
+            f"{spelling!r} is a real marker spelling and must not be rejected")
+    for plural in ("RAs", "NSAIDs", "DMARDs"):
+        assert _is_acronym_plural(plural), f"{plural!r} is an acronym plural"
+
+
 # ------------------------------------------------- the six-trial ground truth
 
 

@@ -499,13 +499,49 @@ def _compiled_canonical(mdef: MarkerDef) -> re.Pattern:
     return rx
 
 
+# An all-caps acronym followed by a lowercase "s" is that acronym PLURALISED, and
+# is not the marker. The marker patterns are compiled case-insensitively — they
+# have to be, because the registry writes "Kras", "kras" and "Ras" as well as
+# "KRAS" — and `\bK?RAS\b` therefore also matches "RAs", the plural of RA.
+#
+# Measured on the store, that put a RAS verdict on four trials with no oncology
+# content whatsoever: "GLP-1 RAs" (glucagon-like-peptide-1 receptor agonists) on
+# three type-2 diabetes trials, and "RAs will obtain the participants' outcome
+# values" (research assistants) on a medication-adherence trial. A type-2
+# diabetes trial carrying a RAS gate is wrong on a public page and wrong in a
+# memo.
+#
+# The rule is narrow on purpose. It rejects only the mixed-case plural form,
+# which no registry uses for a gene: "RAS", "ras", "Ras", "KRAS", "Kras" and
+# "NRAS" all still match, because `[A-Z]{2,}s` needs two or more capitals before
+# a LOWERCASE s.
+_ACRONYM_PLURAL = re.compile(r"[A-Z]{2,}s")
+
+
+def _is_acronym_plural(text: str) -> bool:
+    return bool(_ACRONYM_PLURAL.fullmatch(text))
+
+
+def _matches(rx: re.Pattern, text: str) -> list[re.Match]:
+    """Every match of `rx` in `text`, minus acronym plurals.
+
+    Every curated-marker match in this module goes through here, so a pattern
+    cannot acquire the defect back by being used at a new call site.
+    """
+    return [m for m in rx.finditer(text or "") if not _is_acronym_plural(m.group(0))]
+
+
+def _matched(rx: re.Pattern, text: str) -> bool:
+    return bool(_matches(rx, text))
+
+
 def is_explicit_match(mdef: MarkerDef, span: str) -> bool:
     """Did `span` — the sentence a REQUIRED verdict was decided from — name the
     marker by its own literal name/abbreviation, or only by a synonym? Used
     exclusively by the coverage statement (coverage.py) to report "N explicit,
     M by synonym" rather than one undifferentiated REQUIRED count; it plays no
     part in deciding REQUIRED vs EXCLUDED vs NOT_MENTIONED itself."""
-    return bool(_compiled_canonical(mdef).search(span or ""))
+    return _matched(_compiled_canonical(mdef), span or "")
 
 
 def split_signals(signals: list[MarkerSignal]):
@@ -588,16 +624,16 @@ def collect_signals(
                 # clears 9 of 9 prose-sourced verdicts and touches nothing else.
                 # See tests/fixtures/not_assessable_handread.json.
                 if source == "eligibility_criteria":
-                    if own_re.search(sentence):
+                    if _matched(own_re, sentence):
                         unassessable.append(MarkerSignal(
                             "own_unassessable", sentence.strip(), source))
-                    elif opp_re is not None and opp_re.search(sentence):
+                    elif opp_re is not None and _matched(opp_re, sentence):
                         unassessable.append(MarkerSignal(
                             "opp_unassessable", sentence.strip(), source))
                 continue
             ctx = _context(section, sentence)
 
-            own_matches = list(own_re.finditer(sentence))
+            own_matches = _matches(own_re, sentence)
             if own_matches:
                 status = _classify(sentence, ctx, own_matches)
                 found.append(MarkerSignal(
@@ -610,7 +646,7 @@ def collect_signals(
                 # positions stay valid: "non-MSI-H" is MSS's own established
                 # synonym and must not also be read as a bare mention of MSI-H.
                 stripped = own_re.sub(lambda mo: " " * len(mo.group(0)), sentence)
-                opp_matches = list(opp_re.finditer(stripped))
+                opp_matches = _matches(opp_re, stripped)
                 if opp_matches:
                     status = _classify(stripped, ctx, opp_matches)
                     found.append(MarkerSignal(

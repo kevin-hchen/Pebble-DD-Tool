@@ -42,6 +42,7 @@ rule.
 * [22. Device-parity decisions, recorded 13 August 2026](#22-device-parity-decisions-recorded-13-august-2026)
 * [23. The uniform suppression invariant was tested and REJECTED](#23-the-uniform-suppression-invariant-was-tested-and-rejected)
 * [24. The heading-line defect in `iter_criteria` — SIZED IN CHARACTERS, REMEDY REJECTED, STILL OPEN](#24-the-heading-line-defect-in-iter_criteria--sized-in-characters-remedy-rejected-still-open)
+* [25. Acronym plurals are not markers — fixed; the broader rule was REJECTED](#25-acronym-plurals-are-not-markers--fixed-the-broader-rule-was-rejected)
 
 ---
 
@@ -2836,6 +2837,112 @@ still dominate enumeration by an order of magnitude — so §23's corrected fram
 stands. Only the absolute numbers move. **Any figure quoted off that proxy must
 name it as a proxy**, which is the same rule §22 states for a number derived
 from a proxy signal.
+
+---
+
+## 25. Acronym plurals are not markers — fixed; the broader rule was REJECTED
+
+Found 2 September 2026 while adjudicating the rejected heading fix (§24). Five of
+its inversions turned out to have nothing to do with headings: they were trials
+whose text never mentions a gene at all.
+
+### The defect
+
+`config/markers.yaml` gives RAS the pattern `\bK?RAS\b`, and `markers._compiled`
+compiles every marker pattern with `re.IGNORECASE`. It has to — the registry
+writes "Kras", "kras" and "Ras" as well as "KRAS". The consequence is that the
+pattern also matches **`RAs`**, the plural of RA.
+
+Measured store-wide: **180 trials carried a RAS verdict off that match**, 110
+REQUIRED and 70 EXCLUDED, on records containing no oncology content whatsoever.
+The contexts, counted rather than sampled — all 370 matches across those 180
+trials are the single token `RAs`:
+
+```
+GLP-1 RAs / GLP1-RAs / GIP RAs   glucagon-like-peptide-1 and GIP receptor agonists
+TPO-RAs                          thrombopoietin receptor agonists (an ITP trial)
+research assistants (RAs)        behavioural and adherence trials
+```
+
+A type-2 diabetes trial carrying a RAS gate is wrong in a memo and embarrassing
+on a public page.
+
+### The fix
+
+`markers._is_acronym_plural`: a match is rejected when it fullmatches
+`[A-Z]{2,}s` — two or more capitals followed by a **lowercase** s, which is the
+standard way an all-caps acronym is pluralised. All curated-marker matching now
+routes through `_matches` / `_matched`, so a new call site cannot reacquire the
+defect by calling `finditer` directly.
+
+The rule is narrow deliberately. `RAS`, `ras`, `Ras`, `KRAS`, `Kras`, `kras` and
+`NRAS` all still match, because the trailing `s` must be lowercase and preceded
+by two or more capitals.
+
+**Measured through `gate_markers`, store-wide: 180 verdict changes across 180
+trials, every one to `NOT_MENTIONED`, ZERO direction-to-different-direction
+inversions and zero toward REQUIRED.** All 180 were adjudicated rather than
+sampled, by an exhaustive check that is cheaper than reading them: **none of the
+180 contains a genuine non-plural RAS match anywhere in the text the matcher
+reads**, so no trial lost a real gate. `scripts/acronym_plural_delta.py`.
+
+### The residual
+
+**NCT01788735**, an unexplained-infertility trial in asthmatic patients, still
+reads `RAS: EXCLUDED` off its detailed description: *"Blood samples (RAS test)
+and prick test are performed to evaluate their possible allergy status"*. That
+is a **RAST** — a radioallergosorbent test — written without the T. It is
+all-caps and correctly spelled, so no case rule reaches it. A genuine homonym,
+left as a documented single-record residual.
+
+The structural lever, if it is ever worth pulling, is `MarkerDef.curated_for`
+(RAS is `curated_for: [colorectal cancer]`), which today is carried but never
+gates anything. Conditioning the census on disease area is a much larger change
+with store-wide effects, and one record does not justify it.
+
+### The broader rule was REJECTED, and this is why
+
+The proposed rule was: extend fix 1 from `NOT_ASSESSABLE` to **all** verdicts —
+no verdict of any kind emitted from supplementary text when zero eligibility
+lines name the marker. It was rejected on two measurements, both taken before
+writing anything.
+
+**1. It does not fix the defect.** Three of the five motivating cases —
+NCT03798054, NCT03798080, NCT05413369 — carry `GLP-1 RAs` **inside
+`eligibility_criteria`**, so the supplementary-text fallback is not involved at
+all. The rule would have left them exactly as they were.
+
+**2. It deletes 20% of every verdict in the store, including a gate.** Verdicts
+by source, store-wide:
+
+| source | non-`NOT_MENTIONED` verdicts |
+|---|---:|
+| `eligibility_criteria` | 8,910 |
+| `detailed_description` | 1,362 |
+| `brief_summary` | 622 |
+| `keywords` | 265 |
+| **supplementary total** | **2,249 of 11,159 — 20.2%** |
+
+Among those 2,249 is **ADG126-P001 (NCT05405595)**, whose MSS status appears
+*only* in its detailed description. It is a named example in `CLAUDE.md`, it is
+the reason the fallback exists, and it is pinned by
+`test_adg126_p001_reaches_the_user_via_its_detailed_description` — one of the
+six-trial ground truth gates. The proposed rule zeroes it.
+
+The confusion is in the wording, and it is worth keeping because it reads
+naturally: *"supplementary text may fill a genuine gap; it must never
+manufacture a verdict where the eligibility section is silent"*. Those two
+clauses contradict each other — **filling a gap IS producing a verdict where
+eligibility is silent**. The rule the codebase actually holds, in `CLAUDE.md`
+and in the marker-grammar rules, is about **override**, not emission:
+supplementary text is consulted only on silence and must never outrank a real
+eligibility statement. Fix 1 was narrower than it looked: it stopped prose
+manufacturing `NOT_ASSESSABLE`, a state that asserts *"the record raised this
+axis"* — which prose cannot evidence — and left directions alone.
+
+**The lesson, which is the same one §24 records one layer up:** the symptom
+appeared in the fallback, so the fix was aimed at the fallback. The cause was in
+the vocabulary. Locate the defect before choosing the layer to fix it at.
 
 ---
 

@@ -67,3 +67,17 @@ enough that "Subject has KRasG12C mutation" stays a genuine requirement.
 summary → keywords, and `collect_signals` consults each later source ONLY when
 every earlier one is completely silent for that marker. Prose or a registry
 keyword tag must never override a real eligibility-criteria statement.
+
+**An all-caps acronym pluralised with a lowercase "s" is not the marker it
+spells.** Marker patterns are compiled `re.IGNORECASE` — they must be, the
+registry writes "Kras", "kras" and "Ras" — so `\bK?RAS\b` also matched `RAs`,
+the plural of RA. Measured store-wide that put a RAS verdict on 180 trials with
+no oncology content: "GLP-1 RAs" and "GIP RAs" (receptor agonists), "TPO-RAs",
+and "research assistants (RAs)". `_is_acronym_plural` rejects a match that
+fullmatches `[A-Z]{2,}s`; every curated match routes through `_matches` /
+`_matched` so a new call site cannot reacquire the defect by calling `finditer`
+directly. The rule is narrow: RAS, ras, Ras, KRAS, Kras, kras and NRAS all still
+match. Known residual, one record: "RAS test" for a RAST allergy assay is
+all-caps and no case rule reaches it (RATIONALE §25).
+→ `test_an_acronym_plural_is_not_the_marker_it_spells`,
+  `test_the_acronym_plural_rule_does_not_reject_ordinary_marker_spellings`
