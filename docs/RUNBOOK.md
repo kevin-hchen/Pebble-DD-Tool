@@ -93,6 +93,120 @@ without naming it in the terms breaks the build. That is deliberate.
 
 ---
 
+## Migrating the stores after a matcher change
+
+**Read this before `build_artifact.py`.** There are TWO stores and they are not
+the same object, which is the thing that catches people:
+
+| | path | what it is | what it needs |
+|---|---|---|---|
+| working store | `data/raw/trials.db` | what the CLI and Streamlit read and write | a **census rebuild** — its `PRAGMA user_version` gates it |
+| deploy artifact | `dist/artifact/trials.db` | the compacted, precomputed, checksummed copy that ships | a **full rebuild from the working store** — schema, census, precompute, stamp |
+
+The artifact is not migrated in place and never should be. It is rebuilt from
+the working store, so the working store is migrated FIRST and the artifact is a
+pure function of it afterwards.
+
+**Two independent gates refuse a stale artifact**, and they fire in this order.
+Knowing which one you hit tells you what to fix:
+
+1. **The schema gate** — `PRAGMA user_version` vs `STORE_VERSION`. Raises
+   `TrialStoreSchemaError` before any code touches the file. Fix: migrate.
+2. **The fingerprint gate** — `precompute_meta.code_version` vs
+   `precompute.code_version()`, a hash of every source file and config that can
+   change a landscape answer. Raises at startup via `verify_precompute`. Fix:
+   rebuild the artifact.
+
+A working store carries no `precompute_meta` at all, so gate 2 does not apply to
+it. If you are staring at a fingerprint mismatch, you are looking at the
+artifact.
+
+### Why a matcher change forces this
+
+The biomarker census (`biomarker_gating`, `biomarker_basis`, `biomarker_flags`)
+is a DERIVED column baked at ingest. Change the matcher and the stored census
+describes the old rules while the live screen uses the new ones — the exact
+divergence the census/live parity gate exists to catch. So **a matcher change
+requires a `STORE_VERSION` bump**, because `migrate_derived_columns` gates the
+census rebuild on the version and will silently skip it otherwise. Bumping the
+constant is part of the matcher change, not part of the migration.
+
+Add the new version to `_BACKFILLABLE_FROM` when the gap is recomputable from
+stored text, which for a census rebuild it always is. Leave it out and the
+operator is told to delete a 241,298-record store and re-ingest, to recover
+something no network is needed for.
+
+### The procedure
+
+Run from the repo root with the venv active. Nothing here touches the network.
+
+```bash
+# 1. Checkpoint the WAL, so the backup is a complete file rather than a
+#    database plus a sidecar someone will forget to copy.
+sqlite3 data/raw/trials.db "PRAGMA wal_checkpoint(TRUNCATE);"
+
+# 2. Back up the working store. Name it for the version you are LEAVING, so the
+#    backups sort into a history: trials.db.v9-backup, .v13-preStageB-backup, ...
+cp data/raw/trials.db data/raw/trials.db.v13-preV14-backup
+sqlite3 data/raw/trials.db.v13-preV14-backup "PRAGMA user_version; select count(*) from trials;"
+
+# 3. Migrate the working store. Recomputes the census from stored text.
+python -m medrag trials --migrate
+
+# 4. Rebuild the artifact FROM the migrated working store.
+python scripts/build_artifact.py --out dist/artifact
+
+# 5. Re-run the three hard gates against the migrated store.
+python -m pytest tests/test_census_live_parity.py tests/test_markers.py tests/test_ranking.py -q
+python scripts/check_census_parity.py        # the full-store sweep, see note below
+
+# 6. Confirm a clean start against the rebuilt artifact.
+python -c "from medrag.trials.store import TrialStore; TrialStore('dist/artifact/trials.db', read_only=True); print('opens')"
+python -c "import sqlite3, medrag.precompute as pc; c=sqlite3.connect('file:dist/artifact/trials.db?mode=ro', uri=True); print(pc.stored_version(c) == pc.code_version())"
+```
+
+**Step 5 has a fixture version and a full-store version, and only one of them
+can run before step 3.** `tests/test_census_live_parity.py` (12 cases) runs
+against fixtures and is the gate during development.
+`scripts/check_census_parity.py` compares the STORED census against the live
+matcher over all 241,298 records, so it necessarily fails on an un-migrated
+store — the stored column is the thing being replaced. Run it AFTER the
+migration, never before, or you will be reading the staleness you are about to
+fix as a divergence.
+
+### How long it takes
+
+Measured on the real 241,298-trial store, Python 3.9 on macOS, M-series laptop,
+2 September 2026. **These are the numbers that decide whether a refresh is a
+coffee break or an afternoon**, which is why they are here and not left to be
+rediscovered.
+
+| step | elapsed | notes |
+|---|---|---|
+| 1. WAL checkpoint | instant | WAL was already empty |
+| 2. Backup — 2.0 GB copy | **3 s** | |
+| 3. **Migrate** — census rebuild, 241,298 records | **20 m 21 s** | `1221.2 s`. CPU-bound, single-threaded; `user` was 1202 s of 1221 s |
+| 4. **Artifact rebuild** — 3x `VACUUM INTO`, precompute, checksum | **2 m 32 s** | `151.8 s`, 1941.3 MB out, 518 precomputed pairs / 10,299 rows |
+| 5a. Gates — pytest suite | **45 s** | 865 tests |
+| 5b. Gates — full-store parity sweep | **27 m 47 s** | `1666.6 s`, 74 families, ~2.15 M comparisons |
+| 6. Clean-start checks | instant | schema gate, fingerprint gate, `shasum -c` |
+| | | |
+| **routine chain** (1-4, 5a, 6) | **≈ 24 min** | this is the number that matters |
+| **with the full-store sweep** (adds 5b) | **≈ 51 min** | |
+
+**So: a coffee break, not an afternoon — unless you run the full-store parity
+sweep, which roughly doubles it.** Step 3 dominates and is pure CPU: it runs
+`gate_markers` once per record over the whole store. It does not parallelise
+today and nothing depends on it doing so.
+
+Run 5b when the *matcher* changed, which is exactly when you also needed the
+migration. Skip it for a refresh that only added records — 5a covers that.
+
+Disk needed: the backup is a full copy, so budget **2 GB per backup kept** on
+top of the 2 GB store and the 1.9 GB artifact.
+
+---
+
 ## The data artifact: build, verify, swap, roll back
 
 Written for someone who was not here. You need a checkout, a Python 3.11+ venv,

@@ -97,7 +97,16 @@ from .client import STOPPED_STATUSES, TrialRecord
 # every landscape COUNT reflecting the old four states while the live screen
 # reflects five, which is exactly the divergence the census/live parity gate
 # exists to catch. Pure recomputation from stored text, no re-fetch.
-STORE_VERSION = 13
+# v14 recomputes the census again, for two matcher changes since v13. Fix 1
+# (markers.collect_signals) stopped NOT_ASSESSABLE being emitted from a trial's
+# prose rather than its eligibility criteria. The acronym-plural rule
+# (markers._is_acronym_plural, RATIONALE §25) stopped "RAs" — the plural of RA —
+# matching `\bK?RAS\b`, which had put a RAS verdict on 180 trials whose text
+# names no gene at all: "GLP-1 RAs", "TPO-RAs", "research assistants (RAs)".
+# Same rule as v11 and v13: the census is derived, so a matcher change moves it
+# or the stored counts describe rules the live screen no longer uses. Pure
+# recomputation from stored text, no re-fetch.
+STORE_VERSION = 14
 
 #: The backfill's record of what has been ASKED. Separate from the column, which
 #: records what has been ANSWERED — an ID the registry does not return leaves the
@@ -317,7 +326,7 @@ def _intervention_clause(intervention: str, params: list, join: str = "AND",
 #: outright, because the missing columns hold data only a re-fetch can supply
 #: (v4's fetch provenance, v5's detailed_description) and inventing them would
 #: be worse than the refusal.
-_BACKFILLABLE_FROM = frozenset({7, 8, 9, 10, 12})
+_BACKFILLABLE_FROM = frozenset({7, 8, 9, 10, 12, 13})
 
 #: Schema versions whose gap needs the REGISTRY but not a re-ingest.
 #:
@@ -513,9 +522,11 @@ def migrate_derived_columns(path: str | Path) -> dict:
         # rules while the live screen reflects the new ones. That divergence is
         # exactly what the census/live equality gate exists to catch.
         census: list = []
-        if version < 13:      # v11 introduced this step; v13 re-runs it for
-                              # NOT_ASSESSABLE, which is a matcher change and so
-                              # must move the stored census with it.
+        if version < 14:      # v11 introduced this step; v13 re-ran it for
+                              # NOT_ASSESSABLE and v14 for fix 1 plus the
+                              # acronym-plural rule. Every one is a matcher
+                              # change, and a matcher change must move the
+                              # stored census with it.
             rows = conn.execute(
                 "SELECT nct_id, eligibility_criteria, detailed_description, "
                 "brief_summary, keywords FROM trials").fetchall()
