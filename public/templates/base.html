@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>{% block title %}Trial finder{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="/">Trial finder</a>
+  {#
+    The snapshot date sits in the masthead, not in a footer and not in a
+    collapsible panel, because "how old is this?" changes how every number below
+    should be read. Above the fold on any viewport by construction.
+  #}
+  <p class="snapshot">Data snapshot: <strong>{{ snapshot_date }}</strong> · not a live feed</p>
+</header>
+
+{# Never collapsible. A disclaimer behind a click is a disclaimer nobody read. #}
+<p class="advice-banner" role="note">
+  <strong>This is not medical advice.</strong> It reports what public registries say.
+  Trial eligibility shown here is <strong>indicative only</strong> and is decided by the
+  trial team running the study — always confirm with them.
+</p>
+
+<main>
+  {% block content %}{% endblock %}
+</main>
+
+<footer>
+  <p>
+    <a href="/terms">How your data is handled</a> ·
+    terms version {{ terms_version }} ·
+    sources: ClinicalTrials.gov
+    {%- if report_email %} ·
+    {#
+      A mailto:, not a form. A form needs somewhere to put what was typed, and
+      "somewhere to put what visitors type" is exactly what the terms say does
+      not exist. A mailto: opens the visitor's own mail client: nothing is
+      posted here, nothing is logged, and what they choose to send goes to a
+      mailbox we already operate rather than into this service.
+
+      No prefilled body carrying the search, deliberately — that would put the
+      search terms into a URL, which is the thing the POST change removed.
+    #}
+    <a href="mailto:{{ report_email }}?subject=Trial%20finder%20%E2%80%94%20possible%20error">Report a wrong answer</a>
+    {%- endif %}
+  </p>
+  <p class="muted">
+    Absence of a result means it is not in this snapshot. That is not evidence it
+    does not exist.
+  </p>
+</footer>
+
+</body>
+</html>

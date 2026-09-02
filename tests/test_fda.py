@@ -343,14 +343,15 @@ def test_memo_renders_recalls_and_events_on_their_own_lines():
     from medrag.diligence import DiligenceQuestion, MemoResult, SectionResult
     from medrag.generator import Answer
     from medrag.memo import render_markdown
-    from medrag.negative_evidence import NegativeEvidence, StoppedTrial
+    from medrag.negative_evidence import NegativeEvidence, StoppedTrial, StoppedTrialSweep
     from medrag.router import Route
     from medrag.trials.client import parse_study
     from medrag.validation import ValidationReport
 
     neg = NegativeEvidence(
         claim="Infusion pump X is safe.",
-        stopped_trials=[StoppedTrial(record=parse_study(PAGE_ONE["studies"][1]))],
+        stopped=StoppedTrialSweep(
+            trials=[StoppedTrial(record=parse_study(PAGE_ONE["studies"][1]))], n_total=1),
         recalls=_recalls(),
         adverse_events=find_adverse_events(_store(), product_code="FRN", limit=2)[0],
         event_totals={"Death": 1, "Injury": 1, "Malfunction": 1},

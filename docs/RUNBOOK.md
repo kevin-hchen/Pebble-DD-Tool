@@ -47,6 +47,570 @@ on the old snapshot.
 
 ---
 
+## Running the public site
+
+The public service is a **separate application** (`public/`), not the Streamlit
+app with pages hidden. Nothing in `app.py` or `pages/` is imported by it, so the
+internal tool is unreachable from the internet by construction rather than by a
+route check.
+
+```bash
+MEDRAG_READ_ONLY=1 MEDRAG_DATA_DIR=/srv/snapshot \
+  uvicorn public.main:app --host 127.0.0.1 --port 8000
+```
+
+Routes, and what each may touch:
+
+| Route | Consent | Touches |
+|---|---|---|
+| `GET /` | — | one template |
+| `GET /terms` | — | the terms markdown |
+| `GET /landscape` | not required | read-only snapshot |
+| `GET /landscape.pdf` | not required | read-only snapshot; PDF built in memory |
+| `POST /memo` | **required** | flagged OFF |
+| `POST /claims` | **required** | flagged OFF |
+| `GET /healthz` | — | nothing |
+
+**Feature flags fail closed.** `PUBLIC_FEATURE_MEMO` and `PUBLIC_FEATURE_CLAIMS`
+ship off; absent, empty or mistyped means off. A mistyped value is reported at
+startup (`startup_report()`), because otherwise it looks identical to a flag
+deliberately left off. Landscape is on.
+
+**Do not pass `--access-log`, and do not expect it to matter.** The server's own
+access logger writes the full request line *including the query string*, which
+would put visitors' search terms into the log. `public/main` disables
+`uvicorn.access` (and the gunicorn/hypercorn equivalents) at import, so the
+guarantee does not depend on a command-line flag. The application's own log line
+is method, route template, status, milliseconds — nothing else.
+
+This was found by running a real server and grepping its log for a sentinel; the
+unit tests could not see it, because `TestClient` never starts uvicorn's logger.
+
+**Changing the model provider is a terms change.** `public/terms.py` compares the
+configured provider against the disclosure block in `docs/TERMS-DRAFT.md`, and
+`tests/test_public_app.py` fails if they disagree. Configuring a hosted provider
+without naming it in the terms breaks the build. That is deliberate.
+
+---
+
+## Migrating the stores after a matcher change
+
+**Read this before `build_artifact.py`.** There are TWO stores and they are not
+the same object, which is the thing that catches people:
+
+| | path | what it is | what it needs |
+|---|---|---|---|
+| working store | `data/raw/trials.db` | what the CLI and Streamlit read and write | a **census rebuild** — its `PRAGMA user_version` gates it |
+| deploy artifact | `dist/artifact/trials.db` | the compacted, precomputed, checksummed copy that ships | a **full rebuild from the working store** — schema, census, precompute, stamp |
+
+The artifact is not migrated in place and never should be. It is rebuilt from
+the working store, so the working store is migrated FIRST and the artifact is a
+pure function of it afterwards.
+
+**Two independent gates refuse a stale artifact**, and they fire in this order.
+Knowing which one you hit tells you what to fix:
+
+1. **The schema gate** — `PRAGMA user_version` vs `STORE_VERSION`. Raises
+   `TrialStoreSchemaError` before any code touches the file. Fix: migrate.
+2. **The fingerprint gate** — `precompute_meta.code_version` vs
+   `precompute.code_version()`, a hash of every source file and config that can
+   change a landscape answer. Raises at startup via `verify_precompute`. Fix:
+   rebuild the artifact.
+
+A working store carries no `precompute_meta` at all, so gate 2 does not apply to
+it. If you are staring at a fingerprint mismatch, you are looking at the
+artifact.
+
+### Why a matcher change forces this
+
+The biomarker census (`biomarker_gating`, `biomarker_basis`, `biomarker_flags`)
+is a DERIVED column baked at ingest. Change the matcher and the stored census
+describes the old rules while the live screen uses the new ones — the exact
+divergence the census/live parity gate exists to catch. So **a matcher change
+requires a `STORE_VERSION` bump**, because `migrate_derived_columns` gates the
+census rebuild on the version and will silently skip it otherwise. Bumping the
+constant is part of the matcher change, not part of the migration.
+
+Add the new version to `_BACKFILLABLE_FROM` when the gap is recomputable from
+stored text, which for a census rebuild it always is. Leave it out and the
+operator is told to delete a 241,298-record store and re-ingest, to recover
+something no network is needed for.
+
+### The procedure
+
+Run from the repo root with the venv active. Nothing here touches the network.
+
+```bash
+# 1. Checkpoint the WAL, so the backup is a complete file rather than a
+#    database plus a sidecar someone will forget to copy.
+sqlite3 data/raw/trials.db "PRAGMA wal_checkpoint(TRUNCATE);"
+
+# 2. Back up the working store. Name it for the version you are LEAVING, so the
+#    backups sort into a history: trials.db.v9-backup, .v13-preStageB-backup, ...
+cp data/raw/trials.db data/raw/trials.db.v13-preV14-backup
+sqlite3 data/raw/trials.db.v13-preV14-backup "PRAGMA user_version; select count(*) from trials;"
+
+# 3. Migrate the working store. Recomputes the census from stored text.
+python -m medrag trials --migrate
+
+# 4. Rebuild the artifact FROM the migrated working store.
+python scripts/build_artifact.py --out dist/artifact
+
+# 5. Re-run the three hard gates against the migrated store.
+python -m pytest tests/test_census_live_parity.py tests/test_markers.py tests/test_ranking.py -q
+python scripts/check_census_parity.py        # the full-store sweep, see note below
+
+# 6. Confirm a clean start against the rebuilt artifact.
+python -c "from medrag.trials.store import TrialStore; TrialStore('dist/artifact/trials.db', read_only=True); print('opens')"
+python -c "import sqlite3, medrag.precompute as pc; c=sqlite3.connect('file:dist/artifact/trials.db?mode=ro', uri=True); print(pc.stored_version(c) == pc.code_version())"
+```
+
+**Step 5 has a fixture version and a full-store version, and only one of them
+can run before step 3.** `tests/test_census_live_parity.py` (12 cases) runs
+against fixtures and is the gate during development.
+`scripts/check_census_parity.py` compares the STORED census against the live
+matcher over all 241,298 records, so it necessarily fails on an un-migrated
+store — the stored column is the thing being replaced. Run it AFTER the
+migration, never before, or you will be reading the staleness you are about to
+fix as a divergence.
+
+### How long it takes
+
+Measured on the real 241,298-trial store, Python 3.9 on macOS, M-series laptop,
+2 September 2026. **These are the numbers that decide whether a refresh is a
+coffee break or an afternoon**, which is why they are here and not left to be
+rediscovered.
+
+| step | elapsed | notes |
+|---|---|---|
+| 1. WAL checkpoint | instant | WAL was already empty |
+| 2. Backup — 2.0 GB copy | **3 s** | |
+| 3. **Migrate** — census rebuild, 241,298 records | **20 m 21 s** | `1221.2 s`. CPU-bound, single-threaded; `user` was 1202 s of 1221 s |
+| 4. **Artifact rebuild** — 3x `VACUUM INTO`, precompute, checksum | **2 m 32 s** | `151.8 s`, 1941.3 MB out, 518 precomputed pairs / 10,299 rows |
+| 5a. Gates — pytest suite | **45 s** | 865 tests |
+| 5b. Gates — full-store parity sweep | **27 m 47 s** | `1666.6 s`, 74 families, ~2.15 M comparisons |
+| 6. Clean-start checks | instant | schema gate, fingerprint gate, `shasum -c` |
+| | | |
+| **routine chain** (1-4, 5a, 6) | **≈ 24 min** | this is the number that matters |
+| **with the full-store sweep** (adds 5b) | **≈ 51 min** | |
+
+**So: a coffee break, not an afternoon — unless you run the full-store parity
+sweep, which roughly doubles it.** Step 3 dominates and is pure CPU: it runs
+`gate_markers` once per record over the whole store. It does not parallelise
+today and nothing depends on it doing so.
+
+Run 5b when the *matcher* changed, which is exactly when you also needed the
+migration. Skip it for a refresh that only added records — 5a covers that.
+
+Disk needed: the backup is a full copy, so budget **2 GB per backup kept** on
+top of the 2 GB store and the 1.9 GB artifact.
+
+---
+
+## The data artifact: build, verify, swap, roll back
+
+Written for someone who was not here. You need a checkout, a Python 3.11+ venv,
+and the stores under `data/raw/` (build those with `python -m medrag trials`).
+
+### Build
+
+```bash
+python scripts/build_artifact.py --out dist/artifact
+```
+
+One command. It compacts each store with `VACUUM INTO` (read-only on the source,
+so this is safe to run while the tool is in use), stamps the snapshot date and
+content version **inside** each database, and writes `manifest.json` and
+`SHA256SUMS`. Takes about 30 seconds and produces roughly 1.9 GB.
+
+The snapshot date lives inside the file, in a `snapshot_meta` table, **not in
+the filename**. Renaming `trials.db` changes nothing about what the app believes
+its age to be — which is the point, because a filename is a label anyone can
+change with `mv`.
+
+Confirm the build is a pure function of its inputs:
+
+```bash
+python scripts/build_artifact.py --verify-reproducible   # builds twice, compares
+```
+
+### Verify — do this on the machine that will serve it, after copying
+
+```bash
+cd /srv/artifact && shasum -a 256 -c SHA256SUMS
+```
+
+Every line must say `OK`. This is the check that catches a truncated upload,
+which is the most common way a deployment ends up serving half a database.
+
+### Swap
+
+The service verifies the artifact **at startup** and refuses to run on one that
+is missing, corrupt, or older than `PUBLIC_MAX_SNAPSHOT_AGE_DAYS`. So a swap is:
+put the new artifact beside the old one, point at it, restart, confirm.
+
+```bash
+# 1. Copy the NEW artifact to a new directory — never overwrite the live one.
+rsync -a --checksum dist/artifact/ /srv/artifacts/2026-08-10/
+
+# 2. Verify it in place.
+cd /srv/artifacts/2026-08-10 && shasum -a 256 -c SHA256SUMS
+
+# 3. Repoint and restart.
+ln -sfn /srv/artifacts/2026-08-10 /srv/artifact-current
+systemctl restart trialfinder     # or: docker compose up -d
+
+# 4. Confirm what is actually live — do not skip this.
+curl -s https://YOUR-REAL-HOST/healthz | python -m json.tool
+```
+
+Step 4 should show the new `snapshot_date`, `artifact_verified: true`,
+`snapshot_stale: false`, and `checksums_verified: true`. If it shows the old
+date, the restart did not pick up the new directory.
+
+**`/healthz` returns 503 once the snapshot passes the threshold, without a
+restart.** Staleness is recomputed per request rather than read from the value
+captured at import — a process that started one day inside the threshold and ran
+for a month used to keep serving and keep answering `snapshot_stale: false`,
+because the refusal in `verify()` only fires at startup and nothing re-asked in
+between. The payload carries both numbers: `snapshot_age_days` (now) and
+`snapshot_age_days_at_startup` (what the startup check acted on); the gap between
+them is how long the process has been up.
+
+Operationally this means an ageing deployment takes itself out of a load-balancer
+rotation and, under an orchestrator that restarts on health failure, hits the
+startup refusal — a restart loop and a log line, which is the intended way for
+this to become impossible to ignore rather than a page that gets quietly more
+wrong. If you accept the age, raise `PUBLIC_MAX_SNAPSHOT_AGE_DAYS` deliberately.
+
+**Never overwrite the live artifact in place.** A partially-copied 1.9 GB file
+is a broken deployment, and it is broken for as long as the copy takes.
+
+### Roll back
+
+Because each artifact is its own directory, rollback is repointing:
+
+```bash
+ln -sfn /srv/artifacts/2026-08-01 /srv/artifact-current
+systemctl restart trialfinder
+curl -s https://YOUR-REAL-HOST/healthz | python -m json.tool   # confirm the date moved back
+```
+
+Keep the previous two artifacts on disk (≈4 GB) so this is always available.
+Rolling back to an artifact older than the staleness threshold **will not
+start** — that is deliberate. If you need it anyway, raise
+`PUBLIC_MAX_SNAPSHOT_AGE_DAYS` explicitly and knowingly.
+
+### After ANY infrastructure change
+
+New host, new CDN, new proxy, new WAF, changed logging config, new error
+tracker — all of these reintroduce layers that log URLs by default.
+
+1. Re-read the URL-logging table below and re-check every layer.
+2. **Re-run the sentinel test against the real hostname. This is mandatory, not
+   advisory** — passing locally proves the application layer only and says
+   nothing about what now sits in front of it.
+3. `curl /healthz` and confirm the snapshot date, terms version and provider are
+   what you expect.
+
+---
+
+## Deployment checklist: every layer that can log a URL
+
+**The application cannot keep this promise alone.** Silencing `uvicorn.access`
+closes the layer we own. Every other layer in a normal deployment logs request
+URLs *by default*, and each one is a separate place a search term can land. Work
+through all of them before the site takes traffic.
+
+The search itself is now a **POST**, so the terms are in a request body rather
+than a URL — which is what makes this checklist survivable, because bodies are
+not logged by default anywhere below. The checklist still matters: a body is
+only unlogged until someone turns body logging on, and any *other* route that
+takes a query string reopens the hole.
+
+| Layer | Default | What to do |
+|---|---|---|
+| **This app** | safe | `log_request` writes method, route template, status, ms. Nothing to do. |
+| **This app, on a 500** | safe | `log_exception` writes the exception TYPE and one `file:line in function` per frame — never `str(exc)`, which routinely quotes the input, and never a local. Before this a 500 left one access-log line and nothing to debug from. The cost: a `KeyError` no longer tells you which key. The file and line do. |
+| **uvicorn / gunicorn** | **logs full URL** | Silenced at import by `public/main`. Do not re-enable; `--access-log` will not defeat it, but a custom `logging.config` might. |
+| **nginx / Apache** | **logs full URL** | The default `combined` format includes `$request` (method + full URI) *and* `$http_referer`. Use a format with neither, or `access_log off;`. |
+| **Cloudflare / CDN** | **logs full URL** | Logpush and the HTTP Requests analytics both capture the URI. Disable Logpush for this hostname, or restrict fields to method/status/timing. Check WAF sampling too — blocked requests are logged with their URI. |
+| **PaaS router** (Heroku, Fly, Render, Railway, App Runner) | **logs full URL** | The platform router log is usually not configurable. Assume the path is recorded; this is the strongest argument for POST. |
+| **Load balancer** (ALB, GCLB) | **logs full URL** | S3/Cloud Logging access logs include the full request URL. Turn access logging off for this target group, or accept it and rely on POST. |
+| **Browser history** | records URLs | POST results are not in history. Do not add a "share this search" link. |
+| **`Referer` header** | sent to any external host | `Referrer-Policy: no-referrer` is set on every response, and the page loads nothing external. Both are tested. |
+| **Error tracking** (Sentry etc.) | **captures URL, body, headers** | Not installed. If one is ever added, configure `send_default_pii=False` and scrub request bodies *before* deploying it. |
+| **Process listing** | `ps` shows argv | Never pass a search or a key on a command line. |
+
+**Then re-run the sentinel test against the real deployed URL.** Passing locally
+proves the application layer only — it says nothing about the nginx in front of
+it or the PaaS router above that.
+
+```bash
+SENTINEL="ZZQX-$(date +%s)-deployment-check-ZZQX"
+
+# Through the REAL hostname, so every intermediary sees it.
+curl -s -X POST https://YOUR-REAL-HOST/landscape \
+     -d "condition=$SENTINEL&biomarker=$SENTINEL" -o /dev/null
+
+# Then search every log you can reach. Not only the app's.
+grep -r "$SENTINEL" /var/log/nginx/ /var/log/ 2>/dev/null
+journalctl -u YOUR-SERVICE --since "10 minutes ago" | grep "$SENTINEL"
+# Cloudflare: Logpush destination, and the Security Events UI
+# PaaS: `heroku logs --tail`, `fly logs`, `render logs`, etc.
+```
+
+A hit anywhere is a leak, and the fix belongs at that layer — not in the app,
+which has already done what it can.
+
+**Do this again after any infrastructure change.** Adding a CDN, moving hosts, or
+turning on a WAF each reintroduce a layer that logs URLs by default.
+
+---
+
+## What it costs to run
+
+Measured on the real 241,298-trial artifact (2026-08-10), Python 3.9 on macOS,
+single core per worker. Numbers, not estimates.
+
+### Disk
+
+| | |
+|---|---|
+| `trials.db` | **1,860.6 MB** |
+| `fda.db` | 39.1 MB |
+| `drugs.db` | 16.9 MB |
+| **artifact total** | **1,916.6 MB** (2.01 GB as the filesystem reports it) |
+| Keep 2 previous artifacts for rollback | **≈6 GB** provisioned |
+
+The trial store is 80% text, and it cannot be trimmed without changing what the
+tool answers: `eligibility_criteria` 416 MB (27%), `locations` 361 MB (23%),
+`detailed_description` 302 MB (20%), `brief_summary` 155 MB (10%). The two
+description fields look like dead weight and are not — `build_landscape`
+screens them live, which is how ADG126-P001 is found at all (it states its MSS
+focus only in its detailed description).
+
+### Memory
+
+| | |
+|---|---|
+| Python + imports | 26 MB |
+| After opening the 1.9 GB store | 26 MB — SQLite is paged, not loaded |
+| Peak during a colorectal search | **167 MB** |
+| Steady state after several searches | ~167 MB |
+
+**512 MB per worker is comfortable; 1 GB for two workers plus headroom.** The
+artifact does not need to fit in RAM, but the OS page cache will use whatever is
+spare, and a box with 2 GB free will serve noticeably faster than one with 256 MB.
+
+### Latency
+
+Two optimisations landed after the first measurement; both numbers below are
+measured on the same machine and the same 241,298-trial store.
+
+| Search | Population | Before | After |
+|---|---|---|---|
+| `rett syndrome` | 104 | 3.1 s | **0.05 s** |
+| `colorectal cancer` | 12,095 | 12.8 s | **1.8 s** |
+| `breast cancer` (HER2) | 17,089 | ~17 s (projected) | **1.9 s** |
+
+**1. Query-set membership is an indexed join table.** `query_sets LIKE '% key %'`
+could not use an index, so every search full-scanned all 241k rows six times —
+a fixed ~3 s regardless of family size. `trial_query_sets(set_key, nct_id)`
+turns that into an index range scan. The old token column was DROPPED, not kept
+alongside; the migration asserts the join table reproduces it exactly for every
+family first.
+
+**2. The live biomarker screen is prefiltered by the ingest-time census.** The
+gating tokens were already computed at ingest, so SQL narrows colorectal from
+12,095 records to 826 before any Python runs. Proven equivalent before shipping
+— see below.
+
+### Throughput and concurrency
+
+Two workers, measured end to end through uvicorn:
+
+| Search | Concurrency | Before | After |
+|---|---|---|---|
+| `rett syndrome` | 1 | 0.32 req/s | **16.5 req/s** |
+| | 2 | 0.33 req/s | **33.7 req/s** |
+| | 4 | 0.42 req/s | **46.1 req/s** |
+| | 8 | 0.29 req/s | **34.4 req/s** |
+| `colorectal cancer` | 1 | ~0.08 req/s | **0.75 req/s** |
+| | 8 | — | **1.38 req/s** |
+| | 16 | — | **1.02 req/s** |
+
+Throughput now **scales with concurrency** up to the worker count instead of
+being flat — the work per request is small enough that the threadpool can
+overlap it. The health check answers in 1.5 ms under load.
+
+The honest envelope has moved: a cheap search is now genuinely cheap
+(~46 req/s on two workers), and the expensive families are ~1.3 req/s rather
+than 0.08. **A campaign is now survivable** for common searches; a page where
+every visitor searches a 12,000-trial family still wants more workers, and
+throughput is still `workers × per-request-cost`, so size for the searches you
+expect rather than the average.
+
+### Precomputed results
+
+The artifact ships answers for every **condition x curated marker** pair —
+74 families x 7 markers = 518 pairs, 10,453 ranked rows, **+8 MB** on a 1.9 GB
+artifact. Computed at build time, so there is no request-time cache and
+therefore no retention surface: nothing is keyed, nothing expires, and the terms
+need no amendment.
+
+**Location is deliberately not precomputed** (combinatorial across free-text
+place names). Proximity is a ranking pass over rows that are already selected,
+so it is applied per request to the precomputed candidate set.
+
+| Search | Live path | Precomputed |
+|---|---|---|
+| `colorectal cancer` + MSS | 1.8 s | **0.030 s** |
+| `breast cancer` + HER2 | 1.9 s | **0.030 s** |
+| `rett syndrome` + MSS | 0.05 s | **0.036 s** |
+| `colorectal` + MSS + location | — | **0.069 s** |
+| `colorectal` + FGFR2 (uncurated, not precomputed) | 2.0 s | **2.0 s** — falls through, by design |
+
+Throughput on two workers: **~47 req/s** at concurrency 4–8 (was 0.08 req/s
+before any of this work).
+
+**Two startup gates, and both fail closed.** The precompute is stamped with a
+`code_version` fingerprint derived from every source file and config that can
+change an answer — so a serving-code change with a stale artifact is refused.
+And because a fingerprint proves the bytes matched rather than that the
+behaviour did, startup also **re-runs a sample of precomputed pairs through the
+live path** and compares. Either mismatch refuses to start, naming the remedy.
+
+If you change `markers.py`, `biomarker.py`, `biomarker_gating.py`,
+`landscape.py`, `ranking.py`, `config/markers.yaml` or `config/ranking.yaml`,
+**rebuild the artifact** — the service will not start otherwise, which is the
+intended behaviour rather than an inconvenience.
+
+### Where the remaining time goes
+
+For colorectal the 1.8 s is now dominated by loading and screening the 826
+prefiltered records. Further gains would need either a narrower SQL prefilter
+(the census cannot narrow further — 826 IS the admitting set) or caching, which
+has a retention question attached and is not built.
+
+
+---
+
+## Deploying read-only (a public site)
+
+Set one environment variable:
+
+```bash
+MEDRAG_READ_ONLY=1 streamlit run app.py
+```
+
+That does three things, and each closes a hole a public deployment would
+otherwise have:
+
+- **Every store opens read-only** (`mode=ro`), with no schema execution, no
+  `PRAGMA user_version` write and no commit. A write attempted anywhere on the
+  read path raises `ReadOnlyStoreError` by name rather than corrupting the
+  snapshot.
+- **Nothing fetches.** `read_only` implies `offline` and drops the API key. A
+  visitor's search answers from the stored snapshot or says it is not in the
+  snapshot; it never makes the server pull from ClinicalTrials.gov or PubMed on
+  their behalf. This deliberately outranks the "re-download" checkbox.
+- **No directories are created.** `ensure_dirs()` is a no-op, so the pages start
+  on a volume they cannot write.
+
+**Preparing the snapshot.** The writable path uses WAL, so a database an ingest
+just wrote has `-wal` and `-shm` files beside it. Checkpoint them away before
+shipping, or the deployed `.db` is not self-contained:
+
+```bash
+sqlite3 data/raw/trials.db "PRAGMA wal_checkpoint(TRUNCATE); VACUUM;"
+ls data/raw/trials.db*          # expect only trials.db
+chmod 444 data/raw/*.db
+```
+
+Then mount the data directory read-only. Do **not** make it writable to get the
+app to start — if it will not start read-only, that is a bug to report, not a
+permission to grant. A public app with write access to its own database is the
+thing this mode exists to prevent.
+
+**Two read modes, and the difference matters.** `mode=ro` alone lets a reader
+pick up a concurrent ingest's commits; `immutable=1` (pass `immutable=True`)
+additionally promises SQLite the file cannot change, which removes any need for
+lock files but makes the connection blind to writes. Use `immutable=True` only
+for a genuinely frozen artefact. Measured on this database, a connection held
+open across a writer's commit: `mode=ro` sees 501 → 2501 rows, `immutable=1`
+stays at 501.
+
+**The internal Streamlit app is for internal use only** — it is not the public
+surface and must not be exposed. Two of the three items previously listed here
+are now FIXED:
+
+- ~~The Settings "Change provider or key" button~~ — **removed**. It rewrote
+  `.env` and mutated the process environment for every concurrent user. Provider
+  configuration is a deployment setting; set `MEDRAG_PROVIDER` and restart.
+- ~~Exports collide on a user-derived filename~~ — **fixed**. `crypto.unguessable_stem`
+  keeps the human label and appends 8 bytes of `secrets.token_hex`, so two people
+  exporting the same asset no longer share a path. Still 0600.
+- `app.py` sends question text to the configured LLM provider with no consent
+  gate (the claims page has one; the memo page does not). **Still open** — it is
+  an internal-tool concern, and the public service does not share this code
+  path.
+
+---
+
+## When an ingest is interrupted
+
+A trial ingest killed partway — a crash, a closed laptop, Ctrl-C — leaves the
+query set it was working on marked `IN_PROGRESS`. Nothing raises when a process
+dies, so this marker is the only evidence.
+
+```bash
+python -m medrag trials --incomplete
+```
+
+Every ingested query set with its state and two numbers: what the store holds,
+and what the last fetch recorded. Exits non-zero if any set is unverified. Re-run
+those, and only those:
+
+```bash
+python -m medrag trials --condition "<set key from the list>"
+```
+
+Re-running is safe and idempotent — records upsert by NCT ID, and query
+provenance merges rather than overwrites.
+
+Two things this command does **not** tell you. It lists sets that were *started*;
+a set in `config/trial_queries.yaml` that was never ingested at all has no row
+and does not appear, so compare against that file to find those. And a set marked
+`PARTIAL` rather than `IN_PROGRESS` finished its fetch but failed verification —
+the reason is printed by the ingest itself, and is usually either a query that
+errored or a `--max-records` cap, which is truncation by intent and grades
+PARTIAL for exactly that reason.
+
+Until a set verifies, every memo and page that uses it prints `PARTIAL INGEST`
+with the count as a stated lower bound. That is the intended behaviour, not a
+bug to work around: the number is real, it is just not the whole population.
+
+**If the ingest prints `registry was unreliable: retried N time(s)`,** the fetch
+succeeded but ClinicalTrials.gov made it work for the data. A handful of retries
+is normal. Dozens, or the same query retrying every run, means the registry is
+degrading — check status.clinicaltrials.gov before assuming the problem is here.
+The counts are stored per query in `query_coverage.yields`, so you can compare
+against previous ingests rather than relying on memory:
+
+```bash
+sqlite3 data/raw/trials.db \
+  "select set_key, json_extract(value,'\$.query'), json_extract(value,'\$.retries')
+   from query_coverage, json_each(yields)
+   where json_extract(value,'\$.retries') > 0;"
+```
+
+Retries never turn a failure into a success — a query that exhausts its attempts
+still errors, and its family still records PARTIAL. If you see no retry line and
+no PARTIAL, the fetch was genuinely clean.
+
+---
+
 ## When a test fails
 
 ```bash
@@ -77,12 +641,36 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requiremen
 
 **3. Is it a store schema refusal?** `TrialStoreSchemaError` or
 `FDAStoreSchemaError` mean the database on disk predates the columns the code
-needs. That is fail-closed behaviour, not a bug. Delete and re-ingest:
+needs. That is fail-closed behaviour, not a bug. There are **three** remedies,
+and the refusal message names which one applies — read it rather than assuming
+the third:
 
-```bash
-rm data/raw/trials.db
-python -m medrag trials -c "<condition>" -n 500
-```
+| The gap is | Remedy | Cost |
+|---|---|---|
+| derivable from stored data | `python -m medrag trials --migrate` | seconds, no network |
+| stated by the registry, not derivable | `python -m medrag trials --backfill-types` | ~35 min, fetches one module |
+| data only a full fetch can supply | `rm data/raw/trials.db` then re-ingest | hours |
+
+Only the third deletes anything. Sending an operator to `rm` a verified
+241,298-record store to recover one field the API returns on its own is a wrong
+answer that reads like a correct one, and an operator given it will reasonably
+decide the upgrade is not worth doing.
+
+**A repair path cannot open the store it is repairing.** This is the constraint
+that will surprise whoever writes the next one. The version gate refuses the
+file *before* any code can touch it, so anything that fixes a stale store has to
+run on a raw `sqlite3` connection inside the migration or backfill function
+itself — `TrialStore(path)` raises, and so does every helper that takes a store.
+`backfill_intervention_types` repairs drifted records that way for exactly this
+reason: the first attempt did the repair in the CLI layer, which could not open
+the database it had just been told to fix.
+
+The corollary is that a repair written this way bypasses everything `TrialStore`
+normally guarantees — `refuse_write`, the derived-column recomputation, WAL. So
+a raw repair must update derived columns by hand and in the same transaction as
+the columns they derive from. `intervention_tokens` moves with `interventions`
+there for that reason; leaving it behind would make an agent query disagree with
+the record it is querying, silently.
 
 **4. Is it the corpus?** `medrag stats` reports unreadable records. If any are
 quarantined, the count and a plain-language note appear there, in the app, and in
@@ -112,9 +700,31 @@ process environment.
 **When a key expires or is revoked,** every model call fails and the tool degrades
 rather than crashing: routing falls back to its rule-based path, answers become
 extractive evidence lists rather than syntheses, and the contradiction hunt does
-not run. Memos are still produced and still fully cited. That is intentional, but
-it means an expired key looks like "the memos got worse", not like an error. If
-quality drops suddenly, check the key first.
+not run. Memos are still produced and still fully cited.
+
+**This was documented before it was true.** The router and the contradiction
+hunter did catch a provider error; the ANSWER path did not, so a configured key
+returning 403 raised `openai.PermissionDeniedError` out of `diligence._answer`
+and killed the run with a traceback on question 1 of 11 — the two halves that
+degraded were the two nobody would have noticed. Every model call now goes
+through `providers.call_chat`, which returns a failure instead of raising.
+
+The degradation is no longer silent either, which was the other half of the
+complaint this paragraph used to make about itself. The memo's warnings block
+names the provider and what it returned:
+
+    the configured model provider (groq) returned HTTP 403: the provider refused
+    the request — the key is revoked, out of quota, or not permitted to use this
+    model. No further model calls will be made in this run. ...
+
+A 400, 401, 403 or 404 latches the model off for the rest of the run — asking
+eleven times produces eleven identical refusals — while a 429, 5xx or timeout is
+retried on the next question, because a blip should not cost ten syntheses. The
+message is BUILT from the status code and the provider name, never from the
+SDK exception, which renders the response body.
+
+So an expired key no longer looks like "the memos got worse". It says so. If
+quality drops suddenly and there is no warning, the key is not the cause.
 
 **Never** put the key in `.streamlit/secrets.toml`, a shell profile committed
 anywhere, or a CI variable. There are tests asserting it cannot reach a
@@ -201,7 +811,6 @@ diligence page, which does prompt.
 | Thing | Impact | Detail |
 |---|---|---|
 | **Python 3.9 is end-of-life** | Security fixes are unreachable | `pip-audit` reports 40 findings against the pinned set; for `requests` and `python-dotenv` the fixed versions are `Requires-Python >=3.10` and cannot be installed here. Moving to 3.11 is the real remediation and nothing else on this list matters as much. |
-| **`CLAUDE.md` is gitignored** | A fresh clone does not contain it | `.gitignore:34`. The document recording every decision that must not be reversed is not in the repo the next person clones. Decide deliberately: publish it (the repo is public) or hand it over out of band. |
 | Known dependency vulnerabilities | Advisory | 40 findings, 10 packages. Direct: `torch` (8), `streamlit` (2), `requests` (1), `python-dotenv` (1). Transitive: `pillow` (18), `transformers` (4), others. CI reports but does not fail on these, because failing on unfixable findings trains people to ignore CI. |
 | `streamlit` pinned to 1.50.0 | Cannot patch without visual QA | `theme.py` targets Streamlit's internal `data-testid` DOM, which is not a public API. The two Streamlit advisories are fixed in 1.53.1+; upgrading needs the visual checks re-run. |
 | `retriever.py:29` numerical warnings | Cosmetic, so far | `invalid value` / `divide by zero` in matmul, from zero-norm vectors. Results still return. Worth investigating before it becomes a silent relevance bug. |
@@ -213,7 +822,7 @@ diligence page, which does prompt.
 
 ## Decisions in CLAUDE.md that must not be reversed
 
-CLAUDE.md is the authority. These are the ones most likely to be "cleaned up" by
+`CLAUDE.md` is the authority, it is in the repository root, and it is TRACKED — it was gitignored until 14 August 2026, which meant a fresh clone got `docs/DECISIONS.md`, a hand-copied snapshot that had drifted 271 lines behind it. `docs/DECISIONS.md` is now a pointer. These are the ones most likely to be "cleaned up" by
 someone who does not know why they exist. Read the full entry there before
 touching any of them.
 

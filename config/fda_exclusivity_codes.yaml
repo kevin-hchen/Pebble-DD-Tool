@@ -1,0 +1,50 @@
+# Orange Book exclusivity codes.
+#
+# EDIT THIS FILE, NOT CODE.
+#
+# STATUS OF THESE MEANINGS — READ BEFORE TRUSTING THEM
+#
+# Unlike config/fda_decision_codes.yaml, whose every meaning is verbatim FDA
+# text, these are CURATED, not sourced. openFDA's field reference
+# (open.fda.gov/fields/drugorangebook.yaml, retrieved 2026-08-06) documents
+# `exclusivity_code` only as "Code to designate exclusivity granted by the FDA
+# to a drug product" — it does not enumerate the values. The FDA publishes a
+# legend in the Orange Book preface, which is not available in a machine-
+# readable form.
+#
+# So each entry below carries `curated: true`, and medrag/fda/orangebook.py
+# renders a curated meaning differently from a sourced one. Only the two the
+# question actually turns on — orphan and paediatric — are given meanings at
+# all; the rest are recorded by observed frequency with no meaning asserted, the
+# same treatment the undocumented PMA decision codes get.
+#
+# Observed counts are from the full openFDA Orange Book export (48,502 records,
+# 2,141 exclusivity entries across 1,192 applications, 2026-08-06).
+
+exclusivity_codes:
+  # Prefix rules. A code STARTING with these is treated as that kind.
+  prefixes:
+    ODE:
+      kind: orphan
+      meaning: "Orphan drug exclusivity"
+      curated: true
+      observed_examples: [ODE*, "ODE-241", "ODE-245", "ODE-428", "ODE-405"]
+    PED:
+      kind: paediatric
+      meaning: "Paediatric exclusivity"
+      curated: true
+      observed_examples: [PED]
+
+  # Observed with no meaning asserted. Counted so a reader can see the code and
+  # look it up, never paraphrased into a claim about the protection it confers.
+  observed_without_meaning:
+    NCE: 423
+    NPP: 157
+    NP: 130
+    PC: 56
+    GAIN: 40
+    CGT: 36
+    NS: 16
+    # M-nn are method-of-use exclusivities and I-nnn are new-indication ones by
+    # convention, but the convention is not documented anywhere machine-readable
+    # and is therefore not asserted here.

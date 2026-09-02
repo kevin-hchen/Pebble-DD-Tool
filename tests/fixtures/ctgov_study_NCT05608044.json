@@ -1,0 +1,1030 @@
+{
+  "protocolSection": {
+    "identificationModule": {
+      "nctId": "NCT05608044",
+      "orgStudyIdInfo": {
+        "id": "C-800-25"
+      },
+      "secondaryIdInfos": [
+        {
+          "id": "2022-501546-29",
+          "type": "EUDRACT_NUMBER"
+        }
+      ],
+      "organization": {
+        "fullName": "Agenus Inc.",
+        "class": "INDUSTRY"
+      },
+      "briefTitle": "A Study of Botensilimab and Balstilimab for the Treatment of Colorectal Cancer",
+      "officialTitle": "A Randomized, Open-Label, Phase 2 Study of Botensilimab (AGEN1181) as Monotherapy and in Combination With Balstilimab (AGEN2034) or Investigator's Choice Standard of Care (Regorafenib or Trifluridine and Tipiracil) for the Treatment of Refractory Metastatic Colorectal Cancer"
+    },
+    "statusModule": {
+      "statusVerifiedDate": "2025-09",
+      "overallStatus": "ACTIVE_NOT_RECRUITING",
+      "expandedAccessInfo": {
+        "hasExpandedAccess": false
+      },
+      "startDateStruct": {
+        "date": "2022-11-30",
+        "type": "ACTUAL"
+      },
+      "primaryCompletionDateStruct": {
+        "date": "2027-09",
+        "type": "ESTIMATED"
+      },
+      "completionDateStruct": {
+        "date": "2029-09",
+        "type": "ESTIMATED"
+      },
+      "studyFirstSubmitDate": "2022-11-01",
+      "studyFirstSubmitQcDate": "2022-11-01",
+      "studyFirstPostDateStruct": {
+        "date": "2022-11-08",
+        "type": "ACTUAL"
+      },
+      "lastUpdateSubmitDate": "2025-09-02",
+      "lastUpdatePostDateStruct": {
+        "date": "2025-09-04",
+        "type": "ACTUAL"
+      }
+    },
+    "sponsorCollaboratorsModule": {
+      "responsibleParty": {
+        "type": "SPONSOR"
+      },
+      "leadSponsor": {
+        "name": "Agenus Inc.",
+        "class": "INDUSTRY"
+      }
+    },
+    "oversightModule": {
+      "isFdaRegulatedDrug": true,
+      "isFdaRegulatedDevice": false
+    },
+    "descriptionModule": {
+      "briefSummary": "This is an open-label, Phase 2, multicenter study to evaluate the efficacy, safety, tolerability, and pharmacokinetic profiles of botensilimab as monotherapy and in combination with balstilimab or standard-of-care treatments in participants with refractory metastatic colorectal cancer.",
+      "detailedDescription": "This study will enroll adult participants with a confirmed diagnosis of unresectable metastatic colorectal adenocarcinoma (CRC) who have had prior chemotherapy for metastatic or recurrent CRC.\n\nThis study will consist of 5 cohorts. In the first and second cohorts, participants will receive 1 of 2 different doses of botensilimab intravenously (IV) and balstilimab IV. In the third and fourth cohorts, participants will receive 1 of 2 different doses of botensilimab. In the fifth cohort, participants will receive standard of care consisting of the investigator's choice of regorafenib or trifluridine and tipiracil."
+    },
+    "conditionsModule": {
+      "conditions": [
+        "Metastatic Colorectal Cancer"
+      ],
+      "keywords": [
+        "Open Label",
+        "Botensilimab",
+        "AGEN1181",
+        "Balstilimab",
+        "AGEN2034",
+        "Colorectal Cancer",
+        "Regorafenib",
+        "Trifluridine",
+        "Tipiracil",
+        "Lonsurf",
+        "Immunotherapy",
+        "Pd-1",
+        "CTLA-4",
+        "Fc-enhanced",
+        "Agenus",
+        "MSS",
+        "Microsatellite stable"
+      ]
+    },
+    "designModule": {
+      "studyType": "INTERVENTIONAL",
+      "phases": [
+        "PHASE2"
+      ],
+      "designInfo": {
+        "allocation": "RANDOMIZED",
+        "interventionModel": "PARALLEL",
+        "primaryPurpose": "TREATMENT",
+        "maskingInfo": {
+          "masking": "NONE"
+        }
+      },
+      "enrollmentInfo": {
+        "count": 234,
+        "type": "ACTUAL"
+      }
+    },
+    "armsInterventionsModule": {
+      "armGroups": [
+        {
+          "label": "Combination Botensilimab Dose 1 plus Balstilimab",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will receive botensilimab at dose 1 given IV and balstilimab given IV.",
+          "interventionNames": [
+            "Drug: Botensilimab",
+            "Drug: Balstilimab"
+          ]
+        },
+        {
+          "label": "Combination Botensilimab Dose 2 plus Balstilimab",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will receive botensilimab at dose 2 given IV and balstilimab given IV.",
+          "interventionNames": [
+            "Drug: Botensilimab",
+            "Drug: Balstilimab"
+          ]
+        },
+        {
+          "label": "Monotherapy Botensilimab Dose 1",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will receive botensilimab dose 1 given IV.",
+          "interventionNames": [
+            "Drug: Botensilimab"
+          ]
+        },
+        {
+          "label": "Monotherapy Botensilimab Dose 2",
+          "type": "EXPERIMENTAL",
+          "description": "Participants will receive botensilimab dose 2 given IV.",
+          "interventionNames": [
+            "Drug: Botensilimab"
+          ]
+        },
+        {
+          "label": "Standard of Care",
+          "type": "ACTIVE_COMPARATOR",
+          "description": "Participants will receive select standard of care as determined by the investigator.",
+          "interventionNames": [
+            "Drug: Standard of Care"
+          ]
+        }
+      ],
+      "interventions": [
+        {
+          "type": "DRUG",
+          "name": "Botensilimab",
+          "description": "An anti-cytotoxic T-lymphocyte antigen 4 (CTLA-4) monoclonal antibody.",
+          "armGroupLabels": [
+            "Combination Botensilimab Dose 1 plus Balstilimab",
+            "Combination Botensilimab Dose 2 plus Balstilimab",
+            "Monotherapy Botensilimab Dose 1",
+            "Monotherapy Botensilimab Dose 2"
+          ],
+          "otherNames": [
+            "AGEN1181"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Balstilimab",
+          "description": "An anti-programmed death (ligand) 1 \\[PD-(L)1\\] monoclonal antibody.",
+          "armGroupLabels": [
+            "Combination Botensilimab Dose 1 plus Balstilimab",
+            "Combination Botensilimab Dose 2 plus Balstilimab"
+          ],
+          "otherNames": [
+            "AGEN2034"
+          ]
+        },
+        {
+          "type": "DRUG",
+          "name": "Standard of Care",
+          "description": "Regorafenib or trifluridine and tipiracil.",
+          "armGroupLabels": [
+            "Standard of Care"
+          ]
+        }
+      ]
+    },
+    "outcomesModule": {
+      "primaryOutcomes": [
+        {
+          "measure": "Objective Response Rate",
+          "description": "Objective response rate is defined as the proportion of participants with complete response or partial response, as assessed using Response Evaluation Criteria in Solid Tumors version 1.1 (RECIST 1.1).",
+          "timeFrame": "First dose through up to 2 years"
+        }
+      ],
+      "secondaryOutcomes": [
+        {
+          "measure": "Duration of Response",
+          "description": "Duration of response is defined as the time from initial objective radiographic response until disease progression or death, whichever occurs first, as assessed using RECIST 1.1.",
+          "timeFrame": "First dose through up to 2 years"
+        },
+        {
+          "measure": "Progression-free Survival",
+          "description": "Progression-free survival is defined as the time from randomization until disease progression or death, whichever occurs first, as assessed using RECIST 1.1.",
+          "timeFrame": "First dose through up to 3 years"
+        },
+        {
+          "measure": "Overall Survival",
+          "description": "Overall survival is defined as the time from randomization until death due to any cause.",
+          "timeFrame": "First dose through up to 3 years"
+        },
+        {
+          "measure": "Number of Participants Experiencing Treatment-emergent Adverse Events",
+          "timeFrame": "First dose through up to 2 years"
+        },
+        {
+          "measure": "Serum Botensilimab Concentration",
+          "timeFrame": "First study dose (pre-dose and 1 hour post-dose) through up to 2 years"
+        },
+        {
+          "measure": "Serum Balstilimab Concentration",
+          "timeFrame": "First study dose (pre-dose and 1 hour post-dose) through up to 2 years"
+        },
+        {
+          "measure": "Number of Participants Positive for Botensilimab Anti-drug Antibodies Following Treatment with Botensilimab",
+          "timeFrame": "First study dose (pre-dose and 1 hour post-dose) through up to 2 years"
+        },
+        {
+          "measure": "Number of Participants Positive for Balstilimab Anti-drug Antibodies Following Treatment with Balstilimab",
+          "timeFrame": "First study dose (pre-dose and 1 hour post-dose) through up to 2 years"
+        }
+      ]
+    },
+    "eligibilityModule": {
+      "eligibilityCriteria": "Inclusion Criteria:\n\n1. Histologically confirmed diagnosis of unresectable and metastatic CRC adenocarcinoma.\n2. The tumor must have been assessed for microsatellite instability high (MSI-H) or deficient mismatch repair (dMMR) status per a standard local testing method.\n3. Voluntarily agree to participate by giving signed, dated, and written informed consent prior to any study-specific procedures.\n4. Must have received at least 1 prior chemotherapy regimen for metastatic or recurrent CRC as follows where approved and locally available in the country of randomization:\n\n   1. Standard chemotherapy/therapy including all of the following agents (if eligible and no contraindication): a fluoropyrimidine, irinotecan, oxaliplatin, bevacizumab or biosimilars, an anti-epidermal growth factor receptor antibody (cetuximab or panitumumab), and v-raf murine sarcoma viral oncogene homolog B1 inhibitor/BRAF (encorafenib), if applicable.\n   2. Participants must have progressed while receiving or within 3 months of the last administration of their last line of standard therapy or be unable to tolerate any of these standard treatments.\n   3. Participants who received adjuvant chemotherapy and had recurrence during or within 6 months of completion of the adjuvant chemotherapy can count this as a line of therapy.\n5. Measurable disease on baseline imaging per RECIST 1.1.\n6. Life expectancy \u2265 12 weeks.\n7. Eastern Cooperative Oncology Group performance status of 0 or 1.\n8. Adequate organ function.\n9. Women of childbearing potential must have a negative serum pregnancy test at screening and prior to study drug administration.\n10. Male participants with a female partner(s) of childbearing potential must agree to use highly effective contraceptive measures throughout the study, starting with the Screening visit through 2-6 months, depending upon assigned study treatment. Males with pregnant partners must agree to use a condom; no additional method of contraception is required for the pregnant partner.\n11. No growth factor support, transfusions, or albumin administration within 14 days of randomization of study treatment.\n\nExclusion Criteria:\n\n1. Tumor is MSI-H/dMMR per a standard local testing method.\n2. Received programmed cell death protein 1, PD-(L)1, or CTLA-4 therapies including any immune checkpoint inhibitor or experimental immunologic agents.\n3. Received regorafenib or trifluridine/tipiracil as prior therapy(ies).\n4. Partial or complete bowel obstruction within the last 3 months, signs/symptoms of bowel obstruction, or known radiologic evidence of impending obstruction.\n5. Refractory ascites.\n6. Liver metastases by computed tomography or magnetic resonance imaging. Note: Participants with definitively treated liver metastases (this includes surgical resection, including microwave or radiofrequency ablation, or stereotactic body radiation therapy, but not yttrium-90 or chemotherapy alone) may be eligible if they were treated at least 6 months prior to enrollment with no evidence of metastatic disease in the liver on subsequent imaging.\n7. Clinically significant (that is, active) cardiovascular disease.\n8. Active brain metastases or leptomeningeal metastases with certain exceptions.\n9. Concurrent malignancy (present during screening) requiring treatment or history of prior malignancy active within 2 years prior to the first dose of study treatment. Participants with history of prior early-stage basal/squamous cell skin cancer, low-risk prostate cancer eligible for active surveillance, or noninvasive or in situ cancers who have undergone definitive treatment at any time are also eligible.\n10. Treatment with one of the following classes of drugs within the delineated time window prior to Cycle 1 Day 1 (C1D1):\n\n    1. Cytotoxic, targeted therapy or other investigational therapy within 3 weeks.\n    2. Monoclonal antibodies, antibody-drug conjugates, radioimmunoconjugates, or similar therapy, within 4 weeks, or 5 half-lives, whichever is shorter.\n    3. Small molecule/tyrosine kinase inhibitors within 2 weeks or less than 5 circulating half-lives of investigational drug.\n11. Known allergy or hypersensitivity to any of the study drugs or any of the study drug excipients.\n12. Any evidence of current interstitial lung disease (ILD) or pneumonitis, or prior history of ILD or non-infectious pneumonitis requiring glucocorticoids.\n13. History of allogeneic organ transplant, stem cell transplant, or bone marrow transplant.\n14. Psychiatric or substance abuse disorders that would interfere with cooperation with the requirements of the study.\n15. Participants with a condition requiring systemic treatment with either corticosteroids (\\> 10 milligrams \\[mg\\] daily prednisone equivalent) within 14 days or another immunosuppressive medication within 30 days of the first dose of study treatment. Inhaled or topical steroids, and adrenal replacement steroid doses (\u2264 10 mg daily prednisone equivalent) are permitted in the absence of active autoimmune disease.\n16. Active autoimmune disease or history of autoimmune disease that required systemic treatment within 2 years of the start of study treatment (that is, with use of disease-modifying agents or immunosuppressive drugs).\n17. History or current evidence of any condition, co-morbidity, therapy, any active infections, or laboratory abnormality that might confound the results of the study, interfere with the participant's participation for the full duration of the study, or is not in the best interest of the participant to participate, in the opinion of the treating Investigator.\n18. Previous SARS-CoV-2 infection within 10 days for mild or asymptomatic infections or 20 days for severe/critical illness prior to C1D1.\n19. Uncontrolled infection with human immunodeficiency virus.\n20. Known to be positive for hepatitis B virus (HBV) surface antigen, or any other positive test for HBV indicating acute or chronic infection.\n21. Known active hepatitis C virus as determined by positive serology and confirmed by polymerase chain reaction.\n22. Has urine protein \u2265 1 gram/24 hour.\n23. Uncontrolled hypertension: systolic pressure \u2265 150 millimeters of mercury (mmHg) or diastolic pressure \u2265 90 mmHg on repeated measurements that cannot be managed by standard antihypertension medications \u2264 28 days before the first dose of study drug(s).\n24. Participants who require treatment with strong cytochrome P450 3A4 inducers or inhibitors.\n25. Has presence of gastrointestinal condition, for example, malabsorption, that might affect the absorption of study drug(s).\n26. Non-healing wound(s).\n27. Symptomatic active bleeding.",
+      "healthyVolunteers": false,
+      "sex": "ALL",
+      "minimumAge": "18 Years",
+      "stdAges": [
+        "ADULT",
+        "OLDER_ADULT"
+      ]
+    },
+    "contactsLocationsModule": {
+      "overallOfficials": [
+        {
+          "name": "Medical Director",
+          "affiliation": "Agenus Inc.",
+          "role": "STUDY_DIRECTOR"
+        }
+      ],
+      "locations": [
+        {
+          "facility": "HonorHealth Research Institute",
+          "city": "Scottsdale",
+          "state": "Arizona",
+          "zip": "85258",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 33.50921,
+            "lon": -111.89903
+          }
+        },
+        {
+          "facility": "City of Hope National Medical Center",
+          "city": "Duarte",
+          "state": "California",
+          "zip": "91010",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.13945,
+            "lon": -117.97729
+          }
+        },
+        {
+          "facility": "Keck School of Medicine of the University of Southern California",
+          "city": "Los Angeles",
+          "state": "California",
+          "zip": "90033",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 34.05223,
+            "lon": -118.24368
+          }
+        },
+        {
+          "facility": "Rocky Mountain Cancer Center - Aurora",
+          "city": "Aurora",
+          "state": "Colorado",
+          "zip": "80012",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.72943,
+            "lon": -104.83192
+          }
+        },
+        {
+          "facility": "University of Colorado",
+          "city": "Denver",
+          "state": "Colorado",
+          "zip": "80220",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.73915,
+            "lon": -104.9847
+          }
+        },
+        {
+          "facility": "Medical Oncology Hematology Consultants",
+          "city": "Newark",
+          "state": "Delaware",
+          "zip": "19713",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 39.68372,
+            "lon": -75.74966
+          }
+        },
+        {
+          "facility": "Florida Cancer Specialists and Research Institute - Lake Mary",
+          "city": "Lake Mary",
+          "state": "Florida",
+          "zip": "32746",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 28.75888,
+            "lon": -81.31784
+          }
+        },
+        {
+          "facility": "Beth Israel Deaconess Medical Center",
+          "city": "Boston",
+          "state": "Massachusetts",
+          "zip": "02215",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 42.35843,
+            "lon": -71.05977
+          }
+        },
+        {
+          "facility": "Dana-Farber Cancer Institute",
+          "city": "Boston",
+          "state": "Massachusetts",
+          "zip": "02215",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 42.35843,
+            "lon": -71.05977
+          }
+        },
+        {
+          "facility": "University of Michigan",
+          "city": "Ann Arbor",
+          "state": "Michigan",
+          "zip": "48084",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 42.27756,
+            "lon": -83.74088
+          }
+        },
+        {
+          "facility": "Atlantic Health System - Morristown Medical Center",
+          "city": "Morristown",
+          "state": "New Jersey",
+          "zip": "07960",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.79677,
+            "lon": -74.48154
+          }
+        },
+        {
+          "facility": "Weill Cornell Medicine",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10021",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Mount Sinai Hospital - New York",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10029",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Memorial Sloan Kettering",
+          "city": "New York",
+          "state": "New York",
+          "zip": "10065",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 40.71427,
+            "lon": -74.00597
+          }
+        },
+        {
+          "facility": "Cleveland Clinic",
+          "city": "Cleveland",
+          "state": "Ohio",
+          "zip": "44195",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.4995,
+            "lon": -81.69541
+          }
+        },
+        {
+          "facility": "Earle A. Chiles Research Institute - Robert W. Franz Cancer Center - Providence Cancer Institute",
+          "city": "Portland",
+          "state": "Oregon",
+          "zip": "97213",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.52345,
+            "lon": -122.67621
+          }
+        },
+        {
+          "facility": "Oregon Health & Science University (OHSU)",
+          "city": "Portland",
+          "state": "Oregon",
+          "zip": "97239",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.52345,
+            "lon": -122.67621
+          }
+        },
+        {
+          "facility": "Lifespan Clinical Research Center/Cancer Institute (Providence Rhode Island)",
+          "city": "East Providence",
+          "state": "Rhode Island",
+          "zip": "02915",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 41.81371,
+            "lon": -71.37005
+          }
+        },
+        {
+          "facility": "Tennessee Oncology Nashville (Sarah Cannon)",
+          "city": "Nashville",
+          "state": "Tennessee",
+          "zip": "37203",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 36.16589,
+            "lon": -86.78444
+          }
+        },
+        {
+          "facility": "Vanderbilt University School of Medicine",
+          "city": "Nashville",
+          "state": "Tennessee",
+          "zip": "37215",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 36.16589,
+            "lon": -86.78444
+          }
+        },
+        {
+          "facility": "Texas Oncology - Austin Midtown",
+          "city": "Austin",
+          "state": "Texas",
+          "zip": "78705",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 30.26715,
+            "lon": -97.74306
+          }
+        },
+        {
+          "facility": "Texas Oncology - Baylor Charles A. Sammons Cancer Center",
+          "city": "Dallas",
+          "state": "Texas",
+          "zip": "75246",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 32.78306,
+            "lon": -96.80667
+          }
+        },
+        {
+          "facility": "MDACC",
+          "city": "Houston",
+          "state": "Texas",
+          "zip": "77030",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 29.76328,
+            "lon": -95.36327
+          }
+        },
+        {
+          "facility": "Virginia Cancer Specialists/NEXT Virginia",
+          "city": "Fairfax",
+          "state": "Virginia",
+          "zip": "22031",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 38.84622,
+            "lon": -77.30637
+          }
+        },
+        {
+          "facility": "Swedish Cancer Institute",
+          "city": "Seattle",
+          "state": "Washington",
+          "zip": "98104",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 47.60621,
+            "lon": -122.33207
+          }
+        },
+        {
+          "facility": "Northwest Cancer Center Specialists - Vancouver Cancer Center - Compass Oncology Vancouver",
+          "city": "Vancouver",
+          "state": "Washington",
+          "zip": "98684",
+          "country": "United States",
+          "geoPoint": {
+            "lat": 45.63873,
+            "lon": -122.66149
+          }
+        },
+        {
+          "facility": "Antwerp University Hospital (UZA)",
+          "city": "Edegem",
+          "zip": "2650",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 51.15662,
+            "lon": 4.44504
+          }
+        },
+        {
+          "facility": "Universitair Ziekenhuis Leuven",
+          "city": "Leuven",
+          "zip": "3000",
+          "country": "Belgium",
+          "geoPoint": {
+            "lat": 50.87959,
+            "lon": 4.70093
+          }
+        },
+        {
+          "facility": "Centro de Pesquisas Clinicas da Funda\u00e7\u00e3o Doutor Amaral Carvalho",
+          "city": "Ja\u00fa",
+          "state": "S\u00e3o Paulo",
+          "zip": "17210-080",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -22.29639,
+            "lon": -48.55778
+          }
+        },
+        {
+          "facility": "Hospital Sirio Libanes Brasilia",
+          "city": "Bras\u00edlia",
+          "zip": "70200-730",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -15.77972,
+            "lon": -47.92972
+          }
+        },
+        {
+          "facility": "Oncosite - Centro de Pesquisa Clinica Em Oncologia",
+          "city": "Iju\u00ed",
+          "zip": "98700-000",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -28.38778,
+            "lon": -53.91472
+          }
+        },
+        {
+          "facility": "Centro Gaucho Integrado de Oncologia, Hematologia, Ensino e Pesquisa",
+          "city": "Porto Alegre",
+          "zip": "90110-270",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -30.03283,
+            "lon": -51.23019
+          }
+        },
+        {
+          "facility": "Instituto Sul Mineiro de Oncologia - ONCOMINAS",
+          "city": "Pouso Alegre",
+          "zip": "37554-216",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -22.23,
+            "lon": -45.93639
+          }
+        },
+        {
+          "facility": "Instituto Americas",
+          "city": "Rio de Janeiro",
+          "zip": "22775-001",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -22.90642,
+            "lon": -43.18223
+          }
+        },
+        {
+          "facility": "Hospital A.C. Camargo Cancer Center",
+          "city": "S\u00e3o Paulo",
+          "zip": "01509-010",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -23.5475,
+            "lon": -46.63611
+          }
+        },
+        {
+          "facility": "Centro Paulista de Oncologia",
+          "city": "S\u00e3o Paulo",
+          "zip": "04538-132",
+          "country": "Brazil",
+          "geoPoint": {
+            "lat": -23.5475,
+            "lon": -46.63611
+          }
+        },
+        {
+          "facility": "Service d'Oncologie Medicale - CHRU Besancon",
+          "city": "Besan\u00e7on",
+          "zip": "25000",
+          "country": "France",
+          "geoPoint": {
+            "lat": 47.24878,
+            "lon": 6.01815
+          }
+        },
+        {
+          "facility": "Institut Paoli-Calmettes",
+          "city": "Marseille",
+          "zip": "13009",
+          "country": "France",
+          "geoPoint": {
+            "lat": 43.29695,
+            "lon": 5.38107
+          }
+        },
+        {
+          "facility": "H\u00f4pital Saint Antoine/AP-HP Hopital Saint Antoine (Pierre and Marie Curie University)",
+          "city": "Paris",
+          "zip": "75012",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.85341,
+            "lon": 2.3488
+          }
+        },
+        {
+          "facility": "CHU Poitiers - Pole Regional de Cancerologie de Poitiers (PRC)",
+          "city": "Poitiers",
+          "zip": "86000",
+          "country": "France",
+          "geoPoint": {
+            "lat": 46.58261,
+            "lon": 0.34348
+          }
+        },
+        {
+          "facility": "Unversite Paris-Saclay Gustave Roussy Cancer Center Campus Paris",
+          "city": "Villejuif",
+          "zip": "94805",
+          "country": "France",
+          "geoPoint": {
+            "lat": 48.7939,
+            "lon": 2.35992
+          }
+        },
+        {
+          "facility": "High Technology Hospital Medcenter Ltd",
+          "city": "Batumi",
+          "zip": "0144",
+          "country": "Georgia",
+          "geoPoint": {
+            "lat": 41.64077,
+            "lon": 41.6306
+          }
+        },
+        {
+          "facility": "Innova LLC",
+          "city": "Tbilisi",
+          "zip": "0159",
+          "country": "Georgia",
+          "geoPoint": {
+            "lat": 41.69143,
+            "lon": 44.83412
+          }
+        },
+        {
+          "facility": "Tbilisi Central Hospital Ltd",
+          "city": "Tbilisi",
+          "zip": "0159",
+          "country": "Georgia",
+          "geoPoint": {
+            "lat": 41.69143,
+            "lon": 44.83412
+          }
+        },
+        {
+          "facility": "Fondazione IRCCS Instituto Nazionale dei Tumori",
+          "city": "Milan",
+          "zip": "20133",
+          "country": "Italy",
+          "geoPoint": {
+            "lat": 42.78235,
+            "lon": 12.59836
+          }
+        },
+        {
+          "facility": "ASST Grande Ospedale Metropolitano Niguarda",
+          "city": "Milan",
+          "zip": "20162",
+          "country": "Italy",
+          "geoPoint": {
+            "lat": 42.78235,
+            "lon": 12.59836
+          }
+        },
+        {
+          "facility": "Istituto Oncologico Veneto-I.R.C.C.S. - Ospedale Busonera",
+          "city": "Padova",
+          "zip": "35128",
+          "country": "Italy",
+          "geoPoint": {
+            "lat": 44.38225,
+            "lon": 11.14261
+          }
+        },
+        {
+          "facility": "Regional State Budgetary Institution of Healthcare\"Altai Regional Oncology Dispensary\"",
+          "city": "Barnaul",
+          "zip": "656045",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 53.36199,
+            "lon": 83.72786
+          }
+        },
+        {
+          "facility": "Limited Liability Company \"EVIMED\"",
+          "city": "Chelyabinsk",
+          "zip": "454048",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 55.1611,
+            "lon": 61.42877
+          }
+        },
+        {
+          "facility": "State Budgetary Institution of Health Care \"Clinical Oncological Dispensary No. 1\" of the Ministry of Health of the Krasnodar region",
+          "city": "Krasnodar",
+          "zip": "350040",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 45.04534,
+            "lon": 38.98178
+          }
+        },
+        {
+          "facility": "Regional Budgetary Healthcare Institution \"Kursk Oncological Research and Clinical Center named after G. E. Ostroverkhov\"",
+          "city": "Kursk",
+          "zip": "305524",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 51.72689,
+            "lon": 36.18457
+          }
+        },
+        {
+          "facility": "State Budgetary Institution of Healthcare of the City of Moscow \"Moscow Clinical Scientific and Practical Center named after A.S. Loginov of the Department of Health of the City of Moscow\"",
+          "city": "Moscow",
+          "zip": "111123",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 55.75204,
+            "lon": 37.61781
+          }
+        },
+        {
+          "facility": "Federal State Autonomous Educational Institution of Higher Education I. M. Sechenov First Moscow State Medical University of the Ministry of Health of the Russian Federation",
+          "city": "Moscow",
+          "zip": "119991",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 55.75204,
+            "lon": 37.61781
+          }
+        },
+        {
+          "facility": "Branch office of \" Hadassah Medical Ltd\"",
+          "city": "Moscow",
+          "zip": "121205",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 55.75204,
+            "lon": 37.61781
+          }
+        },
+        {
+          "facility": "Closed Joint Stock Company Medical Center \"AVICENNA\"",
+          "city": "Novosibirsk",
+          "zip": "630099",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 55.02259,
+            "lon": 82.93175
+          }
+        },
+        {
+          "facility": "BHI of the Omsk region \"Clinical oncological dispensary\"",
+          "city": "Omsk",
+          "zip": "644013",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 54.99244,
+            "lon": 73.36859
+          }
+        },
+        {
+          "facility": "\"Clinical Hospital \"RZD-Medicine\" of Saint Petersburg\"",
+          "city": "Saint Petersburg",
+          "zip": "195271",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 59.93863,
+            "lon": 30.31413
+          }
+        },
+        {
+          "facility": "Federal State Budgetary Institution \"National Medical Research Center of Oncology named after N.N.Petrov\" of the Ministry of Health of the Russian Federation",
+          "city": "Saint Petersburg",
+          "zip": "197758",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 59.93863,
+            "lon": 30.31413
+          }
+        },
+        {
+          "facility": "Napalkov SBHI \"Saint-Petersburg clinical scientific and practical center for specialised types of medical care (oncological)",
+          "city": "Saint Petersburg",
+          "zip": "197758",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 59.93863,
+            "lon": 30.31413
+          }
+        },
+        {
+          "facility": "Saint-Petersburg Clinical Research Center of Specialized Types of Medical Care (Oncology)",
+          "city": "Saint Petersburg",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 59.93863,
+            "lon": 30.31413
+          }
+        },
+        {
+          "facility": "Siberian State Medical University",
+          "city": "Tomsk",
+          "zip": "634028",
+          "country": "Russia",
+          "geoPoint": {
+            "lat": 56.50049,
+            "lon": 84.98216
+          }
+        },
+        {
+          "facility": "Vall d'Hebron Institute of Oncology (VHIO)",
+          "city": "Barcelona",
+          "zip": "8035",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 41.38879,
+            "lon": 2.15899
+          }
+        },
+        {
+          "facility": "Cl\u00ednica Universidad de Navarra - Sede Madrid",
+          "city": "Madrid",
+          "zip": "28027",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 40.4165,
+            "lon": -3.70256
+          }
+        },
+        {
+          "facility": "Cl\u00ednica Universidad de Navarra - Sede Pamplona",
+          "city": "Pamplona",
+          "zip": "31008",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 42.81687,
+            "lon": -1.64323
+          }
+        },
+        {
+          "facility": "Hospital Universitario Marques de Valdecilla",
+          "city": "Santander",
+          "zip": "39008",
+          "country": "Spain",
+          "geoPoint": {
+            "lat": 43.46589,
+            "lon": -3.80493
+          }
+        }
+      ]
+    }
+  },
+  "derivedSection": {
+    "miscInfoModule": {
+      "versionHolder": "2026-08-03"
+    },
+    "conditionBrowseModule": {
+      "meshes": [
+        {
+          "id": "D015179",
+          "term": "Colorectal Neoplasms"
+        },
+        {
+          "id": "C565324",
+          "term": "Parkinson Disease 4, Autosomal Dominant Lewy Body"
+        },
+        {
+          "id": "C563326",
+          "term": "Diabetes Mellitus, Insulin-Dependent, 12"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D007414",
+          "term": "Intestinal Neoplasms"
+        },
+        {
+          "id": "D005770",
+          "term": "Gastrointestinal Neoplasms"
+        },
+        {
+          "id": "D004067",
+          "term": "Digestive System Neoplasms"
+        },
+        {
+          "id": "D009371",
+          "term": "Neoplasms by Site"
+        },
+        {
+          "id": "D009369",
+          "term": "Neoplasms"
+        },
+        {
+          "id": "D004066",
+          "term": "Digestive System Diseases"
+        },
+        {
+          "id": "D005767",
+          "term": "Gastrointestinal Diseases"
+        },
+        {
+          "id": "D003108",
+          "term": "Colonic Diseases"
+        },
+        {
+          "id": "D007410",
+          "term": "Intestinal Diseases"
+        },
+        {
+          "id": "D012002",
+          "term": "Rectal Diseases"
+        }
+      ]
+    },
+    "interventionBrowseModule": {
+      "meshes": [
+        {
+          "id": "C000720935",
+          "term": "balstilimab"
+        },
+        {
+          "id": "D059039",
+          "term": "Standard of Care"
+        }
+      ],
+      "ancestors": [
+        {
+          "id": "D019984",
+          "term": "Quality Indicators, Health Care"
+        },
+        {
+          "id": "D011787",
+          "term": "Quality of Health Care"
+        },
+        {
+          "id": "D006298",
+          "term": "Health Services Administration"
+        },
+        {
+          "id": "D017530",
+          "term": "Health Care Quality, Access, and Evaluation"
+        }
+      ]
+    }
+  },
+  "hasResults": false
+}

@@ -12,6 +12,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import yaml
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # Direct runs do not load conftest.py, so the no-network guard is installed
@@ -25,6 +27,7 @@ from fixtures.ctgov import LANDSCAPE_PAGE  # noqa: E402
 
 from medrag.biomarker import (  # noqa: E402
     ELIGIBLE,
+    ELIGIBLE_BY_EXCLUSION,
     EXCLUDED,
     NOT_MENTIONED,
     UNCLEAR,
@@ -42,7 +45,11 @@ def _records():
 
 def _store() -> TrialStore:
     store = TrialStore(Path(tempfile.mkdtemp()) / "trials.db")
-    store.upsert(_records())
+    # Stamped with the query set the way a real ingest does: the landscape
+    # selects the population the fetch defined, not a condition substring.
+    recs = _records()
+    store.upsert(recs, provenance={r.nct_id: ["cond:colorectal cancer"] for r in recs},
+                 set_key="colorectal")
     return store
 
 
@@ -74,14 +81,64 @@ def test_requires_opposite_biomarker_is_excluded():
     assert m.status == EXCLUDED
 
 
-def test_indirect_mss_by_excluding_msi_h_is_unclear():
-    """The spec case: MSS expressed only by excluding MSI-H. Must be UNCLEAR — not
-    asserted eligible, and never silently dropped — with the sentence shown."""
+def test_indirect_mss_by_excluding_msi_h_is_eligible_by_exclusion():
+    """MSS expressed only by excluding MSI-H — STELLAR-303 and HARMONi-GI3's
+    real pattern. This is ELIGIBLE BY EXCLUSION, not UNCLEAR: excluding the
+    opposite is a confident, if indirect, statement of eligibility, and folding
+    it into UNCLEAR is exactly how those two Phase 3 trials used to vanish from
+    an MSS patient's search. Never dropped either way."""
     m = match_biomarker(
         "Inclusion Criteria:\n* Colorectal cancer\n\nExclusion Criteria:\n* Known MSI-H or dMMR",
         "MSS")
-    assert m.status == UNCLEAR
+    assert m.status == ELIGIBLE_BY_EXCLUSION
     assert "MSI-H" in m.evidence
+    assert m.is_candidate
+
+
+def test_negation_at_a_distance_is_recognised():
+    """STELLAR-303's real inclusion line: the negation ('NOT') and the marker
+    ('MSI-high') are two words apart ('NOT to have'), not adjacent. A matcher
+    anchored immediately before the marker misses this and inverts the trial —
+    reading a trial that excludes MSI-H as one that requires it."""
+    m = match_biomarker(
+        "Inclusion Criteria:\n* Documented NOT to have microsatellite "
+        "instability-high (MSI-high) or mismatch repair deficient (dMMR) CRC "
+        "by tissue-based analysis.",
+        "MSS")
+    assert m.status == ELIGIBLE_BY_EXCLUSION, (
+        f"got {m.status} — a distant negation must still be recognised, not read "
+        "as the trial requiring MSI-H"
+    )
+
+
+def test_testing_requirement_carries_no_signal():
+    """'must have been assessed for X status' mandates a TEST, not a RESULT —
+    C-800-25's real inclusion line. It must not be read as requiring the
+    marker (nor excluding it): the real exclusion sentence two lines later is
+    what should decide the trial."""
+    text = (
+        "Inclusion Criteria:\n"
+        "* The tumor must have been assessed for microsatellite instability "
+        "high (MSI-H) or deficient mismatch repair (dMMR) status per a "
+        "standard local testing method.\n\n"
+        "Exclusion Criteria:\n"
+        "* Tumor is MSI-H/dMMR per a standard local testing method.\n"
+    )
+    m = match_biomarker(text, "MSS")
+    assert m.status == ELIGIBLE_BY_EXCLUSION, (
+        f"got {m.status} — the 'must be assessed for' sentence must not itself "
+        "resolve the marker, and must not out-rank the real exclusion sentence"
+    )
+    assert "assessed" not in m.evidence, "the test-requirement sentence must not be the evidence shown"
+
+
+def test_genuine_contradiction_is_unclear():
+    """A single sentence naming both the marker and its opposite cannot be read
+    cleanly — this is the real remaining UNCLEAR case, distinct from the
+    excludes-the-opposite pattern above."""
+    m = match_biomarker("Inclusion Criteria:\n* MSI-H or MSS tumors accepted", "MSS")
+    assert m.status == UNCLEAR
+    assert m.is_candidate
 
 
 def test_biomarker_not_mentioned():
@@ -197,20 +254,21 @@ def test_current_database_opens_without_complaint():
 def test_landscape_buckets_every_outcome():
     ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
     assert ls.n_condition == 6
-    assert ls.n_eligible == 2          # A (recruiting) + E (closed)
-    assert ls.n_unclear == 1           # B (indirect)
-    assert ls.n_excluded == 1          # C (requires MSI-H)
-    assert ls.n_not_mentioned == 2     # D (no mention) + F (no eligibility text)
-    assert ls.n_no_eligibility_text == 1  # F
+    assert ls.n_eligible == 2                # A (recruiting) + E (closed)
+    assert ls.n_eligible_by_exclusion == 1   # B (excludes MSI-H, indirect)
+    assert ls.n_unclear == 0
+    assert ls.n_excluded == 1                # C (requires MSI-H)
+    assert ls.n_not_mentioned == 2           # D (no mention) + F (no eligibility text)
+    assert ls.n_no_eligibility_text == 1     # F
 
 
-def test_unclear_trial_is_shown_not_dropped():
+def test_eligible_by_exclusion_trial_is_shown_not_dropped():
     ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
     shown = {t.record.nct_id for t in ls.trials}
-    assert "NCT10000002" in shown, "the indirect-MSS trial must be shown, flagged UNCLEAR"
+    assert "NCT10000002" in shown, "the indirect-MSS trial must be shown, flagged"
     assert "NCT10000003" not in shown, "the MSI-H-required trial is not a candidate"
-    unclear = next(t for t in ls.trials if t.record.nct_id == "NCT10000002")
-    assert unclear.match.status == UNCLEAR and unclear.match.evidence
+    indirect = next(t for t in ls.trials if t.record.nct_id == "NCT10000002")
+    assert indirect.match.status == ELIGIBLE_BY_EXCLUSION and indirect.match.evidence
 
 
 def test_every_shown_trial_carries_its_eligibility_evidence():
@@ -218,11 +276,122 @@ def test_every_shown_trial_carries_its_eligibility_evidence():
     assert ls.trials and all(t.match.evidence for t in ls.trials)
 
 
-def test_eligible_open_trials_sort_first():
+def test_biomarker_state_is_not_a_sort_key():
+    """The bug this replaces: eligible-before-by-exclusion-before-unclear was the
+    PRIMARY sort key, so every trial naming the marker directly outranked every
+    trial that states it by excluding the opposite — on the live colorectal
+    store that put two Phase 3 trials central to this disease below five hundred
+    lesser ones. Ranking decides the order; state is a column.
+
+    Here NCT10000002 (by exclusion, open) must outrank NCT10000005 (named
+    directly, closed to enrolment), which the old ordering could never do.
+    """
     ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
     order = [t.record.nct_id for t in ls.trials]
-    # Eligible-and-recruiting, then eligible-but-closed, then unclear.
-    assert order == ["NCT10000001", "NCT10000005", "NCT10000002"]
+    by_exclusion, explicit_but_closed = order.index("NCT10000002"), order.index("NCT10000005")
+    assert by_exclusion < explicit_but_closed, (
+        f"got {order} — a by-exclusion trial that outscores an explicitly-eligible "
+        "one must be allowed to outrank it"
+    )
+    assert order == sorted(
+        order, key=lambda n: (-next(t for t in ls.trials if t.record.nct_id == n).ranking.score, n)
+    ), "rows must be in descending score order, ties broken on NCT ID"
+
+
+def test_every_printed_row_states_why_it_ranks_where_it_does():
+    """A capped table whose rows cannot be accounted for is the arbitrary-sample
+    failure ranking.py exists to prevent — the same rule the diligence memo's
+    sample already follows."""
+    ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
+    for t in ls.trials:
+        assert t.ranking is not None
+        assert "score" in t.ranking.explain()
+
+
+def test_proximity_only_scores_when_the_patient_asked_for_a_location():
+    """Distance is a real signal for a patient and meaningless with the location
+    box empty. It must not print a zero-point line on every row of a search that
+    never mentioned a place."""
+    anywhere = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
+    assert not any("site in the patient's" in t.ranking.explain() for t in anywhere.trials)
+
+    houston = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS",
+                              location="Houston")
+    near = next(t for t in houston.trials if t.record.nct_id == "NCT10000001")
+    assert "site in the patient's city" in near.ranking.explain()
+    assert near.ranking.score > next(
+        t for t in anywhere.trials if t.record.nct_id == "NCT10000001").ranking.score
+
+
+# ------------------------------------------------------------- the display cap
+
+
+def test_the_printed_list_is_capped_and_the_counts_are_not():
+    """A cap narrows what is PRINTED. Everything the reader is asked to trust —
+    the screen counts, the candidate total — is still over the whole
+    population."""
+    ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS",
+                         show_limit=1)
+    assert len(ls.trials) == 1
+    assert ls.n_candidates == 3, "the cap must not change what was counted"
+    assert ls.n_eligible == 2 and ls.n_eligible_by_exclusion == 1
+    assert ls.n_ranked_out == 2
+
+
+def test_a_capped_landscape_says_what_the_cap_left_out_and_in_which_state():
+    """'2 not listed' invites the assumption that the held-back rows are the
+    weaker by-exclusion and unclear ones. The state breakdown is what makes that
+    checkable rather than assumed."""
+    ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS",
+                         show_limit=1)
+    text = " ".join(ls.sample_lines())
+    assert "highest-ranked of 3" in text
+    assert "2 are not listed" in text
+    assert "eligible" in text, "the excluded rows must be broken down by state"
+    assert ls.ranked_out_by_state[ELIGIBLE_BY_EXCLUSION] == 1
+
+
+def test_an_uncapped_landscape_says_it_is_showing_everything():
+    """Not-capped and capped-to-exactly-the-population must read differently —
+    the same not-assessed-vs-nothing-found rule applied to a sample."""
+    ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS",
+                         show_limit=None)
+    assert ls.n_ranked_out == 0
+    assert "Showing all 3" in " ".join(ls.sample_lines())
+
+
+def test_the_page_and_the_memo_cannot_show_different_rows():
+    """Two surfaces, one behaviour. The cap is applied in build_landscape, so
+    the Streamlit page renders the same `ls.trials` the export does — this is
+    true by construction, and this test is what keeps it that way if someone
+    adds a second cap in a renderer."""
+    ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS",
+                         show_limit=2)
+    md = render_markdown(ls)
+    printed = [t.record.nct_id for t in ls.trials]
+    assert len(printed) == 2
+    for nct in printed:
+        assert nct in md
+    assert "NCT10000005" not in md or "NCT10000005" in printed
+    # And the sample statement the page prints is the same text the memo does.
+    for line in ls.sample_lines():
+        assert line in md
+
+
+def test_the_default_cap_matches_the_diligence_memos_sample_cap():
+    """30 is not a number chosen for patients; it is the one the aggregate
+    diligence sections already use, adopted so the two capped trial tables this
+    tool prints agree. If one moves, this fails and the other should be
+    considered."""
+    from medrag.landscape import DEFAULT_SHOW_LIMIT
+
+    qs = yaml.safe_load(
+        (Path(__file__).resolve().parents[1] / "config" / "landscape.yaml").read_text())
+    caps = {q["k"] for q in qs["questions"] if q.get("aggregate")}
+    assert caps == {DEFAULT_SHOW_LIMIT}, (
+        f"landscape page caps at {DEFAULT_SHOW_LIMIT}, diligence census sections at "
+        f"{caps} — two surfaces must agree on the cap or state why they differ"
+    )
 
 
 def test_location_floats_the_matching_site_to_the_top():
@@ -246,8 +415,9 @@ def test_markdown_lists_trials_with_evidence_and_disclaimer():
     md = render_markdown(ls)
     assert "# Trial landscape — colorectal cancer" in md
     assert "NCT10000001" in md
-    assert "| NCT ID | Title | Phase | Status | Intervention | Sponsor | Locations | PI | Contact | Eligibility match |" in md
-    assert "UNCLEAR" in md and "MSI-H" in md
+    assert ("| NCT ID | Title | Phase | Status | Intervention | Sponsor | Locations | "
+            "PI | Contact | Eligibility match | Why ranked here |") in md
+    assert "ELIGIBLE BY EXCLUSION" in md and "MSI-H" in md
     assert "not medical advice" in md
 
 
@@ -259,11 +429,31 @@ def test_pdf_export_produces_a_real_pdf():
     assert out.stat().st_size > 1500
 
 
-def test_export_writes_both_formats():
+def test_export_writes_both_formats_under_an_unguessable_name():
+    """The filename keeps its human label and gains an unguessable suffix.
+
+    It used to be derived purely from user input, so two people exporting the
+    same search wrote to the same path and could read each other's file. This
+    test previously asserted that exact predictable stem — it was pinning the
+    defect, and was rewritten when the defect was fixed.
+    """
     ls = build_landscape(_store(), condition="colorectal cancer", biomarker="MSS")
-    paths = export(ls, Path(tempfile.mkdtemp()))
+    out = Path(tempfile.mkdtemp())
+    paths = export(ls, out)
     assert paths["markdown"].exists() and paths["pdf"].exists()
-    assert paths["markdown"].stem == "colorectal-cancer-mss-landscape"
+
+    stem = paths["markdown"].stem
+    assert stem.startswith("colorectal-cancer-mss-"), "the human label should survive"
+    assert stem.endswith("-landscape")
+    assert stem != "colorectal-cancer-mss-landscape", "the name is still guessable"
+
+    # Two exports of the SAME input must not collide.
+    again = export(ls, out)
+    assert again["markdown"] != paths["markdown"]
+    assert again["pdf"] != paths["pdf"]
+
+    # And still 0600 — unguessable is not a substitute for permissions.
+    assert oct(paths["pdf"].stat().st_mode)[-3:] == "600"
 
 
 if __name__ == "__main__":

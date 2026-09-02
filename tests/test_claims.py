@@ -120,6 +120,31 @@ def _cfg_remote() -> Config:
     return Config(openai_api_key="sk-test")
 
 
+def test_claim_retrieval_selects_the_fetched_population_not_a_condition_substring():
+    """A deck writes "microsatellite stable metastatic colorectal cancer"; a
+    sponsor registers "Colorectal Neoplasms". The old `condition=indication`
+    substring match ANDed those and returned nothing, so every claim fell through
+    to the free-text fallback. The population is the query set the ingest
+    recorded. Third copy of the same rule — see CLAUDE.md."""
+    store = TrialStore(Path(tempfile.mkdtemp()) / "t.db")
+    rec = parse_study(PAGE_ONE["studies"][0])
+    store.upsert([rec], provenance={rec.nct_id: ["cond:colorectal cancer"]},
+                 set_key="colorectal")
+
+    verifier = ClaimVerifier(_cfg_remote(), rag=None, trial_store=store)
+    try:
+        evidence = verifier._retrieve(
+            "some claim", asset="", indication="colorectal cancer", k=6)
+    finally:
+        verifier.close()
+
+    idents = {e.identifier for e in evidence}
+    assert rec.nct_id in idents, (
+        "the trial the ingest fetched for this indication must reach the verifier; "
+        "a condition-substring re-match drops it and silently falls back to FTS"
+    )
+
+
 # --------------------------------------------------------------- the support axis
 
 
@@ -504,10 +529,19 @@ def test_pdf_export_produces_a_real_pdf():
     assert out.stat().st_size > 1500
 
 
-def test_export_writes_both_formats():
-    paths = export(_report(), Path(tempfile.mkdtemp()))
+def test_export_writes_both_formats_under_an_unguessable_name():
+    """Sharpest here of the three: the stem used to be the COMPANY NAME, so
+    deck-derived claims landed at a path anyone knowing the company could
+    guess."""
+    out = Path(tempfile.mkdtemp())
+    paths = export(_report(), out)
     assert paths["markdown"].exists() and paths["pdf"].exists()
-    assert paths["markdown"].stem == "example-therapeutics-claims"
+
+    stem = paths["markdown"].stem
+    assert stem.endswith("-claims")
+    assert stem != "example-therapeutics-claims", "the company name alone is guessable"
+    assert export(_report(), out)["markdown"] != paths["markdown"]
+    assert oct(paths["pdf"].stat().st_mode)[-3:] == "600"
 
 
 if __name__ == "__main__":

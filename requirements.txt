@@ -40,6 +40,14 @@ pypdf==6.14.2
 # theme.
 streamlit==1.50.0
 
+# The PUBLIC service (public/). Separate from the Streamlit app on purpose —
+# see public/main.py. Streamlit runs a process per visitor and holds per-session
+# state, which is both the wrong shape for campaign traffic and at odds with a
+# service whose claim is that it keeps nothing.
+fastapi==0.128.8
+uvicorn==0.39.0
+python-multipart==0.0.20
+
 # Encryption at rest (AES-256-GCM + scrypt)
 cryptography==49.0.0
 

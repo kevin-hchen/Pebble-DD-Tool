@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Trial landscape — Trial finder{% endblock %}
+
+{% block content %}
+<h1>Find trials by condition and biomarker</h1>
+<p class="lede">
+  Lists trials whose eligibility criteria reference the biomarker you enter, each shown
+  with the exact sentence that placed it there, so you can check the call rather than
+  take it on trust.
+</p>
+
+{#
+  No consent box on this form, deliberately: nothing is submitted. A condition
+  and a biomarker are a structured lookup against a public registry snapshot —
+  no document, no deck, no model. Asking for consent here would train visitors
+  to tick a box that does not matter, which makes the box that does matter worth
+  less.
+#}
+{#
+  A POST, not a GET. The search terms must not appear in a URL: a URL is
+  recorded by browser history, by the Referer header on any external request,
+  and by nginx / Cloudflare / PaaS access logs — layers this application cannot
+  silence. Results are therefore not bookmarkable, which is the accepted cost.
+#}
+<form method="post" action="/landscape" class="search">
+  <label>Condition
+    <input type="text" name="condition" value="{{ condition }}" placeholder="e.g. colorectal cancer" required>
+  </label>
+  <label>Biomarker
+    <input type="text" name="biomarker" value="{{ biomarker }}" placeholder="e.g. MSS" required>
+  </label>
+  <label>Location <span class="opt">(optional)</span>
+    <input type="text" name="location" value="{{ location }}" placeholder="e.g. Boston">
+  </label>
+  <button type="submit">Search</button>
+</form>
+
+{% if error %}
+  <div class="error" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if result %}
+  {#
+    The coverage statement, first and always. Not collapsible, not a footnote,
+    rendered from coverage.render_lines() — the one function that turns a
+    coverage statement into words, so this page cannot disagree with the PDF or
+    the memo about what was searched.
+  #}
+  <section class="coverage" aria-label="What was searched">
+    <h2>What was searched</h2>
+    {% for line in result.coverage_lines %}<p>{{ line }}</p>{% endfor %}
+    <p class="muted">Snapshot taken {{ result.snapshot_date }}. Nothing is fetched live.</p>
+  </section>
+
+  {% if result.landscape.warnings %}
+    {% for w in result.landscape.warnings %}<div class="warn">{{ w }}</div>{% endfor %}
+  {% endif %}
+
+  {% if result.landscape.trials %}
+    <section class="results">
+      <h2>Trials that may admit this patient</h2>
+      {# What is printed out of what, and what the cap held back — from
+         sample_lines(), the same function the PDF calls. #}
+      {% for line in result.sample_lines %}<p class="sample-note">{{ line }}</p>{% endfor %}
+
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Trial</th><th>Phase</th><th>Status</th><th>Biomarker call</th>
+            <th>Nearest site</th><th>The criterion this is based on</th><th>Why ranked here</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for t in result.landscape.trials %}
+          <tr>
+            <td>
+              <a href="https://clinicaltrials.gov/study/{{ t.record.nct_id }}"
+                 rel="noopener noreferrer nofollow" target="_blank">{{ t.record.nct_id }}</a>
+              <span class="title">{{ t.record.brief_title }}</span>
+            </td>
+            <td>{{ t.record.phase or "—" }}</td>
+            <td>{{ t.record.overall_status or "—" }}</td>
+            <td><span class="state state-{{ t.match.status|lower|replace(' ', '-') }}">{{ t.match.status }}</span></td>
+            <td>{{ nearest_site(t) }}</td>
+            {#
+              The criterion sentence sits behind every call, on the row, never in
+              a tooltip and never truncated. A filtered list with no shown
+              evidence cannot be checked, and this is the evidence the row exists
+              to show.
+            #}
+            <td class="criterion">{{ t.match.evidence or "No criterion sentence on file for this marker." }}</td>
+            <td class="why">{{ t.ranking.explain() if t.ranking else "not ranked" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+
+      <p class="muted">
+        Showing at most {{ result.capped_at }} rows. Eligibility is indicative; the trial
+        team decides. Confirm every detail against the registry record linked above.
+      </p>
+      {# A form, not a link: a download URL carrying the search would put it
+         straight back into history and every intermediary's logs. #}
+      <form method="post" action="/landscape.pdf" class="pdf-form">
+        <input type="hidden" name="condition" value="{{ condition }}">
+        <input type="hidden" name="biomarker" value="{{ biomarker }}">
+        <input type="hidden" name="location" value="{{ location }}">
+        <button type="submit" class="pdf-button">Download as PDF</button>
+      </form>
+    </section>
+  {% else %}
+    <section class="results">
+      <h2>No trials in this snapshot reference that biomarker</h2>
+      <p>
+        None of the {{ result.landscape.n_condition }} trials screened for
+        “{{ condition }}” reference “{{ biomarker }}” in their eligibility criteria.
+        A trial that does not mention it may still accept the patient — this search
+        only reports trials that name it.
+      </p>
+    </section>
+  {% endif %}
+{% endif %}
+{% endblock %}

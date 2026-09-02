@@ -45,8 +45,9 @@ in the full paper rather than the sentence being cited.
 a patient could actually enter, each shown with the exact eligibility sentence
 that put it on the list. When a trial's eligibility only implies the biomarker
 indirectly — it excludes the opposite marker rather than naming the patient's —
-it's kept and flagged as uncertain, not dropped. A missed trial is worse than an
-uncertain one when someone is looking for an option.
+it's kept and flagged as eligible by exclusion, not dropped or read as merely
+uncertain: excluding the opposite is a confident, if indirect, statement. A
+missed trial is worse than an unclear one when someone is looking for an option.
 
 ## Why not just ask a chatbot
 

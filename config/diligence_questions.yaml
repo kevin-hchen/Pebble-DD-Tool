@@ -16,6 +16,11 @@
 #   k         passages to retrieve for this question
 #   negative  run the negative-evidence pass against this answer
 
+# Drug names are joined: "trastuzumab deruxtecan" is ONE molecule, and
+# splitting it matches the two halves of an ADC separately (measured: 123
+# trials -> 132). See QuestionSet.asset_kind.
+asset_kind: drug
+
 version: 1
 name: "Biomedical asset diligence — reference question set (draft)"
 
@@ -27,9 +32,18 @@ questions:
     k: 6
     negative: true
 
+  # "this mechanism or target" was an anaphor with no referent: the question
+  # interpolated NEITHER {asset} NOR {indication}, so it was a constant string
+  # for every asset ever screened — one fixed embedding, one identical
+  # retrieval, scoring an identical 0.436 across all 33 assets measured. Only
+  # the referent is bound here. What the question ASKS is unchanged: it is still
+  # about the mechanism or target rather than the compound, and still
+  # deliberately not scoped to {indication}, because "who else has worked on
+  # this target" is a broader question than "in this disease". Changing that is
+  # an editorial call for whoever owns this file.
   - id: competitive-trials
     section: "Who else has run trials on this target"
-    question: "Which other sponsors have run clinical trials on this mechanism or target, and what happened to those trials?"
+    question: "Which other sponsors have run clinical trials on the mechanism or target of {asset}, and what happened to those trials?"
     route: structured
     k: 8
     negative: false
@@ -74,6 +88,20 @@ questions:
     question: "Is the evidence base for {asset} in {indication} built on randomised trials and meta-analyses, or on observational studies and case reports?"
     route: semantic
     k: 10
+    negative: false
+
+  # The regulatory-status question. Worded as "what is on file", not "is it
+  # approved", on purpose: openFDA can only ever report what the FDA has
+  # published, and a question phrased as a yes/no invites an answer that treats
+  # an empty database as a no. The approval block in this section is generated
+  # in code from the drugsFDA record (submission status, marketing status,
+  # application mix, label history) and inserted verbatim — the model writes
+  # around it and never writes it. See CLAUDE.md.
+  - id: regulatory-status
+    section: "US regulatory status"
+    question: "What does the FDA record show for {asset} — approved, tentatively approved, or marketed under any application — and for which indications and routes?"
+    route: structured
+    k: 8
     negative: false
 
   - id: development-stage

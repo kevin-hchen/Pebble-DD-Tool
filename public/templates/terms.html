@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}How your data is handled — Trial finder{% endblock %}
+{% block content %}
+<h1>How your data is handled</h1>
+<p class="lede">Version {{ terms_version }}. This is the text the software is
+   tested against, not a summary of it.</p>
+<pre class="terms">{{ terms_markdown }}</pre>
+{% endblock %}

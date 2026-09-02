@@ -47,7 +47,10 @@ def _trial(nct, elig, *, status="RECRUITING", phase="Phase 2", sponsor="Uni",
 
 def _store(records):
     st = TrialStore(Path(tempfile.mkdtemp()) / "t.db")
-    st.upsert(records)
+    # Stamped with the query set a real ingest records: the census selects the
+    # population the fetch defined, not a condition substring.
+    st.upsert(records, provenance={r.nct_id: ["cond:colorectal cancer"] for r in records},
+              set_key="colorectal")
     return st
 
 
@@ -100,13 +103,110 @@ def test_not_mentioned_is_never_folded_into_a_required_set():
         _trial("NCT03", "Exclusion Criteria:\n* MSS tumors"),           # MSS EXCLUDED
     ])
     census = store.landscape(condition="colorectal cancer")
-    assert census["by_biomarker"]["MSS"] == {"REQUIRED": 1, "EXCLUDED": 1, "NOT_MENTIONED": 1}
+    assert census["by_biomarker"]["MSS"] == {
+        "REQUIRED": 1, "ELIGIBLE_BY_EXCLUSION": 0, "EXCLUDED": 1, "NOT_MENTIONED": 1,
+    }
 
     required = store.landscape(condition="colorectal cancer", biomarker_filters=[("MSS", "REQUIRED")])
     ids = {r.nct_id for r in required["sample"]}
     assert ids == {"NCT01"}, "NOT_MENTIONED and EXCLUDED trials must not appear in the REQUIRED set"
     assert required["total"] == 1
     store.close()
+
+
+# --------------------------------------- OR-within-marker biomarker filters
+
+
+def test_multi_status_filter_for_one_marker_ors_rather_than_ands():
+    """A marker can only ever have ONE status. Filtering on
+    [("MSS", "REQUIRED")] AND-ed with a second ("MSS", "ELIGIBLE_BY_EXCLUSION")
+    filter would be unsatisfiable and silently zero the count — the regression
+    this task exists to catch: the shipped config's MSS-specific section used
+    to filter REQUIRED only, which excluded 3 of the 4 real MSS mCRC trials
+    that reach a user (STELLAR-303, C-800-25, HARMONi-GI3 all state MSS only
+    by excluding MSI-H)."""
+    store = _store([
+        _trial("NCT_REQ", "Inclusion Criteria:\n* MSS tumors"),
+        _trial("NCT_EXCL_OPP", "Exclusion Criteria:\n* Known MSI-H or dMMR"),
+        _trial("NCT_NEITHER", "Inclusion Criteria:\n* Age 18+"),
+    ])
+    single = store.landscape(condition="colorectal cancer", biomarker_filters=[("MSS", "REQUIRED")])
+    assert single["total"] == 1, "sanity: REQUIRED alone must still find just the direct trial"
+
+    combined = store.landscape(
+        condition="colorectal cancer",
+        biomarker_filters=[("MSS", ["REQUIRED", "ELIGIBLE_BY_EXCLUSION"])],
+    )
+    assert combined["total"] == 2, (
+        "an OR-ed multi-status filter for one marker must UNION the statuses, "
+        "not silently return zero the way ANDing two exclusive statuses would"
+    )
+    assert {r.nct_id for r in combined["sample"]} == {"NCT_REQ", "NCT_EXCL_OPP"}
+    # by_biomarker, computed over the ALREADY-filtered population, must still
+    # show the exact split — the memo's distinct-breakdown line depends on this.
+    assert combined["by_biomarker"]["MSS"]["REQUIRED"] == 1
+    assert combined["by_biomarker"]["MSS"]["ELIGIBLE_BY_EXCLUSION"] == 1
+    store.close()
+
+
+def test_biomarker_filters_for_different_markers_still_and():
+    """Multi-status OR is scoped to ONE marker; two DIFFERENT markers must
+    still AND together (a trial matching both, not either)."""
+    store = _store([
+        _trial("NCT_BOTH", "Inclusion Criteria:\n* MSS tumors\n* BRAF V600E mutation"),
+        _trial("NCT_MSS_ONLY", "Inclusion Criteria:\n* MSS tumors"),
+    ])
+    census = store.landscape(
+        condition="colorectal cancer",
+        biomarker_filters=[("MSS", "REQUIRED"), ("BRAF_V600E", "REQUIRED")],
+    )
+    assert {r.nct_id for r in census["sample"]} == {"NCT_BOTH"}
+    store.close()
+
+
+def test_diligence_biomarker_filters_groups_same_marker_tokens():
+    from medrag.diligence import DiligenceRunner
+
+    grouped = DiligenceRunner._biomarker_filters(["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"])
+    assert grouped == [("MSS", ["REQUIRED", "ELIGIBLE_BY_EXCLUSION"])]
+
+    single = DiligenceRunner._biomarker_filters(["MSS:REQUIRED"])
+    assert single == [("MSS", ["REQUIRED"])]
+
+    two_markers = DiligenceRunner._biomarker_filters(["MSS:REQUIRED", "BRAF_V600E:REQUIRED"])
+    assert two_markers == [("MSS", ["REQUIRED"]), ("BRAF_V600E", ["REQUIRED"])]
+
+
+def test_memo_renders_the_two_states_distinctly_not_merged():
+    """The memo section must say the exact split, the same way the
+    trial-landscape page shows each trial's exact status per row — not one
+    combined total that hides how many qualified which way."""
+    store = _store([
+        _trial("NCT_REQ", "Inclusion Criteria:\n* MSS tumors"),
+        _trial("NCT_EXCL_OPP", "Exclusion Criteria:\n* Known MSI-H or dMMR"),
+    ])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="mss", section="MSS specifically", question="{indication}?",
+                          aggregate=True, biomarker=["MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"], k=10)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="colorectal cancer", question_set="landscape", sections=[result]))
+    assert "2 trials" in md
+    assert "REQUIRED or ELIGIBLE BY EXCLUSION" in md, "the scope line must name both states, not merge them"
+    assert "1 REQUIRED, 1 ELIGIBLE BY EXCLUSION" in md, (
+        "the exact split must be stated, not just a combined total"
+    )
+    runner.close()
+
+
+def test_shipped_landscape_yaml_includes_eligible_by_exclusion_for_mss():
+    """Guards the config itself: someone reverting mss-required's filter back
+    to REQUIRED-only would silently drop 3 of the 4 MSS mCRC trials that
+    reach a user, with no code change to catch it."""
+    qs = load_question_set("config/landscape.yaml")
+    mss_q = next(q for q in qs.questions if q.id == "mss-required")
+    assert set(mss_q.biomarker) >= {"MSS:REQUIRED", "MSS:ELIGIBLE_BY_EXCLUSION"}
 
 
 # ------------------------------------------------------------- SQL aggregates
@@ -198,6 +298,90 @@ def test_indication_only_run_needs_no_asset():
     assert "{asset}" not in md, "an unfilled {asset} placeholder must degrade, not leak"
 
 
+def test_census_counts_a_trial_whose_condition_string_lacks_the_indication_words():
+    """The diligence consumer's copy of the retrieval bug. store.landscape() used
+    to take condition=indication and re-run LOWER(conditions) LIKE, which on the
+    real store counted 5,201 of a 12,092-trial fetched population — it discarded
+    every trial registered as "Colorectal Neoplasms". Two callers with different
+    population logic is the shape this repo has already been bitten by twice."""
+    store = _store([
+        _trial("NCT_LIT", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Cancer",)),
+        _trial("NCT_NEO", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Neoplasms",)),
+    ])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="Landscape", question="What runs in {indication}?",
+                          aggregate=True, k=10)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    assert result.aggregate["total"] == 2, (
+        "the census must count the fetched population; a trial registered as "
+        "'Colorectal Neoplasms' was dropped by a substring re-match"
+    )
+    assert "NCT_NEO" in {r.nct_id for r in result.aggregate["sample"]}
+    runner.close()
+
+
+def test_section_retrieval_selects_the_fetched_population_not_a_condition_substring():
+    """`_trials_for`'s copy of the same rule. It ANDs intervention with the
+    population, so a trial registered as "Colorectal Neoplasms" was dropped from
+    an asset's evidence and the section fell through to free-text search.
+
+    The store deliberately holds one trial the substring DOES match, so the
+    structured result is non-empty and the free-text fallback never fires. That
+    is the partial-drop case: with the fallback masked, the dropped trial is
+    invisible. A fixture with only the unmatched trial passes either way, because
+    FTS rescues it — which is exactly why the fallback hides this defect."""
+    store = _store([
+        _trial("NCT_LIT", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Cancer",)),
+        _trial("NCT_NEO", "Inclusion Criteria:\n* MSS", conditions=("Colorectal Neoplasms",)),
+    ])
+    runner = _runner(store)
+    try:
+        records = runner._trials_for(
+            "what runs here?", asset="", indication="colorectal cancer", filters={}, limit=6)
+    finally:
+        runner.close()
+    assert {"NCT_LIT", "NCT_NEO"} <= {r.nct_id for r in records}, (
+        "a fetched trial must reach the section; the substring re-match dropped it "
+        "and the fallback could not fire because the result was not empty"
+    )
+
+
+def test_census_names_the_query_set_it_counted_not_the_typed_words():
+    store = _mixed_store()
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="L", question="What runs in {indication}?",
+                          aggregate=True, k=5)
+    result = runner.run_question(q, asset="", indication="colorectal cancer")
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="colorectal cancer", question_set="landscape",
+            sections=[result]))
+    assert "colorectal" in md and "query set" in md, (
+        "the memo must say which population it counted, since it is no longer the "
+        "reader's own phrasing"
+    )
+    runner.close()
+
+
+def test_never_ingested_census_does_not_read_as_no_such_trials_exist():
+    """A zero because nothing was fetched and a zero because nothing matched are
+    different findings — the same rule as ValidationReport.assessed."""
+    store = _store([_trial("NCT_A", "Inclusion Criteria:\n* MSS")])
+    runner = _runner(store)
+    q = DiligenceQuestion(id="l", section="L", question="What runs in {indication}?",
+                          aggregate=True, k=5)
+    result = runner.run_question(q, asset="", indication="pancreatic cancer")
+    assert result.aggregate["total"] == 0
+    md = render_markdown(
+        __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
+            asset="", indication="pancreatic cancer", question_set="landscape",
+            sections=[result]))
+    assert "NOT a finding that no such trials exist" in md, (
+        "an uningested indication must not report as an empty field"
+    )
+    runner.close()
+
+
 def test_aggregate_section_states_denominator_and_labels_the_sample():
     store = _mixed_store(n_extra=20)
     runner = _runner(store)
@@ -209,7 +393,7 @@ def test_aggregate_section_states_denominator_and_labels_the_sample():
         __import__("medrag.diligence", fromlist=["MemoResult"]).MemoResult(
             asset="", indication="colorectal cancer", question_set="landscape", sections=[result]))
     assert "24 trials" in md
-    assert "showing 5 of 24" in md
+    assert "showing the 5 highest-ranked of 24" in md
     assert "19 matching trial(s) are NOT listed" in md
     runner.close()
 

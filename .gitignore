@@ -31,6 +31,10 @@ out/
 rowut/
 
 # Local working notes — not published
-CLAUDE.md
 PROMPTS.md
 .gstack/
+
+# Built data artifacts — 1.9 GB of fetched public data, rebuildable with
+# `python scripts/build_artifact.py`. The manifest and checksums are the record
+# of what was built; the bytes belong on a server, not in git.
+dist/

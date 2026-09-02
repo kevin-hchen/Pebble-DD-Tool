@@ -17,6 +17,14 @@
 # register on ChiCTR, which this tool cannot see at all. Treat an empty trial
 # section as missing coverage, not as an absence of trials.
 
+# Device names are DESCRIPTIONS — the registry writes
+# "Defibrillator, automatic implantable cardioverter" where a query says
+# "implantable cardioverter defibrillator" — so each significant word is
+# matched independently. Declared here rather than guessed from the asset
+# string: "procalcitonin assay" and "trastuzumab deruxtecan" are both two
+# lowercase words and need opposite treatment.
+asset_kind: device
+
 version: 1
 name: "Pebble device & diagnostic screen (draft)"
 

@@ -1,0 +1,1560 @@
+[
+ {
+  "pmid": "10478224",
+  "modality": "imaging",
+  "title": "Spiral CT angiography of the pulmonary circulation.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of spiral CT angiography."
+ },
+ {
+  "pmid": "16877078",
+  "modality": "imaging",
+  "title": "Vitelliform macular dystrophy.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "consecutive",
+  "reference_standard": "not_applicable",
+  "timing": "retrospective",
+  "reason": "'Retrospective observational case series' of nine patients; descriptive imaging, no accuracy measure. Note 'consecutive' appears and does not make it an accuracy study."
+ },
+ {
+  "pmid": "17082698",
+  "modality": "imaging",
+  "title": "Multidetector CT angiography in pulmonary sequestration.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "selected",
+  "reference_standard": "not_stated",
+  "timing": "not_stated",
+  "reason": "Eight patients imaged; descriptive findings, no accuracy measure. Case series."
+ },
+ {
+  "pmid": "21131583",
+  "modality": "imaging",
+  "title": "Pulmonary embolism during pregnancy: diagnosis with lung scintigraphy or CT angiography?",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "retrospective",
+  "reason": "Retrospective image review over 9 years. Outcome is inter-reader agreement, not accuracy against a reference standard."
+ },
+ {
+  "pmid": "22889590",
+  "modality": "imaging",
+  "title": "Assessment of anemia during CT pulmonary angiography.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "consecutive",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "'150 consecutive patients with suspected PE'; two radiologists blinded to the laboratory reference. The clearest single-gate example in the sample."
+ },
+ {
+  "pmid": "23495081",
+  "modality": "imaging",
+  "title": "Role of MRI in prostate cancer detection.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of MRI's role."
+ },
+ {
+  "pmid": "24450675",
+  "modality": "imaging",
+  "title": "Accuracy of multiparametric MRI for prostate cancer detection: a meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Meta-analysis of diagnostic accuracy studies, histopathology reference."
+ },
+ {
+  "pmid": "24627251",
+  "modality": "imaging",
+  "title": "Optical coherence tomography shows retinal abnormalities associated with optic nerve disease.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of OCT findings in optic nerve disease."
+ },
+ {
+  "pmid": "25215284",
+  "modality": "imaging",
+  "title": "Functional MRI in prostate cancer detection.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'The purpose of this paper is to review the existing literature'."
+ },
+ {
+  "pmid": "26396046",
+  "modality": "imaging",
+  "title": "Detecting Prostate Cancer.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "168 men after a previous negative biopsy \u2014 a selected population \u2014 and only suspicious lesions went to targeted biopsy, so verification is partial."
+ },
+ {
+  "pmid": "27055494",
+  "modality": "imaging",
+  "title": "Diagnosing venous thromboembolism in pregnancy.",
+  "publication_types": [
+   "Comparative Study",
+   "Journal Article"
+  ],
+  "design": "CASE_CONTROL_TWO_GATE",
+  "sampling": "two_gate",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "168 pregnant patients imaged PLUS a separately recruited control group of 89 age- and sex-matched non-pregnant patients. Two gates."
+ },
+ {
+  "pmid": "27741212",
+  "modality": "imaging",
+  "title": "Breast Cancer Screening, Mammography, and Other Modalities.",
+  "publication_types": [
+   "Case Reports",
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Overview of breast screening modalities; summarises other people's trials."
+ },
+ {
+  "pmid": "28099332",
+  "modality": "imaging",
+  "title": "Lung ultrasound for the diagnosis of pneumonia in adults: A meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Meta-analysis of lung ultrasound accuracy for pneumonia."
+ },
+ {
+  "pmid": "30107542",
+  "modality": "imaging",
+  "title": "Breast Cancer Screening Using Tomosynthesis or Mammography: A Meta-analysis of Cancer Detection and Recall.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "SR and random-effects meta-analysis of tomosynthesis vs mammography detection."
+ },
+ {
+  "pmid": "30255247",
+  "modality": "imaging",
+  "title": "Imaging of pulmonary perfusion using subtraction CT angiography is feasible in clinical practice.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Technical review of subtraction CT principles."
+ },
+ {
+  "pmid": "30314929",
+  "modality": "imaging",
+  "title": "Lung Ultrasound for the Emergency Diagnosis of Pneumonia, Acute Heart Failure, and Exacerbations of Chronic Obstructive Pulmonary Disease/Asthma in Adults: A Systematic Review and Meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Systematic review of lung ultrasound accuracy in emergency diagnosis."
+ },
+ {
+  "pmid": "31239513",
+  "modality": "imaging",
+  "title": "Financial implications of biparametric prostate MRI.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Cost model of biparametric versus multiparametric MRI."
+ },
+ {
+  "pmid": "32844375",
+  "modality": "imaging",
+  "title": "Lung ultrasound artifacts in COVID-19 patients.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Describes two cases of ultrasound artefacts. Case report."
+ },
+ {
+  "pmid": "32970595",
+  "modality": "imaging",
+  "title": "Ultrasound Elastography for Lung Disease Assessment.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of ultrasound elastography."
+ },
+ {
+  "pmid": "33021856",
+  "modality": "imaging",
+  "title": "Covid-19-Associated Retinopathy: A Case Report.",
+  "publication_types": [
+   "Case Reports",
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Single case report."
+ },
+ {
+  "pmid": "34348330",
+  "modality": "imaging",
+  "title": "Standardization of Optical Coherence Tomography Angiography Imaging Biomarkers in Diabetic Retinal Disease.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Standardisation/consensus review of OCT-A biomarkers."
+ },
+ {
+  "pmid": "34582414",
+  "modality": "imaging",
+  "title": "Extended Lung Ultrasound to Differentiate Between Pneumonia and Atelectasis in Critically Ill Patients: A Diagnostic Accuracy Study.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "States 'Design: Prospective diagnostic accuracy study' in a defined ICU population presenting with consolidation on chest radiograph. Single-gate clinical series; sampling word 'consecutive' not used."
+ },
+ {
+  "pmid": "35235542",
+  "modality": "imaging",
+  "title": "Association Between Lung Ultrasound Patterns and Pneumonia.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "retrospective",
+  "reason": "Retrospective analytical study of lung ultrasound patterns and pneumonia."
+ },
+ {
+  "pmid": "35617550",
+  "modality": "imaging",
+  "title": "The Breast Cancer Screening Debate.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "News/opinion item on the screening debate."
+ },
+ {
+  "pmid": "36621756",
+  "modality": "imaging",
+  "title": "Preexisting Chronic Thromboembolic Pulmonary Hypertension in Acute Pulmonary Embolism.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "consecutive",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "'Unselected patients with acute PE prospectively followed'; two blinded radiologists with adjudication for disagreement."
+ },
+ {
+  "pmid": "36719288",
+  "modality": "imaging",
+  "title": "Supplemental Breast Cancer Screening in Women with Dense Breasts and Negative Mammography: A Systematic Review and Meta-Analysis.",
+  "publication_types": [
+   "Meta-Analysis",
+   "Systematic Review",
+   "Journal Article"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "SR and meta-analysis comparing supplemental screening modalities."
+ },
+ {
+  "pmid": "38051029",
+  "modality": "imaging",
+  "title": "Biparametric Quantitative MRI for Prostate Cancer Detection.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Prospective pilot in 50 biopsy-naive men, but only PI-RADS >=3 lesions went to biopsy \u2014 partial verification."
+ },
+ {
+  "pmid": "38252959",
+  "modality": "imaging",
+  "title": "Optical coherence tomography in children with inherited retinal disease.",
+  "publication_types": [
+   "Journal Article",
+   "Review",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of OCT in paediatric inherited retinal disease."
+ },
+ {
+  "pmid": "38977914",
+  "modality": "imaging",
+  "title": "AI-based selection of individuals for supplemental MRI in population-based breast cancer screening: the randomized ScreenTrustMRI trial.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "ScreenTrustMRI: randomised allocation to supplemental MRI; outcome is cancer detection under a strategy."
+ },
+ {
+  "pmid": "39032957",
+  "modality": "imaging",
+  "title": "Prostate MRI for the detection of clinically significant prostate cancer: Update and future directions.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'Purpose of review' \u2014 narrative update."
+ },
+ {
+  "pmid": "39321360",
+  "modality": "imaging",
+  "title": "Results after Four Years of Screening for Prostate Cancer with PSA and MRI.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Population-based screening trial with random assignment to systematic vs MRI-targeted biopsy."
+ },
+ {
+  "pmid": "39904652",
+  "modality": "imaging",
+  "title": "Screening performance and characteristics of breast cancer detected in the Mammography Screening with Artificial Intelligence trial (MASAI): a randomised, controlled, parallel-group, non-inferiority, single-blinded, screening accuracy study.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't",
+   "Equivalence Trial"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "MASAI: randomised, controlled, single-blinded screening-accuracy study of AI-supported screening."
+ },
+ {
+  "pmid": "40050619",
+  "modality": "imaging",
+  "title": "Artificial intelligence for breast cancer screening in mammography (AI-STREAM): preliminary analysis of a prospective multicenter cohort study.",
+  "publication_types": [
+   "Journal Article",
+   "Multicenter Study"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "AI-STREAM: prospective multicentre screening cohort, accuracy of radiologists with and without AI-CAD."
+ },
+ {
+  "pmid": "40324456",
+  "modality": "imaging",
+  "title": "[How many MRI sequences are required for prostate cancer detection?].",
+  "publication_types": [
+   "Journal Article",
+   "Review",
+   "English Abstract"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of MRI sequence requirements."
+ },
+ {
+  "pmid": "40461322",
+  "modality": "imaging",
+  "title": "Prostate Cancer Detection in Younger Men: A Comparative Analysis of Systematic and Magnetic Resonance Imaging-targeted Biopsy in the PROBASE Trial.",
+  "publication_types": [
+   "Journal Article",
+   "Comparative Study",
+   "Randomized Controlled Trial"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Paired within-patient comparison of MRI-targeted and systematic biopsy detection in a screening cohort. Carries a Randomized Controlled Trial publication type from the parent trial, but the analysis reported is accuracy, not a randomised strategy comparison \u2014 a deliberate hard case."
+ },
+ {
+  "pmid": "40506262",
+  "modality": "imaging",
+  "title": "Clinically significant prostate cancer detected by systematic biopsy in patients with MRI lesions.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "retrospective",
+  "reason": "Retrospectively identified patients already known to have a PI-RADS >=3 lesion \u2014 selection on the index test result."
+ },
+ {
+  "pmid": "40736805",
+  "modality": "imaging",
+  "title": "Optical Coherence Tomography.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of OCT technology."
+ },
+ {
+  "pmid": "40810585",
+  "modality": "imaging",
+  "title": "Lung Ultrasound Findings and Algorithms to Detect Pneumonia: A Systematic Review and Diagnostic Testing Meta-Analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Systematic Review",
+   "Meta-Analysis"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "'Systematic Review and Diagnostic Testing Meta-Analysis' of lung ultrasound findings."
+ },
+ {
+  "pmid": "42080494",
+  "modality": "imaging",
+  "title": "Optical coherence tomography angiography in retinal vascular disease: transformative tool or expensive gimmick?",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'Purpose of review' on OCTA."
+ },
+ {
+  "pmid": "9622818",
+  "modality": "imaging",
+  "title": "[Spiral CT angiography in diagnosis of acute pulmonary embolism. What factors modify implementation of standard algorithms?].",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of implementation factors for spiral CT."
+ },
+ {
+  "pmid": "9763360",
+  "modality": "imaging",
+  "title": "Rational diagnosis of pulmonary embolism (RADIA PE) in symptomatic outpatients with suspected PE: an improved strategy to exclude or diagnose venous thromboembolism by the sequential use of a clinical model, rapid ELISA D-dimer test, perfusion lung scan, ultrasonography, spiral CT, and pulmonary angiography.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review proposing a diagnostic strategy. No sample, no accuracy estimate."
+ },
+ {
+  "pmid": "12538548",
+  "modality": "ivd",
+  "title": "Diagnosis of pulmonary embolism.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of PE tests."
+ },
+ {
+  "pmid": "19719034",
+  "modality": "ivd",
+  "title": "The diagnosis of pulmonary embolism.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of PE diagnosis."
+ },
+ {
+  "pmid": "22494827",
+  "modality": "ivd",
+  "title": "Pulmonary embolism and deep vein thrombosis.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of PE and DVT."
+ },
+ {
+  "pmid": "29371044",
+  "modality": "ivd",
+  "title": "D-Dimer and thrombus burden in acute pulmonary embolism.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "retrospective",
+  "reason": "Association between D-dimer and thrombus burden within confirmed PE patients. No non-diseased group, so no accuracy."
+ },
+ {
+  "pmid": "29536900",
+  "modality": "ivd",
+  "title": "State-of-the-art diagnosis of myocardial infarction.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of the Universal Definition of MI. Criteria, not a study."
+ },
+ {
+  "pmid": "30010232",
+  "modality": "ivd",
+  "title": "D-dimer in Adolescent Pulmonary Embolism.",
+  "publication_types": [
+   "Journal Article",
+   "Multicenter Study"
+  ],
+  "design": "CASE_CONTROL_TWO_GATE",
+  "sampling": "two_gate",
+  "reference_standard": "stated",
+  "timing": "retrospective",
+  "reason": "Patients selected by confirmed PE-positive status across a hospital system, compared against a PE-negative group. Selection on the target condition."
+ },
+ {
+  "pmid": "30417415",
+  "modality": "ivd",
+  "title": "The diagnostic accuracy of procalcitonin and C-reactive protein for sepsis: A systematic review and meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "SR and meta-analysis of PCT and CRP diagnostic accuracy for sepsis."
+ },
+ {
+  "pmid": "30744990",
+  "modality": "ivd",
+  "title": "[Diagnosis of pulmonary embolism].",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of PE diagnostic strategies."
+ },
+ {
+  "pmid": "31466483",
+  "modality": "ivd",
+  "title": "Profile of MeltPro\u00ae HPV test for human papillomavirus genotyping and cervical precancer screening.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Product profile review of a specific HPV assay."
+ },
+ {
+  "pmid": "31550871",
+  "modality": "ivd",
+  "title": "Sepsis diagnosis and monitoring - procalcitonin as standard, but what next?",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of sepsis biomarkers."
+ },
+ {
+  "pmid": "31774957",
+  "modality": "ivd",
+  "title": "Diagnosis of Pulmonary Embolism with d-Dimer Adjusted to Clinical Probability.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "PEGeD. Prospective management study in outpatients; reference is imaging plus 90-day follow-up for missed VTE. Single-gate."
+ },
+ {
+  "pmid": "31776231",
+  "modality": "ivd",
+  "title": "A novel faecal Lachnoclostridium marker for the non-invasive diagnosis of colorectal adenoma and cancer.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CASE_CONTROL_TWO_GATE",
+  "sampling": "two_gate",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "274 CRC, 353 adenoma and 385 controls assembled from two groups by known status."
+ },
+ {
+  "pmid": "32041827",
+  "modality": "ivd",
+  "title": "Patients with markedly elevated D-dimer who do not have pulmonary embolism.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "retrospective",
+  "reason": "Begins from 1000 consecutive suspected-PE patients but then retrospectively examines only the top D-dimer quintile \u2014 the analysed sample is selected on the index test."
+ },
+ {
+  "pmid": "32759284",
+  "modality": "ivd",
+  "title": "Pulmonary embolism: update on management and controversies.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Management review of pulmonary embolism."
+ },
+ {
+  "pmid": "33431544",
+  "modality": "ivd",
+  "title": "Physician choices in pulmonary embolism testing.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Qualitative interview study of physician testing choices."
+ },
+ {
+  "pmid": "34048019",
+  "modality": "ivd",
+  "title": "Microfluidic Chips for Sepsis Diagnosis.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Book chapter discussing microfluidic approaches; narrative."
+ },
+ {
+  "pmid": "34584417",
+  "modality": "ivd",
+  "title": "The Main Causes and Mechanisms of Increase in Cardiac Troponin Concentrations Other Than Acute Myocardial Infarction (Part 1): Physical Exertion, Inflammatory Heart Disease, Pulmonary Embolism, Renal Failure, Sepsis.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of mechanisms of troponin elevation. Pathophysiology."
+ },
+ {
+  "pmid": "34720531",
+  "modality": "ivd",
+  "title": "Faecal immunochemical test outside colorectal cancer screening?",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of FIT outside screening."
+ },
+ {
+  "pmid": "35677736",
+  "modality": "ivd",
+  "title": "Troponin I Cutoff for Non-ST-Segment Elevation Myocardial Infarction in Sepsis.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "retrospective",
+  "reason": "Single-hospital retrospective cutoff derivation for troponin I in sepsis."
+ },
+ {
+  "pmid": "36889038",
+  "modality": "ivd",
+  "title": "Faecal haemoglobin concentration predicts all-cause mortality.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "PROGNOSTIC_MODEL",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Screening cohort followed via death register; faecal haemoglobin as a predictor of mortality. Prognostic rather than diagnostic \u2014 note this is an association cohort, not a formal model, a distinction the frozen vocabulary does not carry."
+ },
+ {
+  "pmid": "38964991",
+  "modality": "ivd",
+  "title": "Is there a need for screening of cervical HPV infections and carcinoma?",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of cervical screening policy."
+ },
+ {
+  "pmid": "39351429",
+  "modality": "ivd",
+  "title": "Early diagnostic strategies for colorectal cancer.",
+  "publication_types": [
+   "Editorial"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Editorial on CRC diagnostic strategies."
+ },
+ {
+  "pmid": "39486904",
+  "modality": "ivd",
+  "title": "Human papillomavirus-based cervical screening and long-term cervical cancer risk: a randomised health-care policy trial in Sweden.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Randomised health-care policy trial, HPV vs cytology screening, outcome long-term cancer risk."
+ },
+ {
+  "pmid": "39652885",
+  "modality": "ivd",
+  "title": "Biomarker-Guided Antibiotic Duration for Hospitalized Patients With Suspected Sepsis: The ADAPT-Sepsis Randomized Clinical Trial.",
+  "publication_types": [
+   "Comparative Study",
+   "Journal Article",
+   "Multicenter Study",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "ADAPT-Sepsis: randomised biomarker-guided antibiotic duration. Test-directed management, patient outcomes."
+ },
+ {
+  "pmid": "39972538",
+  "modality": "ivd",
+  "title": "Diagnostic accuracy of the faecal immunochemical test and volatile organic compound analysis in detecting colorectal polyps: meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Meta-analysis of FIT and VOC diagnostic test accuracy."
+ },
+ {
+  "pmid": "40154972",
+  "modality": "ivd",
+  "title": "Evaluating patients with chest pain in the emergency department.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of chest pain assessment."
+ },
+ {
+  "pmid": "40158525",
+  "modality": "ivd",
+  "title": "Effect of invitation to colonoscopy versus faecal immunochemical test screening on colorectal cancer mortality (COLONPREV): a pragmatic, randomised, controlled, non-inferiority trial.",
+  "publication_types": [
+   "Journal Article",
+   "Pragmatic Clinical Trial",
+   "Randomized Controlled Trial",
+   "Multicenter Study",
+   "Comparative Study",
+   "Equivalence Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "COLONPREV: randomised invitation to colonoscopy vs FIT, outcome is CRC mortality. Test-and-treat strategy, patient outcome."
+ },
+ {
+  "pmid": "40214293",
+  "modality": "ivd",
+  "title": "Diagnostic performances of procalcitonin and C-reactive protein for sepsis: a systematic review and meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Systematic Review",
+   "Meta-Analysis"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Systematic review and meta-analysis of PCT/CRP diagnostic performance."
+ },
+ {
+  "pmid": "40739994",
+  "modality": "ivd",
+  "title": "Quality indicators for cervical screening in Sweden.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Report of programme quality indicators."
+ },
+ {
+  "pmid": "40774794",
+  "modality": "ivd",
+  "title": "Evaluating the role of faecal calprotectin in older adults: a retrospective observational study.",
+  "publication_types": [
+   "Journal Article",
+   "Observational Study"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "retrospective",
+  "reason": "Retrospective observational study of primary-care referrals who had calprotectin then colonoscopy. Reference standard applied, but selection is retrospective."
+ },
+ {
+  "pmid": "41028541",
+  "modality": "ivd",
+  "title": "Clinical validation of an AI-based blood testing device for diagnosis and prognosis of acute infection and sepsis.",
+  "publication_types": [
+   "Journal Article",
+   "Observational Study",
+   "Validation Study",
+   "Validation Study"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Clinical validation of TriVerity in emergency-department patients with non-specific symptoms \u2014 the intended-use population. Carries a 'Validation Study' publication type, which the therapeutic map sends to tier 4."
+ },
+ {
+  "pmid": "41032297",
+  "modality": "ivd",
+  "title": "Cost-Effectiveness of HPV Self-Testing Options for Cervical Cancer Screening.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, N.I.H., Extramural"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Economic evaluation / cost-effectiveness modelling."
+ },
+ {
+  "pmid": "41061133",
+  "modality": "ivd",
+  "title": "Single and double faecal immunochemical test strategies are effective in risk stratification for patients with symptoms of per rectal bleeding suggestive of colorectal cancer.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Prospective referral dataset linked to a cancer registry to ensure complete outcome data \u2014 verification is complete by construction."
+ },
+ {
+  "pmid": "41229231",
+  "modality": "ivd",
+  "title": "[Cervical cancer screening : implementation of the hr-HPV test].",
+  "publication_types": [
+   "English Abstract",
+   "Journal Article",
+   "Practice Guideline"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Practice guideline for hr-HPV implementation."
+ },
+ {
+  "pmid": "17398315",
+  "modality": "monitoring",
+  "title": "Systemic hypertension.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "General clinical review of hypertension covering diagnosis and drug therapy."
+ },
+ {
+  "pmid": "21224025",
+  "modality": "monitoring",
+  "title": "Interdialytic hypertension-an update.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of interdialytic hypertension."
+ },
+ {
+  "pmid": "24344108",
+  "modality": "monitoring",
+  "title": "Accuracy of pulse oximetry in children.",
+  "publication_types": [
+   "Journal Article",
+   "Multicenter Study",
+   "Observational Study"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Prospective multicentre PICU study; SpO2 paired with every arterial blood gas, so verification is complete."
+ },
+ {
+  "pmid": "28162150",
+  "modality": "monitoring",
+  "title": "Clinical Practice Guideline for Diagnostic Testing for Adult Obstructive Sleep Apnea: An American Academy of Sleep Medicine Clinical Practice Guideline.",
+  "publication_types": [
+   "Journal Article",
+   "Practice Guideline"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "AASM clinical practice guideline. GRADE recommendations, not a primary study."
+ },
+ {
+  "pmid": "28569241",
+  "modality": "monitoring",
+  "title": "Atrial fibrillation detection on compressed sensed ECG.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CANNOT_GRADE",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "not_stated",
+  "reason": "Evaluates AF classification on compressed-sensed ECG. A diagnostic-algorithm evaluation with no stated population, sampling or reference standard."
+ },
+ {
+  "pmid": "31350605",
+  "modality": "monitoring",
+  "title": "Ambulatory Blood Pressure Monitoring in Pediatrics.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'Purpose of Review' \u2014 paediatric ABPM."
+ },
+ {
+  "pmid": "31722151",
+  "modality": "monitoring",
+  "title": "Large-Scale Assessment of a Smartwatch to Identify Atrial Fibrillation.",
+  "publication_types": [
+   "Journal Article",
+   "Pragmatic Clinical Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Apple Heart Study. Self-enrolled; ECG patch mailed ONLY on a positive notification \u2014 partial verification, the same shape as the Fitbit study."
+ },
+ {
+  "pmid": "32948418",
+  "modality": "monitoring",
+  "title": "Central sleep apnea is uncommon after stroke.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Prevalence of central sleep apnea after stroke. Epidemiology, not accuracy."
+ },
+ {
+  "pmid": "32954812",
+  "modality": "monitoring",
+  "title": "Accuracy of a 14-Day Factory-Calibrated Continuous Glucose Monitoring System With Advanced Algorithm in Pediatric and Adult Population With Diabetes.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "CGM accuracy in enrolled participants across seven sites, in-clinic sessions against a reference. Enrolled volunteer sample."
+ },
+ {
+  "pmid": "33625468",
+  "modality": "monitoring",
+  "title": "Screening for Atrial Fibrillation in the Older Population: A Randomized Clinical Trial.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Randomised clinical trial of two home-based AF screening interventions."
+ },
+ {
+  "pmid": "33837916",
+  "modality": "monitoring",
+  "title": "Home sleep apnea testing: an accuracy study.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "All 40 patients received both home and in-lab tests; randomisation is of test ORDER, not allocation \u2014 a paired accuracy study, not a diagnostic RCT."
+ },
+ {
+  "pmid": "34534279",
+  "modality": "monitoring",
+  "title": "Application of artificial intelligence to the electrocardiogram.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of AI applied to the ECG."
+ },
+ {
+  "pmid": "35078798",
+  "modality": "monitoring",
+  "title": "NICE atrial fibrillation guideline snubs wearable technology: a missed opportunity?",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Opinion piece on a guideline."
+ },
+ {
+  "pmid": "35202040",
+  "modality": "monitoring",
+  "title": "Ambulatory blood pressure monitoring for the management of hypertension.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of ABPM. Note: publication types say only 'Journal Article' \u2014 the pubtype gives no signal here and the abstract carries it."
+ },
+ {
+  "pmid": "35591092",
+  "modality": "monitoring",
+  "title": "Skin Pigmentation Influence on Pulse Oximetry Accuracy: A Systematic Review and Bibliometric Analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Systematic review of pulse oximetry accuracy by skin pigmentation, plus bibliometrics."
+ },
+ {
+  "pmid": "35684858",
+  "modality": "monitoring",
+  "title": "Pulse Oximeter Performance during Rapid Desaturation.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "13 healthy volunteers under induced desaturation. A controlled laboratory exposure, not a clinical population."
+ },
+ {
+  "pmid": "35971142",
+  "modality": "monitoring",
+  "title": "The accuracy of pulse oximetry in measuring oxygen saturation by levels of skin pigmentation: a systematic review and meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Systematic Review",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "SR/meta-analysis of SpO2-SaO2 comparisons; pooled bias against arterial saturation."
+ },
+ {
+  "pmid": "36148649",
+  "modality": "monitoring",
+  "title": "Detection of Atrial Fibrillation in a Large Population Using Wearable Devices: The Fitbit Heart Study.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Fitbit Heart Study. Prospective, but self-enrolled volunteers using compatible devices, and the ECG-patch reference standard goes only to those the algorithm flagged \u2014 partial verification."
+ },
+ {
+  "pmid": "36416103",
+  "modality": "monitoring",
+  "title": "Continuous Glucose Monitoring in Pediatric Diabetic Ketoacidosis.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CANNOT_GRADE",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "not_stated",
+  "reason": "CGM in paediatric DKA. The abstract gives background only; no design, population or comparator is stated."
+ },
+ {
+  "pmid": "37485700",
+  "modality": "monitoring",
+  "title": "Home monitoring for clinically suspected obstructive sleep apnea in pregnancy.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "92 pregnant women with suspected OSA; home test followed by simultaneous polysomnography, so every subject receives the reference."
+ },
+ {
+  "pmid": "37979252",
+  "modality": "monitoring",
+  "title": "Home sleep apnea tests: Conflicts of interest and funding.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Meta-research on conflicts of interest and funding in HSAT publications."
+ },
+ {
+  "pmid": "38189290",
+  "modality": "monitoring",
+  "title": "Comparison of Point Accuracy Between Two Widely Used Continuous Glucose Monitoring Systems.",
+  "publication_types": [
+   "Journal Article",
+   "Comparative Study",
+   "Multicenter Study",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CANNOT_GRADE",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "not_stated",
+  "reason": "Head-to-head CGM point-accuracy comparison. It IS an accuracy study, and the abstract states neither sampling nor prospective/retrospective, so it cannot be placed between a consecutive series and a selected one."
+ },
+ {
+  "pmid": "38570293",
+  "modality": "monitoring",
+  "title": "Ambulatory blood pressure monitoring. Current status and future perspectives.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of ABPM status and perspectives."
+ },
+ {
+  "pmid": "38599519",
+  "modality": "monitoring",
+  "title": "Determining factors of pulse oximetry accuracy: a literature review.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Literature review seeking consensus on variables affecting oximetry; no pooled accuracy estimate."
+ },
+ {
+  "pmid": "38695387",
+  "modality": "monitoring",
+  "title": "Importance of FDA-Integrated Continuous Glucose Monitors to Ensure Accuracy of Continuous Glucose Monitoring.",
+  "publication_types": [
+   "Journal Article",
+   "Review",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of FDA-integrated CGM."
+ },
+ {
+  "pmid": "39158994",
+  "modality": "monitoring",
+  "title": "Enhancing the Capabilities of Continuous Glucose Monitoring With a Predictive App.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "PROGNOSTIC_MODEL",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Machine-learning glucose forecasting and low-glucose prediction models; the endpoint is future state, not present state."
+ },
+ {
+  "pmid": "39363440",
+  "modality": "monitoring",
+  "title": "Smart watch applications in atrial fibrillation detection: Current state and future directions.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of smartwatch AF detection."
+ },
+ {
+  "pmid": "39460755",
+  "modality": "monitoring",
+  "title": "Intermittently scanned continuous glucose\u00a0monitoring compared with blood glucose monitoring is associated with lower HbA1c and a reduced risk of hospitalisation for diabetes-related complications in adults with type 2 diabetes on insulin therapies.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "retrospective",
+  "reason": "Compares clinical outcomes between monitoring strategies \u2014 effectiveness, not accuracy."
+ },
+ {
+  "pmid": "39680399",
+  "modality": "monitoring",
+  "title": "Atrial Fibrillation: A Review.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'Atrial Fibrillation: A Review'."
+ },
+ {
+  "pmid": "39879708",
+  "modality": "monitoring",
+  "title": "Effect of lemborexant on sleep architecture in participants with insomnia disorder and mild obstructive sleep apnea.",
+  "publication_types": [
+   "Journal Article",
+   "Randomized Controlled Trial",
+   "Clinical Trial, Phase III",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Phase 3 drug trial; polysomnography is the outcome measure, not the thing under evaluation."
+ },
+ {
+  "pmid": "39902649",
+  "modality": "monitoring",
+  "title": "Performance of Three Continuous Glucose Monitoring Systems in Adults With Type 1 Diabetes.",
+  "publication_types": [
+   "Journal Article",
+   "Comparative Study"
+  ],
+  "design": "CANNOT_GRADE",
+  "sampling": "not_stated",
+  "reference_standard": "not_stated",
+  "timing": "not_stated",
+  "reason": "Head-to-head performance of three CGM systems. Accuracy study, but neither sampling nor timing stated."
+ },
+ {
+  "pmid": "40345017",
+  "modality": "monitoring",
+  "title": "Can ChatGPT accurately detect atrial fibrillation using smartwatch ECG?",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CASE_CONTROL_TWO_GATE",
+  "sampling": "two_gate",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "120 patients with confirmed AF and 60 controls with sinus rhythm, recruited by known status. The word 'consecutive' appears in the abstract and does NOT make it single-gate \u2014 a deliberate hard case."
+ },
+ {
+  "pmid": "41856803",
+  "modality": "monitoring",
+  "title": "Accuracy and Bias of Pulse Oximetry in the Intensive Care Unit: A Prospective Observational Study.",
+  "publication_types": [
+   "Journal Article",
+   "Observational Study"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "'Prospective cross-sectional observational study' in ICU patients; SpO2 and arterial blood gas measured simultaneously, so every subject gets the reference."
+ },
+ {
+  "pmid": "42033454",
+  "modality": "monitoring",
+  "title": "Overdiagnosis in atrial fibrillation screening with wearables.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Explicitly 'not a systematic review' \u2014 a hypothesis-generating commentary."
+ },
+ {
+  "pmid": "8064629",
+  "modality": "monitoring",
+  "title": "Pulse oximetry: assuring accuracy.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Explains the principles and limitations of pulse oximetry."
+ }
+]

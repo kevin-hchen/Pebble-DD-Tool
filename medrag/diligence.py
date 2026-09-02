@@ -13,14 +13,20 @@ from pathlib import Path
 
 import yaml
 
+from . import agents
 from .config import Config, load_config
 from .context import Evidence, build_evidence, provenance_summary, render_context
 from .documents import Retrieved
+from .fda.device_answer import DeviceRegulatoryAnswer
+from .fda.drug_store import ApprovalAnswer
 from .generator import SYSTEM_PROMPT, Answer
 from .negative_evidence import NegativeEvidence, run_negative_pass
+from .providers import call_chat, effective_provider
 from .router import Route, Router
+from .trials.anchors import anchor_for
 from .trials.client import TrialRecord
-from .trials.store import TrialStore
+from .trials.queries import resolve_query_set
+from .trials.store import NAME_AS_ASSET, NAME_AS_DESCRIPTION, TrialStore
 from .validation import ValidationReport, validate_answer
 
 DEFAULT_QUESTION_SET = Path(__file__).resolve().parents[1] / "config" / "diligence_questions.yaml"
@@ -36,6 +42,51 @@ registry record does not report a result, and a narrative review is not a trial.
 
 Answer using only these excerpts, with inline [n] citations. If the evidence \
 does not answer the question, say so plainly and state what is missing."""
+
+#: Appended for any section carrying a deterministic approval block.
+#:
+#: The approval sentence is rendered from `ApprovalAnswer` in code and inserted
+#: as a fixed string. Every guard around that answer — is_approved requiring
+#: positive evidence, the four meanings of absence, tentative-approval-is-not-
+#: approval — is a guard in CODE, and a model paraphrasing "no application
+#: matched" as "not approved in the US" walks straight past all of them. So the
+#: model is told, in the prompt, that the status is already stated and is not
+#: its to write. `_flag_approval_overreach` then checks whether it complied,
+#: because a prompt instruction is a request, not a guarantee.
+APPROVAL_PROMPT_GUARD = """
+
+REGULATORY STATUS IS ALREADY STATED, DETERMINISTICALLY, ELSEWHERE IN THIS \
+SECTION. Do NOT state, summarise, infer or imply whether {asset} is approved, \
+unapproved, cleared or authorised by the FDA or any other regulator, and do NOT \
+describe the absence of a record as evidence of non-approval. Write about what \
+the excerpts say — indications, sponsors, dates, trial and label content — and \
+leave approval status alone."""
+
+#: Phrasings that assert or imply non-approval. Checked against MODEL prose only
+#: (never against the deterministic block, which is allowed to use the words in
+#: order to deny them). Matching is deliberately literal and narrow: this exists
+#: to catch the model overstepping, not to police an analyst's vocabulary.
+_NON_APPROVAL_PHRASES = (
+    "not approved", "unapproved", "not been approved", "never approved",
+    "no fda approval", "lacks fda approval", "lacks approval", "without fda approval",
+    "not fda-approved", "not fda approved", "is not authorised", "is not authorized",
+    "not licensed", "no marketing authorisation", "no marketing authorization",
+    "failed to gain approval", "denied approval", "rejected by the fda",
+)
+
+
+#: Phrasings that assert or imply the ABSENCE of a device authorisation. The
+#: clearance-axis counterpart of `_NON_APPROVAL_PHRASES`, and deliberately its
+#: own list: "not approved" is a drug claim, "not cleared" is a device one, and
+#: a device that is PMA-approved but not 510(k)-cleared is a real and common
+#: shape that neither list may blur.
+_NON_CLEARANCE_PHRASES = (
+    "not cleared", "never cleared", "no 510(k)", "no 510k", "not fda-cleared",
+    "not fda cleared", "lacks clearance", "without clearance", "no clearance",
+    "not authorised by the fda", "not authorized by the fda",
+    "no premarket approval", "not premarket approved", "has no fda authorisation",
+    "has no fda authorization", "unapproved device", "uncleared",
+)
 
 
 @dataclass
@@ -57,6 +108,33 @@ class QuestionSet:
     version: int
     questions: list[DiligenceQuestion]
     path: Path | None = None
+    #: What KIND of asset this set is written for: "drug", "device", or
+    #: "unspecified".
+    #:
+    #: It decides which parser turns the typed asset into SQL terms, and it is
+    #: DECLARED by the question set rather than sniffed from the asset string.
+    #: Sniffing is not a smaller version of this — it is unsafe. Measured on the
+    #: live store: "procalcitonin assay" needs word-splitting and returns 0 vs 2
+    #: without it, while "trastuzumab deruxtecan" is ONE molecule and word
+    #: splitting widens it from 123 trials to 132 by matching the two halves of
+    #: an ADC separately. Both are two lowercase words; nothing in the string
+    #: distinguishes them. The question set knows, so the question set says.
+    #:
+    #: **"unspecified" DOES NOT SNIFF.** It was called "auto", which was a bad
+    #: name for exactly the wrong reason: it implied inference, and inference
+    #: from the asset string is the thing just shown to be impossible. It never
+    #: inferred anything — it resolved to the drug parser and still does, which
+    #: is the historical behaviour and keeps this field from changing anything
+    #: for a caller that has not opted in.
+    #:
+    #: What it does instead of guessing: when an asset IS typed under
+    #: `unspecified`, `run()` puts BOTH parsers over the store once and warns if
+    #: they disagree, naming both counts. That reports the ambiguity to the
+    #: reader rather than resolving it silently in either direction — the same
+    #: choice `biomarker.py` makes when the source text contradicts itself.
+    #: `config/landscape.yaml` is the real "unspecified" case and never triggers
+    #: it, because it is indication-first and types no asset at all.
+    asset_kind: str = "unspecified"
 
     def __len__(self) -> int:
         return len(self.questions)
@@ -74,6 +152,15 @@ class SectionResult:
     provenance: dict = field(default_factory=dict)
     negative: NegativeEvidence | None = None
     aggregate: dict | None = None        # store.landscape() counts, for a census section
+    #: The deterministic regulatory answer, rendered by the memo as a FIXED
+    #: string from `ApprovalAnswer.render_lines()`. Never summarised by a model.
+    approval: "ApprovalAnswer | None" = None
+    #: The DEVICE equivalent — 510(k), De Novo and PMA across three pathways.
+    #: Same contract, same reason: `DeviceRegulatoryAnswer.render_lines()` is the
+    #: only thing that writes it. This object existed, complete and tested, and
+    #: was imported by nothing outside tests, so every device memo carried zero
+    #: FDA records while the store held 56,853 PMAs and 482 De Novo grants.
+    device: "DeviceRegulatoryAnswer | None" = None
 
 
 @dataclass
@@ -152,11 +239,17 @@ def load_question_set(path: str | Path | None = None) -> QuestionSet:
             )
         )
 
+    kind = str(data.get("asset_kind", "unspecified")).strip().lower()
+    if kind not in ("unspecified", "drug", "device"):
+        raise ValueError(
+            f"{path.name}: asset_kind must be unspecified, drug or device — "
+            f"got {kind!r}")
     return QuestionSet(
         name=data.get("name", path.stem),
         version=int(data.get("version", 1)),
         questions=questions,
         path=path,
+        asset_kind=kind,
     )
 
 
@@ -164,7 +257,7 @@ class DiligenceRunner:
     """Orchestrates routing, dual-store retrieval, answering and the negative pass."""
 
     def __init__(self, cfg: Config | None = None, rag=None, trial_store: TrialStore | None = None,
-                 fda_store=None):
+                 fda_store=None, drug_store=None):
         self.cfg = cfg or load_config()
         self.router = Router(self.cfg)
 
@@ -172,6 +265,14 @@ class DiligenceRunner:
         # and failing the whole memo because no index exists would be wrong.
         self.rag = rag
         self.warnings: list[str] = []
+        #: Latched by a provider refusal no retry can fix, so the rest of the
+        #: run degrades to extractive answers without calling again.
+        self._model_failed = False
+        #: Which parser turns the typed asset into SQL terms. Set from the
+        #: question set's declared `asset_kind` when `run` loads one; the
+        #: default is the drug parser, so nothing changes for a caller that has
+        #: not declared.
+        self.name_style = NAME_AS_ASSET
         if self.rag is None:
             try:
                 from .pipeline import MedRAG
@@ -196,7 +297,7 @@ class DiligenceRunner:
                 # A stale trials.db must not crash the memo: degrade to a
                 # literature-only run with the rebuild instruction surfaced.
                 try:
-                    self.trial_store = TrialStore(db)
+                    self.trial_store = TrialStore(db, read_only=self.cfg.read_only)
                 except TrialStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
             else:
@@ -212,8 +313,23 @@ class DiligenceRunner:
             db = self.cfg.raw_dir / FDA_DB
             if db.exists():
                 try:
-                    self.fda_store = FDAStore(db)
+                    self.fda_store = FDAStore(db, read_only=self.cfg.read_only)
                 except FDAStoreSchemaError as exc:
+                    self.warnings.append(str(exc).splitlines()[0])
+
+        # The DRUG store, likewise optional. Its absence is never a finding
+        # about the asset — `ApprovalAnswer.searched` carries that distinction
+        # into the memo rather than letting an empty section imply anything.
+        self.drug_store = drug_store
+        if self.drug_store is None:
+            from .fda.drug_store import DrugStore, DrugStoreSchemaError
+            from .pipeline import DRUGS_DB
+
+            db = self.cfg.raw_dir / DRUGS_DB
+            if db.exists():
+                try:
+                    self.drug_store = DrugStore(db, read_only=self.cfg.read_only)
+                except DrugStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
 
     # ------------------------------------------------------------ retrieval
@@ -227,19 +343,99 @@ class DiligenceRunner:
             found = [self.trial_store.get(n) for n in filters["nct_ids"]]
             return [f for f in found if f]
 
+        # THE GATE. A structured query is only a query about something when
+        # something anchors it; with neither an agent name this store can match
+        # nor a query set it has actually ingested, `store.query` degrades to
+        # `SELECT * FROM trials LIMIT k` and hands back whatever the store holds
+        # most of. See trials/anchors.py for the three paths that produced eight
+        # colorectal trials as evidence for a hidradenitis asset.
+        anchor = anchor_for(asset, indication, self.trial_store,
+                            name_style=self.name_style)
+        for note in anchor.notes():
+            if note not in self.warnings:
+                self.warnings.append(note)
+        if not anchor:
+            return []
+
         records = self.trial_store.query(
             intervention=asset or None,
-            condition=indication or None,
+            # Only an INGESTED set scopes anything. An ad-hoc key from an
+            # unrecognised indication selects nothing, which reads identically
+            # to a family searched and found empty — so it is dropped here and
+            # reported as not-searched instead.
+            query_set=anchor.query_set,
+            name_style=self.name_style,
             phase=filters.get("phase"),
             statuses=statuses,
             stopped_only=bool(filters.get("stopped_only")),
             limit=limit,
         )
         # Structured filters can legitimately return nothing (no Phase 3 exists).
-        # Fall back to free text so the section is not silently empty.
+        # Fall back to free text so the section is not silently empty — over the
+        # ANCHORS, never the question, and with every row re-checked against the
+        # asset it claims to be evidence for.
         if not records:
-            records = self.trial_store.search(f"{asset} {indication} {question}", limit=limit)
+            self._warn_collapsed_combination(asset, anchor.query_set)
+            records = [
+                r for r in self.trial_store.search(
+                    anchor.search_text(), limit=limit, query_set=anchor.query_set,
+                )
+                if anchor.is_about(r)
+            ]
         return records
+
+    def _undeclared_kind_notes(self, asset: str) -> list[str]:
+        """An asset typed under an undeclared question set: run BOTH parsers and
+        report a disagreement rather than picking a winner.
+
+        The drug parser is used either way — silence is not an option, and
+        changing the default would move every existing caller. But where the two
+        readings differ, which reading is right cannot be recovered from the
+        string: "sacituzumab govitecan" and "fundus camera" are both two
+        lowercase words and want opposite treatment. So the difference is
+        stated, with both numbers, and the remedy is to declare `asset_kind`.
+
+        Costs one extra query per RUN, not per question, and only when an asset
+        was actually typed.
+        """
+        if self.trial_store is None or not asset.strip():
+            return []
+        try:
+            as_drug = len(self.trial_store.query(intervention=asset, limit=10000))
+            as_device = len(self.trial_store.query(intervention=asset, limit=10000,
+                                                   name_style=NAME_AS_DESCRIPTION))
+        except Exception:
+            return []      # a diagnostic must never be the thing that fails a memo
+        if as_drug == as_device:
+            return []
+        return [
+            f"this question set does not declare `asset_kind`, so “{asset}” was matched "
+            f"with the drug parser and found {as_drug} trial(s). Read as a device "
+            f"DESCRIPTION — each word matched independently — it finds {as_device}. "
+            "Which is correct cannot be told from the string: a two-word drug name is "
+            "one molecule and a two-word device name is a description. Declare "
+            "`asset_kind: drug` or `asset_kind: device` in the question set to remove "
+            "this ambiguity; until then the drug reading is what this memo used."
+        ]
+
+    def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
+        """Say WHICH agent of a combination emptied the result.
+
+        A combination ANDs its agents, so one agent the registry never lists
+        under any known name zeroes the whole query — and the caller then falls
+        back to free text, which succeeds, which makes the collapse invisible.
+        Naming the responsible agent turns "the structured query found nothing"
+        into something an analyst can act on: either the asset is misspelt, or
+        `config/agents.yaml` lacks the name this registry uses for it. The
+        message itself lives in agents.py, shared with `claims._retrieve`.
+        """
+        if not asset or self.trial_store is None:
+            return
+        for note in agents.collapsed_combination_notes(
+            self.trial_store.intervention_terms(asset, query_set=query_set), asset
+        ):
+            if note not in self.warnings:
+                self.warnings.append(note)
 
     def _passages(self, question: str, k: int) -> list[Retrieved]:
         if self.rag is None:
@@ -269,17 +465,113 @@ class DiligenceRunner:
         }
         return records, meta
 
+    def _device_for(self, asset: str, filters: dict):
+        """The deterministic three-pathway device answer.
+
+        Built whenever a regulatory question runs and a device store exists, on
+        the same terms as `_drugs_for`: with no store the answer still comes
+        back, `searched=False`, so the memo says "not checked" rather than
+        printing nothing and letting the silence read as an absence of
+        authorisations.
+
+        A 510(k) is clearance by substantial equivalence, a PMA is approval on
+        clinical evidence, and a De Novo is granted BECAUSE no predicate exists.
+        `DeviceRegulatoryAnswer` deliberately has no field spanning them, so
+        nothing here can collapse three regulatory facts into one.
+        """
+        from .fda.device_answer import build_device_answer
+
+        if not asset:
+            return None
+        return build_device_answer(self.fda_store, asset,
+                                   product_code=filters.get("product_code"))
+
+    def _drugs_for(self, asset: str, limit: int):
+        """The drug applications for an asset, and the deterministic approval
+        answer beside them.
+
+        Both are returned because they do different jobs and must not be
+        conflated: the applications become numbered EVIDENCE the model can cite
+        ("[3] FDA DRUG APPROVAL — NDA 021923"), while the ApprovalAnswer is
+        rendered as a fixed string the model never sees as something to
+        summarise. When no store exists the answer still comes back, with
+        `searched=False`, so the memo can say "not checked" rather than printing
+        nothing and letting the silence read as a finding.
+        """
+        if self.drug_store is None or not asset:
+            return [], ApprovalAnswer(asset=asset or "the asset")
+        answer = self.drug_store.approval_answer(asset)
+        return answer.applications[:limit], answer
+
+    @staticmethod
+    def _flag_approval_overreach(answer: ApprovalAnswer, text: str) -> str | None:
+        """Did the model write the sentence it was told not to write?
+
+        A prompt instruction is a request, not a guarantee — this codebase's own
+        convention is that a guard the caller can bypass is decoration. So the
+        model's prose is checked for non-approval phrasing whenever the
+        deterministic answer does NOT support it, and a hit becomes a loud memo
+        warning rather than a silent contradiction between two paragraphs of the
+        same section.
+        """
+        if answer.is_approved:
+            return None      # the claim would be about something else entirely
+        lowered = (text or "").lower()
+        hit = next((p for p in _NON_APPROVAL_PHRASES if p in lowered), None)
+        if not hit:
+            return None
+        return (
+            f"the generated prose for “{answer.asset}” contains the phrase “{hit}”, which "
+            "states or implies non-approval. openFDA drugsFDA holding no matching "
+            "application is NOT evidence of non-approval — see the regulatory status "
+            "block, which is generated deterministically. Treat that sentence as "
+            "unsupported."
+        )
+
+    @staticmethod
+    def _flag_clearance_overreach(answer, text: str) -> str | None:
+        """Did the model write a clearance claim the record does not support?
+
+        The mirror of `_flag_approval_overreach`, and needed for the same
+        reason: the deterministic block keeps three pathways apart and permits
+        no "cleared or approved" field, and one model paraphrase collapses them
+        back. Checked only when the record supports NO authorisation of any
+        kind, so a device that genuinely has a 510(k) is not flagged for saying
+        so.
+        """
+        if answer is None or answer.found_anything:
+            return None
+        lowered = (text or "").lower()
+        hit = next((p for p in _NON_CLEARANCE_PHRASES if p in lowered), None)
+        if not hit:
+            return None
+        return (
+            f"the generated prose for “{answer.device}” contains the phrase “{hit}”, which "
+            "states or implies that no FDA authorisation exists. This tool's device store "
+            "holding no matching record is NOT evidence of that — see the regulatory block, "
+            "which is generated deterministically and states what was searched. Treat that "
+            "sentence as unsupported."
+        )
+
     # ------------------------------------------------------------ one section
 
     @staticmethod
-    def _biomarker_filters(tokens: list[str] | None) -> list[tuple[str, str]]:
-        """Parse ['MSS:REQUIRED'] into [('MSS','REQUIRED')]; ignore malformed."""
-        out = []
+    def _biomarker_filters(tokens: list[str] | None) -> list[tuple[str, list[str]]]:
+        """Parse ['MSS:REQUIRED', 'MSS:ELIGIBLE_BY_EXCLUSION'] into
+        [('MSS', ['REQUIRED', 'ELIGIBLE_BY_EXCLUSION'])] — multiple tokens
+        naming the same marker are ORed together (a trial matching any one of
+        them counts), so a question can ask for a marker stated directly OR
+        stated by excluding its opposite without excluding either from the
+        count. Different markers stay separate filters, ANDed. Ignore
+        malformed tokens."""
+        grouped: dict[str, list[str]] = {}
         for tok in tokens or []:
-            if ":" in tok:
-                marker, status = tok.split(":", 1)
-                out.append((marker.strip().upper().replace(" ", "_"), status.strip().upper()))
-        return out
+            if ":" not in tok:
+                continue
+            marker, status = tok.split(":", 1)
+            marker = marker.strip().upper().replace(" ", "_")
+            grouped.setdefault(marker, []).append(status.strip().upper())
+        return list(grouped.items())
 
     def _landscape_section(self, q: DiligenceQuestion, rendered: str,
                            indication: str) -> SectionResult:
@@ -288,8 +580,13 @@ class DiligenceRunner:
         stated denominator. No model prose — the answer is the table."""
         agg = None
         if self.trial_store is not None:
+            # Select the population the FETCH defined, by its recorded query set —
+            # not a substring re-match over the free-text condition array. That
+            # match ran different logic from the ingest and discarded 6,891 of
+            # 12,092 colorectal trials (57%), including every trial registered as
+            # "Colorectal Neoplasms". Same rule as build_landscape; see CLAUDE.md.
             agg = self.trial_store.landscape(
-                condition=indication or None,
+                query_set=resolve_query_set(indication).key if indication else None,
                 biomarker_filters=self._biomarker_filters(q.biomarker),
                 statuses=q.status,
                 sample_limit=q.k,
@@ -307,6 +604,7 @@ class DiligenceRunner:
             negative = run_negative_pass(
                 claim=rendered, cfg=self.cfg, evidence=evidence,
                 trial_store=self.trial_store, condition=indication or None,
+                query_set=resolve_query_set(indication).key if indication else None,
                 fda_store=None,
             )
         return SectionResult(
@@ -328,12 +626,15 @@ class DiligenceRunner:
             route, method = decision.route, decision.method
             filters = decision.filters
             needs_regulatory = decision.needs_regulatory
+            needs_drug = decision.needs_drug_regulatory
         else:
             route, method = Route(q.route), "config"
             from .router import classify_by_rules, extract_filters
 
             filters = extract_filters(rendered)
-            needs_regulatory = classify_by_rules(rendered).needs_regulatory
+            rules = classify_by_rules(rendered)
+            needs_regulatory = rules.needs_regulatory
+            needs_drug = rules.needs_drug_regulatory
 
         trials = (
             self._trials_for(rendered, asset, indication, filters, q.k, statuses=q.status)
@@ -342,10 +643,27 @@ class DiligenceRunner:
         )
         passages = self._passages(rendered, q.k) if route in (Route.SEMANTIC, Route.BOTH) else []
         fda, fda_meta = self._fda_for(asset, filters) if needs_regulatory else ([], {})
+        drugs, approval = self._drugs_for(asset, q.k) if needs_drug else ([], None)
+        # The device answer runs on the SAME trigger as the 510(k) evidence
+        # lookup. A question that asks what the regulator has on file gets the
+        # whole regulatory picture or none of it; running the clearance query
+        # and withholding the PMA and De Novo halves is how a Class III device
+        # came back as "nothing on file".
+        device = self._device_for(asset, filters) if needs_regulatory else None
 
-        evidence = build_evidence(trials=trials, passages=passages, fda=fda,
+        evidence = build_evidence(trials=trials, passages=passages, fda=fda, drugs=drugs,
                                   max_chars=self.cfg.max_context_chars)
-        answer = self._answer(rendered, evidence)
+        # The model writes AROUND the regulatory status, never writes it.
+        answer = self._answer(rendered, evidence,
+                              approval_guard=asset if approval is not None else "")
+        if approval is not None:
+            note = self._flag_approval_overreach(approval, answer.text)
+            if note and note not in self.warnings:
+                self.warnings.append(note)
+        if device is not None:
+            note = self._flag_clearance_overreach(device, answer.text)
+            if note and note not in self.warnings:
+                self.warnings.append(note)
         # Validate against the assembled evidence, not the literature subset:
         # the markers the model saw are numbered across both stores.
         report = validate_answer(answer, evidence=evidence)
@@ -362,6 +680,10 @@ class DiligenceRunner:
                 trial_store=self.trial_store,
                 intervention=asset or None,
                 condition=indication or None,
+                # The indication arm selects the population the FETCH defined,
+                # like every other consumer. A substring over the condition
+                # array missed 58% of the stopped trials it should have seen.
+                query_set=resolve_query_set(indication).key if indication else None,
                 fda_store=self.fda_store,
                 product_code=filters.get("product_code"),
                 device_name=asset or None,
@@ -380,13 +702,34 @@ class DiligenceRunner:
             route_method=method,
             provenance=provenance,
             negative=negative,
+            approval=approval,
+            device=device,
         )
 
-    def _answer(self, question: str, evidence: list[Evidence]) -> Answer:
+    def _answer(self, question: str, evidence: list[Evidence],
+                approval_guard: str = "") -> Answer:
         """Generate a grounded answer over provenance-labelled evidence."""
         if not evidence:
+            # NOTHING FOUND, said in the shape the regulatory block uses — which
+            # was the one part of an empty-asset memo that behaved correctly.
+            #
+            # An empty section with no explanation is its own version of the
+            # defect the relevance floor fixed: before the floor, sections filled
+            # with unrelated evidence; a bare blank would just move the same
+            # misreading somewhere else. Absence has to be stated, and stated as
+            # absence rather than as a finding.
             return Answer(
-                text="No evidence was retrieved for this question from either store.",
+                text=(
+                    "**Nothing found.** No stored trial record, regulatory record or "
+                    "published passage was a close enough match to this question to be "
+                    "used as evidence.\n\n"
+                    "> This is NOT a finding that no such evidence exists. It means this "
+                    "tool's stored snapshot contains nothing above the relevance "
+                    "threshold for it. Four things it can mean: nothing has been "
+                    "published or registered; it exists under a name this search did not "
+                    "match; it has not been ingested into this snapshot; or it is in a "
+                    "source this tool does not cover (see the coverage note)."
+                ),
                 sources=[],
                 model="none",
                 grounded=False,
@@ -394,19 +737,16 @@ class DiligenceRunner:
 
         generator = self.rag.generator if self.rag else None
         client = getattr(generator, "client", None)
-        if client is None:
-            # Extractive fallback: return the evidence itself rather than an
-            # ungrounded synthesis. Clearly labelled so nobody mistakes it for one.
-            body = ["*(No model available — showing retrieved evidence verbatim.)*", ""]
-            for e in evidence:
-                label = f"[{e.index}] ({e.kind} — {e.identifier}"
-                label += f" — {e.grade_tag})" if e.grade_tag else ")"
-                snippet = e.text.replace("\n", " ")[:400]
-                body.append(f"{label} {snippet}")
-                body.append("")
-            return Answer(text="\n".join(body).strip(), sources=[], model="extractive-fallback")
+        # `self._model_failed` latches on a refusal no retry can fix — a revoked
+        # key answers question 2 exactly the way it answered question 1, and
+        # asking eleven times costs eleven round trips and eleven identical
+        # warnings for the same one fact.
+        if client is None or self._model_failed:
+            return self._extractive(evidence, configured=client is not None)
 
-        resp = client.chat.completions.create(
+        resp, failure = call_chat(
+            client,
+            provider_key=effective_provider(self.cfg).key,
             model=self.cfg.chat_model,
             temperature=self.cfg.temperature,
             messages=[
@@ -415,15 +755,47 @@ class DiligenceRunner:
                     "role": "user",
                     "content": DILIGENCE_USER_TEMPLATE.format(
                         question=question, context=render_context(evidence)
-                    ),
+                    ) + (APPROVAL_PROMPT_GUARD.format(asset=approval_guard)
+                         if approval_guard else ""),
                 },
             ],
         )
+        if failure is not None:
+            # Loud, once. A degradation nobody is told about is the failure mode
+            # the RUNBOOK already names — "an expired key looks like the memos
+            # got worse, not like an error" — so the memo says which provider
+            # refused and what the memo is missing because of it.
+            if failure.message not in self.warnings:
+                self.warnings.append(failure.message)
+            self._model_failed = failure.fatal
+            return self._extractive(evidence, configured=True)
+
         return Answer(
             text=resp.choices[0].message.content.strip(),
             sources=[],
             model=self.cfg.chat_model,
         )
+
+    @staticmethod
+    def _extractive(evidence: list[Evidence], configured: bool) -> Answer:
+        """The evidence itself, rather than an ungrounded synthesis.
+
+        Labelled differently depending on WHY, because "this deployment has no
+        model" and "the model refused" are different facts about the run and a
+        reader who cannot tell them apart cannot act on either.
+        """
+        note = ("*(The configured model could not be reached — showing retrieved evidence "
+                "verbatim. See the warnings above.)*") if configured else \
+               "*(No model available — showing retrieved evidence verbatim.)*"
+        body = [note, ""]
+        for e in evidence:
+            label = f"[{e.index}] ({e.kind} — {e.identifier}"
+            label += f" — {e.grade_tag})" if e.grade_tag else ")"
+            snippet = e.text.replace("\n", " ")[:400]
+            body.append(f"{label} {snippet}")
+            body.append("")
+        return Answer(text="\n".join(body).strip(), sources=[],
+                      model="extractive-fallback")
 
     # ------------------------------------------------------------ full run
 
@@ -431,6 +803,14 @@ class DiligenceRunner:
             question_set: QuestionSet | None = None,
             progress: bool = True) -> MemoResult:
         qs = question_set or load_question_set()
+        # Declared by the set, not inferred from the asset. See
+        # QuestionSet.asset_kind for the measurement behind that.
+        self.name_style = (NAME_AS_DESCRIPTION if qs.asset_kind == "device"
+                           else NAME_AS_ASSET)
+        if qs.asset_kind == "unspecified" and asset.strip():
+            for note in self._undeclared_kind_notes(asset):
+                if note not in self.warnings:
+                    self.warnings.append(note)
         memo = MemoResult(
             asset=asset,
             indication=indication,
@@ -444,6 +824,15 @@ class DiligenceRunner:
             if progress:
                 print(f"[medrag] {i}/{len(qs)} {q.section}")
             memo.sections.append(self.run_question(q, asset, indication))
+
+        # Re-read the list AFTER the sections, not only before them. It was
+        # snapshotted at construction, so every warning a section raised —
+        # `_warn_collapsed_combination`, `_flag_approval_overreach`, and the
+        # anchor notes — was appended to a list the memo had already copied and
+        # reached no reader at all. The convention this codebase states for
+        # guards applies to notices too: one that production cannot surface is
+        # decoration.
+        memo.warnings = list(self.warnings)
 
         return memo
 

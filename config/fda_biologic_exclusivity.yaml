@@ -1,0 +1,54 @@
+# Purple Book exclusivity fields — coverage, not code meanings.
+#
+# EDIT THIS FILE, NOT CODE.
+#
+# STATUS — READ BEFORE TRUSTING ANY DATE FROM THIS SOURCE
+#
+# Unlike the Orange Book, the Purple Book does not use exclusivity CODES. It
+# publishes dated columns directly. So there is no code vocabulary to curate
+# here; what there is instead is a coverage problem, and it is severe enough
+# that the numbers belong in config where a reviewer sees them.
+#
+# MEASURED on the June 2026 file (2,205 product rows, 847 distinct BLAs):
+#
+#     Exclusivity Expiration Date                     0 of 2,205    0.0%
+#     First Interchangeable Exclusivity Exp. Date    34 of 2,205    1.5%
+#     Ref. Product Exclusivity Exp. Date             36 of 2,205    1.6%
+#     Date of First Licensure                        37 of 2,205    1.7%
+#     Patent List Provided                           49 of 2,205    2.2%
+#     Orphan Exclusivity Exp. Date                  564 of 2,205   25.6%
+#
+# The headline exclusivity column is empty on every row. FDA began publishing
+# biologic exclusivity dates relatively recently and coverage remains partial,
+# so an empty field here is the NORM and must never render as "no exclusivity".
+#
+# By contrast, reference-product linkage is complete: 228 of 228 biosimilar rows
+# name both the reference proper name and its proprietary name. That is why the
+# section leads on biosimilar and interchangeability status rather than on
+# dates — it reports what the source actually answers.
+
+fill_rates:
+  measured_on: "2026-06 monthly file"
+  total_rows: 2205
+  distinct_bla: 847
+  columns:
+    exclusivity_expiration_date: {filled: 0, pct: 0.0}
+    first_interchangeable_exclusivity: {filled: 34, pct: 1.5}
+    ref_product_exclusivity: {filled: 36, pct: 1.6}
+    date_of_first_licensure: {filled: 37, pct: 1.7}
+    patent_list_provided: {filled: 49, pct: 2.2}
+    orphan_exclusivity: {filled: 564, pct: 25.6}
+  reference_linkage:
+    biosimilar_rows: 228
+    ref_proper_name_filled: 228
+    ref_proprietary_name_filled: 228
+
+# The note rendered when an exclusivity field is empty. Stated as a coverage
+# fact, never as a finding about the asset.
+empty_field_note:
+  curated: true
+  text: >-
+    Exclusivity coverage in the Purple Book is sparse — the headline exclusivity
+    column is empty on every row of the published file and reference-product
+    exclusivity is populated on under 2% — so an empty date here reflects what
+    the FDA publishes, not the absence of protection.

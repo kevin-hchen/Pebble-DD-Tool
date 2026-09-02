@@ -219,7 +219,9 @@ LANDSCAPE_PAGE = {
                 "descriptionModule": {"briefSummary": "A phase 2 study of dual checkpoint blockade in MSS mCRC."},
             }
         },
-        {   # B — INDIRECT MSS: expresses it only by excluding MSI-H -> UNCLEAR.
+        {   # B — INDIRECT MSS: expresses it only by excluding MSI-H
+            # -> ELIGIBLE BY EXCLUSION (not UNCLEAR: excluding the opposite is a
+            # confident, if indirect, statement — see biomarker.py).
             "protocolSection": {
                 "identificationModule": {
                     "nctId": "NCT10000002",

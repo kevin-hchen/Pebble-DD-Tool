@@ -1,0 +1,561 @@
+[
+ {
+  "pmid": "16980116",
+  "modality": "imaging",
+  "title": "Burden of valvular heart diseases: a population-based study.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Pooled population studies reporting prevalence and burden of valvular disease. Epidemiology."
+ },
+ {
+  "pmid": "18606750",
+  "modality": "imaging",
+  "title": "Osteoporosis detection using intraoral densitometry.",
+  "publication_types": [
+   "Journal Article",
+   "Multicenter Study",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "CANNOT_GRADE",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Unambiguously an accuracy study \u2014 ROC against DXA as the stated gold standard, all 671 women verified \u2014 but the abstract states neither sampling nor prospective/retrospective, so it cannot be placed between a consecutive series and a selected one."
+ },
+ {
+  "pmid": "21415247",
+  "modality": "imaging",
+  "title": "Colorectal cancer: CT colonography and colonoscopy for detection--systematic review and meta-analysis.",
+  "publication_types": [
+   "Journal Article",
+   "Meta-Analysis",
+   "Research Support, N.I.H., Extramural",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Systematic review and meta-analysis of the sensitivity of CT colonography and colonoscopy."
+ },
+ {
+  "pmid": "24577348",
+  "modality": "imaging",
+  "title": "The clinical diagnosis of osteoporosis: a position statement from the National Bone Health Alliance Working Group.",
+  "publication_types": [
+   "Consensus Statement",
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Position statement expanding the diagnostic criteria for osteoporosis."
+ },
+ {
+  "pmid": "27003052",
+  "modality": "imaging",
+  "title": "Mummified Thyroid Syndrome.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Descriptive article highlighting sonographic characteristics; pictorial rather than a study."
+ },
+ {
+  "pmid": "27354049",
+  "modality": "imaging",
+  "title": "Large-scale community echocardiographic screening reveals a major burden of undiagnosed valvular heart disease in older people: the OxVALVE Population Cohort Study.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Cross-sectional community echocardiographic screening reporting prevalence of undiagnosed valvular disease. Epidemiology."
+ },
+ {
+  "pmid": "30286667",
+  "modality": "imaging",
+  "title": "Stress echocardiography in valvular heart disease.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "'Areas covered' review of stress echocardiography."
+ },
+ {
+  "pmid": "34861967",
+  "modality": "imaging",
+  "title": "Ultrasound Guided Thyroid Biopsy.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative overview of thyroid nodule evaluation and biopsy."
+ },
+ {
+  "pmid": "35292799",
+  "modality": "imaging",
+  "title": "Multi-modality imaging assessment of native valvular regurgitation: an EACVI and ESC council of valvular heart disease position paper.",
+  "publication_types": [
+   "Journal Article",
+   "Consensus Statement"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "EACVI/ESC consensus statement on imaging assessment."
+ },
+ {
+  "pmid": "35439309",
+  "modality": "imaging",
+  "title": "Thyroid Nodule Shape Independently Predicts Risk of Malignancy.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "'This prospective cohort study' of patients with clinically relevant nodules; nodule shape against malignancy."
+ },
+ {
+  "pmid": "35752200",
+  "modality": "imaging",
+  "title": "Diagnosis of thyroid nodules.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of thyroid nodule diagnosis."
+ },
+ {
+  "pmid": "37252692",
+  "modality": "imaging",
+  "title": "Thyroid malignancy in children: where does it locate?",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "selected",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Nodule location versus malignancy risk. 'Patients younger than 18 with a pathological diagnosis were included' \u2014 selection on having been verified, which is a selected series."
+ },
+ {
+  "pmid": "40036874",
+  "modality": "imaging",
+  "title": "Mixed valvular heart disease: diagnosis and management.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of mixed valvular disease diagnosis and management."
+ },
+ {
+  "pmid": "16234501",
+  "modality": "ivd",
+  "title": "Does this dyspneic patient in the emergency department have congestive heart failure?",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "JAMA Rational Clinical Examination: searched MEDLINE and pooled the accuracy of history, signs and BNP for heart failure. Carries only a Review publication type, which is why it is a hard case."
+ },
+ {
+  "pmid": "24816306",
+  "modality": "ivd",
+  "title": "Prostate cancer: measuring PSA.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative review of PSA measurement."
+ },
+ {
+  "pmid": "27337755",
+  "modality": "ivd",
+  "title": "The role of PSA in detection and management of prostate cancer.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of the role of PSA."
+ },
+ {
+  "pmid": "29412895",
+  "modality": "ivd",
+  "title": "Executive summary: Diagnosis and Treatment of Catheter-Related Bloodstream Infection: Clinical Guidelines of the Spanish Society of Clinical Microbiology and Infectious Diseases (SEIMC) and the Spanish Society of Intensive Care Medicine and Coronary Units (SEMICYUC).",
+  "publication_types": [
+   "Journal Article",
+   "Practice Guideline"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Clinical practice guideline."
+ },
+ {
+  "pmid": "32047941",
+  "modality": "ivd",
+  "title": "Bloodstream infections in critically ill patients: an expert statement.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Expert statement on bloodstream infections."
+ },
+ {
+  "pmid": "33099450",
+  "modality": "ivd",
+  "title": "Screening for Prostate Cancer.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Overview of prostate cancer screening evidence and guideline recommendations."
+ },
+ {
+  "pmid": "34260274",
+  "modality": "ivd",
+  "title": "Blood Culture Utilization in the Hospital Setting: a Call for Diagnostic Stewardship.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review calling for diagnostic stewardship of blood cultures."
+ },
+ {
+  "pmid": "35499841",
+  "modality": "ivd",
+  "title": "Association of Diagnostic Stewardship for Blood Cultures in Critically Ill Children With Culture Rates, Antibiotic Use, and Patient Outcomes: Results of the Bright STAR Collaborative.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, N.I.H., Extramural",
+   "Research Support, U.S. Gov't, P.H.S."
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Quality-improvement collaborative; endpoints are culture rates, antibiotic use and patient outcomes. Care process, not accuracy."
+ },
+ {
+  "pmid": "36618287",
+  "modality": "ivd",
+  "title": "Extra-Gastroduodenal Manifestation and Helicobacter pyloriInfection.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of extra-gastroduodenal manifestations of H. pylori."
+ },
+ {
+  "pmid": "37105188",
+  "modality": "ivd",
+  "title": "[Cardiac biomarkers and their clinical relevance].",
+  "publication_types": [
+   "English Abstract",
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of cardiac biomarkers."
+ },
+ {
+  "pmid": "38483354",
+  "modality": "ivd",
+  "title": "Helicobacter pylori Infection at Crossroads between Specialties.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "retrospective",
+  "reason": "Retrospective cohort of 275 patients who had EGD and a stool antigen test, but the reported results are lesion frequencies and associations, not accuracy of the test. An association study."
+ },
+ {
+  "pmid": "38581254",
+  "modality": "ivd",
+  "title": "Prostate Cancer Screening With PSA, Kallikrein Panel, and MRI: The ProScreen Randomized Trial.",
+  "publication_types": [
+   "Journal Article",
+   "Multicenter Study",
+   "Randomized Controlled Trial",
+   "Research Support, N.I.H., Extramural",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "DIAGNOSTIC_RCT",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "ProScreen: men randomly invited to a PSA/kallikrein/MRI screening protocol."
+ },
+ {
+  "pmid": "39048820",
+  "modality": "ivd",
+  "title": "Blood culture-free ultra-rapid antimicrobial susceptibility testing.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NONCONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "190 patients enrolled, but only 8 positive cases and 6 isolates were tested against reference AST \u2014 severe partial verification."
+ },
+ {
+  "pmid": "39348147",
+  "modality": "ivd",
+  "title": "Screening for Helicobacter pylori to Prevent Gastric Cancer: A Pragmatic Randomized Clinical Trial.",
+  "publication_types": [
+   "Journal Article",
+   "Pragmatic Clinical Trial",
+   "Research Support, Non-U.S. Gov't",
+   "Randomized Controlled Trial"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "random",
+  "reference_standard": "not_applicable",
+  "timing": "prospective",
+  "reason": "Pragmatic randomised trial of an invitation to H. pylori screening, outcome gastric cancer incidence and mortality."
+ },
+ {
+  "pmid": "18289441",
+  "modality": "monitoring",
+  "title": "Intracranial pressure monitoring.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative account of the safety of bedside ICP catheter insertion."
+ },
+ {
+  "pmid": "23628263",
+  "modality": "monitoring",
+  "title": "Intrapartum management of category II fetal heart rate tracings: towards standardization of care.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative on standardising management of category II tracings."
+ },
+ {
+  "pmid": "27565194",
+  "modality": "monitoring",
+  "title": "Capnography for procedural sedation in the ED: a systematic review.",
+  "publication_types": [
+   "Journal Article",
+   "Systematic Review"
+  ],
+  "design": "SR_META_DTA",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "not_stated",
+  "reason": "Systematic review aggregating capnography data under a random-effects model using Meta-DiSc, which is a diagnostic-accuracy meta-analysis tool."
+ },
+ {
+  "pmid": "27717415",
+  "modality": "monitoring",
+  "title": "Monitoring Oxygen Status.",
+  "publication_types": [
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Review of oxygen status measurement methods."
+ },
+ {
+  "pmid": "31965267",
+  "modality": "monitoring",
+  "title": "A management algorithm for adult patients with both brain oxygen and intracranial pressure monitoring: the Seattle International Severe Traumatic Brain Injury Consensus Conference (SIBICC).",
+  "publication_types": [
+   "Journal Article",
+   "Consensus Statement"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Consensus working group producing a management algorithm."
+ },
+ {
+  "pmid": "32179192",
+  "modality": "monitoring",
+  "title": "The Historical Evolution of Intracranial Pressure Monitoring.",
+  "publication_types": [
+   "Historical Article",
+   "Journal Article",
+   "Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Historical review of ICP monitoring."
+ },
+ {
+  "pmid": "32430803",
+  "modality": "monitoring",
+  "title": "Telemetric Intracranial Pressure Monitoring: A Systematic Review.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't",
+   "Systematic Review"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Systematic review of the indications, advantages and disadvantages of telemetric ICP monitoring \u2014 a descriptive synthesis, not a pooled accuracy one. Carries a Systematic Review publication type, which is why it is a hard case."
+ },
+ {
+  "pmid": "33511466",
+  "modality": "monitoring",
+  "title": "Pediatric procedural sedation and analgesia in the emergency department: surveying the current European practice.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Survey of European procedural sedation practice."
+ },
+ {
+  "pmid": "34232891",
+  "modality": "monitoring",
+  "title": "A Noninvasive Miniaturized Transcutaneous Oxygen Monitor.",
+  "publication_types": [
+   "Journal Article",
+   "Research Support, Non-U.S. Gov't"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Prototype device paper; bench experiments on temperature and humidity dependence. No clinical sample."
+ },
+ {
+  "pmid": "36760034",
+  "modality": "monitoring",
+  "title": "Transcutaneous carbon dioxide monitoring during prolonged apnoea with high-flow nasal oxygen.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "CONSECUTIVE_COHORT",
+  "sampling": "not_stated",
+  "reference_standard": "stated",
+  "timing": "prospective",
+  "reason": "Transcutaneous CO2 compared with arterial CO2 by Bland-Altman in anaesthetised patients; every patient contributes both measurements. A secondary publication of a prospective study."
+ },
+ {
+  "pmid": "37702257",
+  "modality": "monitoring",
+  "title": "Intrapartum fetal heart rate monitoring: Rationalise, refine or replace?",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Narrative on the future of intrapartum fetal heart rate monitoring."
+ },
+ {
+  "pmid": "38083282",
+  "modality": "monitoring",
+  "title": "Optimizing Transcutaneous Oxygen Measurement Sites on Humans.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Optimisation of sensor placement for a luminescence-based oxygen sensing method. Engineering, no clinical accuracy design."
+ },
+ {
+  "pmid": "8452737",
+  "modality": "monitoring",
+  "title": "Intracranial pressure monitoring.",
+  "publication_types": [
+   "Journal Article"
+  ],
+  "design": "NOT_DIAGNOSTIC",
+  "sampling": "not_stated",
+  "reference_standard": "not_applicable",
+  "timing": "not_stated",
+  "reason": "Nursing review of ICP monitoring technology."
+ }
+]

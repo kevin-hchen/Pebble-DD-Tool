@@ -187,3 +187,112 @@ def resolve_model(cfg) -> str:
     if explicit and cfg.chat_model:
         return cfg.chat_model
     return provider.default_model or cfg.chat_model
+
+
+# ------------------------------------------------------- when the model refuses
+#
+# `make_client` returning None is the "no model configured" path, and every
+# caller already handles it by degrading to extractive output. A CONFIGURED
+# provider that refuses is a different thing entirely, and until now nothing
+# handled it: a revoked or wrong key raised `openai.PermissionDeniedError` out
+# of `client.chat.completions.create` and took the whole run down with a
+# traceback on question 1 of 11.
+#
+# That made the documented behaviour false. CLAUDE.md and docs/RUNBOOK.md both
+# state that an expired key degrades — routing falls back to rules, answers
+# become extractive evidence lists, the contradiction hunt does not run — and
+# two of those three were true: `Router.route` and `ContradictionHunter.hunt`
+# already caught everything. The answer path did not, so the degradation nobody
+# could observe was the one that mattered most.
+
+
+@dataclass(frozen=True)
+class ModelFailure:
+    """Why a configured provider did not answer. Carries no key and no prompt.
+
+    The message is BUILT from the status code and the provider name rather than
+    from `str(exc)`, for the same reason `public/reqlog.RequestLogLine` has four
+    fields and nowhere to put a fifth: an SDK exception renders the response
+    body, a future SDK version may render more, and this string is written into
+    a memo a human reads and may circulate. A status code and a provider name
+    are enough to act on — the RUNBOOK's instruction is "check the key first" —
+    and they are structurally incapable of carrying a prompt.
+    """
+
+    status: int | None
+    kind: str
+    #: True when asking again cannot change the answer, so the caller should
+    #: stop calling for the rest of the run.
+    fatal: bool
+    message: str
+
+
+#: Statuses no retry and no later question can fix. The same rule
+#: `trials/client._RETRY_STATUSES` states from the other side: a 401, 403 or 404
+#: is an ANSWER. Asking eleven times produces eleven identical refusals, eleven
+#: identical warnings, and eleven round trips to a provider that has already
+#: said no.
+_FATAL_STATUSES = frozenset({400, 401, 403, 404})
+
+_REASONS = {
+    400: "the request was rejected as malformed, which is a bug in this tool rather "
+         "than a problem with the key",
+    401: "the API key was rejected — it is missing, wrong, or has been revoked",
+    403: "the provider refused the request — the key is revoked, out of quota, or "
+         "not permitted to use this model",
+    404: "the configured model name was not found at this provider",
+    429: "the provider's rate limit was hit",
+}
+
+
+def describe_failure(exc: BaseException, provider_key: str = "", model: str = "") -> ModelFailure:
+    """Classify a provider exception without quoting it.
+
+    Anything unrecognised is treated as NON-fatal, deliberately: a transient
+    network blip degrading one section is recoverable, while wrongly latching
+    the model off for the whole run turns a hiccup into eleven empty syntheses.
+    Failing open here is safe precisely because the fallback is extractive
+    evidence, not silence.
+    """
+    status = getattr(exc, "status_code", None)
+    if not isinstance(status, int):
+        status = None
+    kind = type(exc).__name__
+    fatal = status in _FATAL_STATUSES
+    reason = _REASONS.get(status) or "the provider could not be reached or did not respond"
+    where = f" ({provider_key})" if provider_key else ""
+    detail = f" for model “{model}”" if model and status == 404 else ""
+    code = f"HTTP {status}" if status else kind
+    return ModelFailure(
+        status=status,
+        kind=kind,
+        fatal=fatal,
+        message=(
+            f"the configured model provider{where} returned {code}{detail}: {reason}. "
+            + ("No further model calls will be made in this run. " if fatal else "")
+            + "This section falls back to listing the retrieved evidence verbatim "
+              "instead of a written synthesis. The evidence and its citations are "
+              "unaffected — what is missing is the prose, not the sources."
+        ),
+    )
+
+
+def call_chat(client, provider_key: str = "", **kwargs):
+    """One chat call, returning `(response, failure)` instead of raising.
+
+    Every model call in this codebase goes through the OpenAI SDK, whichever
+    provider is configured, so `openai.OpenAIError` is the one base that covers
+    auth, rate limiting, timeouts, connection loss and bad status. Caught
+    narrowly rather than with a bare `except Exception`, so a TypeError in the
+    arguments this tool builds still surfaces as the bug it is instead of being
+    reported to an analyst as a provider outage.
+    """
+    try:
+        from openai import OpenAIError
+    except Exception:      # the SDK is absent; make_client cannot have built a client
+        OpenAIError = Exception
+
+    try:
+        return client.chat.completions.create(**kwargs), None
+    except OpenAIError as exc:
+        return None, describe_failure(exc, provider_key, kwargs.get("model", ""))

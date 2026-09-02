@@ -1,0 +1,138 @@
+# FDA device decision codes — what the code MEANS, in the FDA's own words.
+#
+# EDIT THIS FILE, NOT CODE — same principle as agents.yaml and markers.yaml.
+#
+# EVERY `meaning` BELOW IS COPIED VERBATIM FROM THE FDA DATA DICTIONARY
+# (https://open.fda.gov/fields/devicepma.yaml and .../deviceclearance.yaml,
+# retrieved 2026-08-06). None of them is a paraphrase and none was inferred from
+# the code letters. That matters because guessing was measurably wrong: "APRL"
+# reads like "approvable letter" and actually means "Reclassification after
+# approval", and an earlier draft of this work had SESK and SESU swapped.
+#
+# THE DICTIONARY AND THE DATA DISAGREE, AND BOTH FACTS ARE RECORDED
+#
+# `documented: false` marks a code that occurs in the live data but appears
+# NOWHERE in the FDA field reference. This is not a rare edge: OK30 is 27,693 of
+# the 56,853 PMA records — 49% of the entire source — and DENG, the De Novo
+# grant code, is 482 records that the 510(k) dictionary does not list either.
+# `observed` counts are from the full bulk export and the live API on
+# 2026-08-06; codes documented but never occurring are kept with observed: 0,
+# because "documented and absent" and "undocumented and present" are different
+# facts and a reader should be able to see both.
+#
+# An undocumented code is rendered as undocumented. medrag/fda/pma.py will not
+# invent a meaning for it, and will not fold it into an approval claim.
+
+pma_decision_codes:
+  APPR:
+    meaning: "Approval: PMA has been approved."
+    documented: true
+    observed: 28390
+    implies_approval: true
+  APWD:
+    meaning: "Withdrawal after approval."
+    documented: true
+    observed: 401
+    # Withdrawn AFTER approval — so approval did happen. The same distinction
+    # drugsFDA's Discontinued marketing_status carries, and the same reason it
+    # must not collapse into "not approved".
+    implies_approval: true
+  APRL:
+    meaning: "Reclassification after approval."
+    documented: true
+    observed: 352
+    implies_approval: true
+  APCV:
+    meaning: "Conversion after approval."
+    documented: true
+    observed: 6
+    implies_approval: true
+  OK30:
+    meaning: ""
+    documented: false
+    observed: 27693
+    implies_approval: false
+    # 49% of the source carries this code and the FDA field reference does not
+    # define it. The dictionary documents LE30 ("30 day notice acceptance") and
+    # GT30, neither of which occurs in the data, so OK30 is PLAUSIBLY the
+    # real-world spelling of LE30 — but that is an inference, it is not written
+    # down anywhere the FDA publishes, and this file does not assert it. Almost
+    # every OK30 record is a supplement, not an original application.
+  APCB:
+    meaning: ""
+    documented: false
+    observed: 11
+    implies_approval: false
+  # Documented by the FDA but not present in any record of the bulk export.
+  # Kept so a future export that starts using them is recognised rather than
+  # falling through to "unknown code".
+  DENY:
+    meaning: "Denial: PMA has been denied."
+    documented: true
+    observed: 0
+    implies_approval: false
+  WTDR:
+    meaning: "Withdrawal: PMA has been withdrawn."
+    documented: true
+    observed: 0
+    implies_approval: false
+  LE30:
+    meaning: "30 day notice acceptance (decision made in <=30 days)."
+    documented: true
+    observed: 0
+    implies_approval: false
+  GT30:
+    meaning: "No decision made in 30 days."
+    documented: true
+    observed: 0
+    implies_approval: false
+
+clearance_decision_codes:
+  SESE:
+    meaning: "Substantially Equivalent"
+    documented: true
+    observed: 172128
+    de_novo: false
+  SESK:
+    meaning: "Substantially Equivalent - Kit"
+    documented: true
+    observed: 499
+    de_novo: false
+  SESU:
+    meaning: "Substantially Equivalent - With Limitations"
+    documented: true
+    observed: 434
+    de_novo: false
+  SEKD:
+    meaning: "Substantially Equivalent - Kit with Drugs"
+    documented: true
+    observed: 254
+    de_novo: false
+  SESD:
+    meaning: "Substantially Equivalent with Drug"
+    documented: true
+    observed: 128
+    de_novo: false
+  SESP:
+    meaning: "Substantially Equivalent - Postmarket Surveillance Required"
+    documented: true
+    observed: 121
+    de_novo: false
+  SESR:
+    meaning: "Potential Recall"
+    documented: true
+    observed: 0
+    de_novo: false
+  DENG:
+    meaning: ""
+    documented: false
+    observed: 482
+    de_novo: true
+    # The De Novo grant. Undocumented in the 510(k) field reference, but the
+    # pathway itself is not in doubt — a De Novo is granted precisely BECAUSE
+    # there is no predicate, which is the opposite of substantial equivalence.
+    # `de_novo: true` is therefore a claim about the PATHWAY, which is
+    # well-established, not a paraphrase of the code's undocumented definition.
+    # Rendering a DENG clearance as "substantially equivalent to a predicate"
+    # is a false statement about a company's regulatory history, which is why
+    # this entry exists at all.

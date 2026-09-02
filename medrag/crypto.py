@@ -18,6 +18,7 @@ or reused, and the salt is per-file so two files never share a key.
 from __future__ import annotations
 
 import os
+import re
 import secrets
 import struct
 from pathlib import Path
@@ -204,6 +205,29 @@ def harden_permissions(path: str | Path) -> None:
         os.chmod(path, 0o700 if path.is_dir() else 0o600)
     except (OSError, NotImplementedError):  # pragma: no cover
         pass
+
+
+def unguessable_stem(base: str, fallback: str = "export") -> str:
+    """A filename stem that keeps its human label but cannot be guessed.
+
+    Every exporter derived its filename purely from user input — the asset, or
+    on the claims page the COMPANY NAME. Two consequences on any shared or
+    served machine: two people looking at the same asset write to the same file
+    and can read each other's output, and the path of a memo about a named
+    company is guessable by anyone who knows the company.
+
+    The label is kept because an operator has to find their own file in `out/`,
+    and a directory of pure hex is its own kind of unusable. The random suffix
+    is what makes it unguessable; 8 bytes of `token_hex` is 64 bits, far beyond
+    what a directory of a few hundred memos needs to avoid both collision and
+    enumeration.
+
+    `secrets`, not `random`: the property wanted is unpredictability, and
+    reaching for the non-cryptographic generator is how a "random" filename ends
+    up derivable from a seed.
+    """
+    label = re.sub(r"[^a-z0-9]+", "-", (base or "").lower()).strip("-") or fallback
+    return f"{label[:60]}-{secrets.token_hex(8)}"
 
 
 def harden_outputs(directory: str | Path, *files: str | Path) -> None:

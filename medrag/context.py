@@ -15,10 +15,27 @@ from dataclasses import dataclass, field
 
 from .documents import Retrieved
 from .fda.client import Clearance510k
+from .fda.drugs import APPROVED, DrugApplication
+from .fda.pma import PATHWAY_DE_NOVO, PATHWAY_PMA
 from .trials.client import TrialRecord
 
 TRIAL_LABEL = "TRIAL RECORD"
 FDA_LABEL = "FDA RECORD"
+# Drug approvals get their own label and their own identifier. "FDA RECORD" was
+# fine while the only regulatory object was a 510(k), but a citation that reads
+# `FDA RECORD — K123456` next to one that reads `FDA RECORD — BLA125514` invites
+# the reader to treat a device clearance and a drug approval as the same kind of
+# fact. They are not: one is substantial equivalence to a predicate, the other is
+# a demonstration of safety and efficacy. The identifier is the application
+# number, so a claim resolves to the exact application a reader can look up.
+FDA_DRUG_LABEL = "FDA DRUG APPROVAL"
+# Premarket APPROVAL gets its own label for the same reason drug approvals did.
+# A 510(k) is substantial equivalence to a predicate; a PMA is approval on
+# clinical evidence. One label spanning both would tell a reader that a Class II
+# thermometer and a Class III defibrillator stand in the same relation to the FDA.
+FDA_PMA_LABEL = "FDA DEVICE APPROVAL (PMA)"
+# And a De Novo is neither: granted BECAUSE no predicate exists.
+FDA_DE_NOVO_LABEL = "FDA DE NOVO AUTHORISATION"
 LIT_LABEL = "LITERATURE"
 
 
@@ -117,10 +134,111 @@ def _fda_block(c: Clearance510k) -> str:
     return "\n".join(lines)
 
 
+def _drug_block(a: DrugApplication) -> str:
+    """Render a drugsFDA application as labelled fields.
+
+    The status line is written so the model cannot soften it: a TENTATIVE
+    APPROVAL says outright that it is not an approval, and an application whose
+    products are all discontinued says that separately from whether it was ever
+    approved. Both are facts the raw record states and prose routinely blurs.
+    """
+    lines = [
+        f"Application: {a.display_number}",
+        f"Sponsor: {a.sponsor_name or 'not stated'}",
+        f"Approval status: {a.approval_status}",
+    ]
+    if a.approval_status == APPROVED and a.approval_date:
+        lines.append(f"Original US approval date: {a.approval_date}")
+    elif a.approval_status != APPROVED:
+        lines.append("NOTE: this application is NOT an approval. A tentative approval "
+                     "means the FDA found the application met requirements but could "
+                     "not approve it, usually for patent or exclusivity reasons.")
+    if a.all_ingredients:
+        lines.append(f"Active ingredients: {', '.join(a.all_ingredients[:6])}")
+    brands = sorted({p.brand_name for p in a.products if p.brand_name} | set(a.brand_names))
+    if brands:
+        lines.append(f"Brand name(s): {', '.join(brands[:6])}")
+    if a.routes:
+        lines.append(f"Route: {', '.join(a.routes[:4])}")
+    if a.marketing_statuses:
+        lines.append(f"Marketing status: {', '.join(a.marketing_statuses)}")
+    if a.all_discontinued:
+        lines.append("NOTE: every product under this application is marked Discontinued — "
+                     "withdrawn from marketing, which is NOT the same as never approved.")
+    if a.n_supplements:
+        lines.append(f"Approved supplements: {a.n_supplements}"
+                     + (f" (latest {a.latest_supplement_date})" if a.latest_supplement_date else ""))
+    if a.review_priority:
+        lines.append(f"Review priority: {a.review_priority}")
+    if a.submission_class:
+        lines.append(f"Submission class: {a.submission_class}")
+    return "\n".join(lines)
+
+
+def _pma_block(a) -> str:
+    """Render a PMA application as labelled fields.
+
+    The pathway line is first and explicit: this is approval on clinical
+    evidence, not clearance by predicate equivalence, and the model must not be
+    able to blur them. Device class is printed verbatim with a note that it is
+    not inferred, because 7,177 PMA records are Class 2.
+    """
+    rep = a.representative
+    lines = [
+        f"Pathway: {PATHWAY_PMA} — approval supported by clinical evidence of "
+        "safety and effectiveness. NOT a 510(k) clearance and NOT a finding of "
+        "substantial equivalence to a predicate device.",
+        f"PMA number: {a.pma_number}",
+        f"Approval decision: {a.approval_state}",
+    ]
+    if a.approval_date:
+        lines.append(f"Original approval date: {a.approval_date}")
+    if not a.has_original_record:
+        lines.append("NOTE: the original application record is not present in this "
+                     "copy of the export — only supplements to it — so its decision "
+                     "cannot be read from here.")
+    if rep is not None:
+        if rep.trade_name:
+            lines.append(f"Trade name: {rep.trade_name}")
+        if rep.generic_name:
+            lines.append(f"Generic name: {rep.generic_name}")
+        if rep.applicant:
+            lines.append(f"Applicant: {rep.applicant}")
+        if rep.product_code:
+            lines.append(f"Product code: {rep.product_code}")
+        lines.append(f"Device class (as filed, not inferred from the pathway): "
+                     f"{rep.device_class or 'not stated'}")
+        if rep.advisory_committee_description:
+            lines.append(f"Advisory committee: {rep.advisory_committee_description}")
+    if a.supplements:
+        lines.append(f"Approved supplements on file: {len(a.supplements)}"
+                     + (f" (latest {a.latest_supplement_date})"
+                        if a.latest_supplement_date else ""))
+    return "\n".join(lines)
+
+
+def _de_novo_block(c: Clearance510k) -> str:
+    """A De Novo authorisation, stated as what it is."""
+    return "\n".join([
+        f"Pathway: {PATHWAY_DE_NOVO} — granted BECAUSE no predicate device existed. "
+        "This is NOT a finding of substantial equivalence and must not be described "
+        "as one.",
+        f"Submission: {c.k_number}",
+        f"Device: {c.device_name or 'not stated'}",
+        f"Decision date: {c.decision_date or 'not stated'}",
+        f"Applicant: {c.applicant or 'not stated'}",
+        f"Product code: {c.product_code or 'not stated'}",
+        f"Device class (as filed): {c.device_class or 'not stated'}",
+    ])
+
+
 def build_evidence(
     trials: list[TrialRecord] | None = None,
     passages: list[Retrieved] | None = None,
     fda: list[Clearance510k] | None = None,
+    drugs: list[DrugApplication] | None = None,
+    pma: list | None = None,
+    de_novo: list[Clearance510k] | None = None,
     max_chars: int = 12000,
 ) -> list[Evidence]:
     """Interleave the sources into one numbered list.
@@ -180,6 +298,66 @@ def build_evidence(
         used += len(block)
         index += 1
 
+    for c in de_novo or []:
+        block = _de_novo_block(c)
+        if used + len(block) > max_chars and items:
+            break
+        items.append(Evidence(
+            index=index, kind=FDA_DE_NOVO_LABEL, identifier=c.k_number, text=block,
+            title=c.device_name, url=c.url, citation=c.applicant,
+            meta={"pathway": PATHWAY_DE_NOVO, "product_code": c.product_code,
+                  "device_class": c.device_class},
+        ))
+        used += len(block)
+        index += 1
+
+    for a in pma or []:
+        block = _pma_block(a)
+        if used + len(block) > max_chars and items:
+            break
+        rep = a.representative
+        items.append(Evidence(
+            index=index, kind=FDA_PMA_LABEL,
+            # The PMA number, so a claim cites the exact application.
+            identifier=a.pma_number, text=block,
+            title=a.trade_name, url=a.url, citation=a.applicant,
+            meta={"pathway": PATHWAY_PMA, "approval_state": a.approval_state,
+                  "approval_date": a.approval_date,
+                  "device_class": rep.device_class if rep else "",
+                  "product_code": a.product_code,
+                  "has_original_record": a.has_original_record},
+        ))
+        used += len(block)
+        index += 1
+
+    for a in drugs or []:
+        block = _drug_block(a)
+        if used + len(block) > max_chars and items:
+            break
+        items.append(
+            Evidence(
+                index=index,
+                kind=FDA_DRUG_LABEL,
+                # The application number in the form the FDA prints — "NDA 021923",
+                # not a generic FDA RECORD — so a claim resolves to the exact
+                # application an analyst can paste into Drugs@FDA.
+                identifier=a.display_number,
+                text=block,
+                title=(sorted({p.brand_name for p in a.products if p.brand_name})
+                       or a.brand_names or a.all_ingredients or [""])[0],
+                url=a.url,
+                citation=a.sponsor_name,
+                meta={"approval_status": a.approval_status,
+                      "approval_date": a.approval_date,
+                      "application_type": a.application_type,
+                      "is_approved": a.is_approved,
+                      "all_discontinued": a.all_discontinued,
+                      "ingredients": a.all_ingredients},
+            )
+        )
+        used += len(block)
+        index += 1
+
     for r in passages or []:
         pmid = r.chunk.doc_id
         block = r.chunk.text
@@ -227,6 +405,9 @@ def provenance_summary(evidence: list[Evidence]) -> dict:
     trials = [e for e in evidence if e.kind == TRIAL_LABEL]
     lit = [e for e in evidence if e.kind == LIT_LABEL]
     fda = [e for e in evidence if e.kind == FDA_LABEL]
+    drugs = [e for e in evidence if e.kind == FDA_DRUG_LABEL]
+    pma = [e for e in evidence if e.kind == FDA_PMA_LABEL]
+    de_novo = [e for e in evidence if e.kind == FDA_DE_NOVO_LABEL]
     tiers: dict[str, int] = {}
     for e in lit:
         if e.grade_tag:
@@ -235,6 +416,15 @@ def provenance_summary(evidence: list[Evidence]) -> dict:
         "n_trials": len(trials),
         "n_literature": len(lit),
         "n_fda": len(fda),
+        "n_fda_drug": len(drugs),
+        # Counted apart from clearances: a PMA and a 510(k) are different
+        # regulatory facts and a provenance line that merges them hides which.
+        "n_fda_pma": len(pma),
+        "n_fda_de_novo": len(de_novo),
+        # Counted separately from n_fda_drug: an application in evidence is not
+        # necessarily an approved one, and a reader scanning provenance should
+        # not have to open each citation to find out.
+        "n_fda_drug_approved": sum(1 for e in drugs if e.meta.get("is_approved")),
         "n_stopped_trials": sum(1 for e in trials if e.meta.get("stopped_early")),
         "evidence_tiers": tiers,
         # Answers "is this conclusion resting on case reports?" without the

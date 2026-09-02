@@ -36,7 +36,73 @@ class Config:
     top_k: int = 6
     fetch_k: int = 24              # candidates pulled before MMR re-ranking
     mmr_lambda: float = 0.6        # 1.0 = pure relevance, 0.0 = pure diversity
-    score_floor: float = 0.05      # drop near-orthogonal matches
+    # The similarity below which a passage is NOT evidence.
+    #
+    # 0.05 meant "not orthogonal", which admits everything: an asset with no
+    # published data returned the k nearest things in the corpus — penicillin
+    # and pneumonia papers for a hidradenitis drug — graded, PMID-linked, and
+    # presented as its evidence, with the memo reporting "sections answered with
+    # evidence: 11/11".
+    #
+    # MEASURED (2026-08-13, all-MiniLM-L6-v2, the real 820-chunk index) by
+    # driving the REAL rendered question set — 11 questions x 33 asset/indication
+    # pairs, 363 retrievals — across three disease families the corpus covers
+    # (colorectal/MSS, pneumonia/penicillin, neonatal jaundice) and 20 assets it
+    # covers not at all. Top-1 cosine per question:
+    #
+    #                 min    p05    p25    med    p75    p95    p99    max
+    #   on-topic     0.334  0.433  0.551  0.644  0.742  0.829  0.897  0.897
+    #   off-topic    0.177  0.234  0.311  0.361  0.401  0.482  0.521  0.555
+    #
+    # THE TWO DISTRIBUTIONS OVERLAP, and an earlier version of this comment —
+    # written from a single query pair — claimed they "separate cleanly". They
+    # do not: 38 of 143 on-topic scores fall below the highest off-topic one
+    # (0.555), and 144 of 220 off-topic scores sit above the lowest on-topic one.
+    # There is no threshold that admits all real evidence and no false evidence,
+    # so THIS NUMBER CHOOSES WHICH ERROR TO MAKE — it is a tradeoff, not a
+    # separator — and it chooses the error this tool is for. A memo that cites a
+    # bilirubinometry meta-analysis as a hidradenitis drug's efficacy evidence is
+    # worse than a memo with an empty section, the same way an invented
+    # contradiction is worse than silence. Anyone moving it should re-measure and
+    # look at the distributions first, not reason about the number.
+    #
+    # Sections retaining literature evidence, of 11:
+    #
+    #   floor   on-topic   off-topic   off-topic assets left fully silent
+    #    0.05     100%        100%           0 of 20
+    #    0.35      99%         56%           0 of 20     <- still evidenced everything
+    #    0.45      94%         10%          11 of 20
+    #    0.50      87%          2%          17 of 20     <- here
+    #    0.55      76%          1%          19 of 20
+    #    0.60      62%          0%          20 of 20
+    #
+    # 0.50 sits above the off-topic p95 (0.482) and below the point where the
+    # cost lands on evidence that matters. Where the on-topic loss falls is what
+    # decided it, not the headline percentage: at 0.50 the eight questions whose
+    # answers live in a published abstract — efficacy, endpoints, comparator,
+    # evidence quality, terminated trials, bear case — retain 12 or 13 of 13
+    # on-topic assets each. The loss is concentrated in `mechanism` and
+    # `development-stage`, which are registry and regulatory questions that a
+    # literature search answers badly at any floor.
+    #
+    # These numbers replace a first measurement taken while `competitive-trials`
+    # interpolated neither {asset} nor {indication} — a constant string, one
+    # fixed embedding, an identical 0.436 for all 33 assets. Binding its referent
+    # (config/diligence_questions.yaml) raised on-topic retention at this floor
+    # from 79% to 87% and on-topic p25 from 0.530 to 0.551, leaving off-topic
+    # unchanged: the constant question was costing real recall, not adding it.
+    #
+    # NOT tuned to clear the one asset that exposed this. 0.45 would have zeroed
+    # PBX-7749 while leaving 7 of the other 20 absent assets evidenced; picking
+    # it would be the retrieval equivalent of tuning the biomarker matcher until
+    # recall hit six.
+    #
+    # STATED PLAINLY: this number is calibrated to ONE embedder and ONE corpus.
+    # A different embedding model has a different cosine scale and this must be
+    # re-measured, not assumed to transfer. Re-measure with
+    # tests/test_retrieval_relevance.py, which pins the property rather than the
+    # number. MEDRAG_SCORE_FLOOR overrides it.
+    score_floor: float = 0.50
 
     # --- evidence grading ---
     # 0.0 disables tier reranking entirely; the eval harness toggles this to
@@ -64,6 +130,16 @@ class Config:
     # --- privacy / security ---
     encrypt: bool = False       # encrypt corpus and index at rest
     offline: bool = False       # hard-block every outbound call
+    # The public-deployment switch. STRICTLY STRONGER than offline: offline
+    # blocks outbound calls but still lets the process write its own database,
+    # corpus, index and .env. read_only additionally forbids all of that, so the
+    # app can serve a snapshot from a filesystem it has no permission to change.
+    #
+    # It is a separate flag rather than a mode inferred from a read-only mount,
+    # because a mount that happens to be writable must not silently re-enable
+    # fetching and writing — a deployment's guarantees should not depend on how
+    # the volume was mounted that day.
+    read_only: bool = False
     passphrase: str | None = field(default=None, repr=False)
 
     def __repr__(self) -> str:
@@ -72,6 +148,7 @@ class Config:
             f"Config(embed_model={self.embed_model!r}, chat_model={self.chat_model!r}, "
             f"embed_backend={self.embed_backend!r}, data_dir={str(self.data_dir)!r}, "
             f"encrypt={self.encrypt}, offline={self.offline}, "
+            f"read_only={self.read_only}, "
             f"openai_api_key={'set' if self.openai_api_key else 'unset'}, "
             f"passphrase={'set' if self.passphrase else 'unset'})"
         )
@@ -85,6 +162,17 @@ class Config:
         return self.data_dir / "index"
 
     def ensure_dirs(self) -> None:
+        """Create the data directories — a no-op in read-only mode.
+
+        Every Streamlit page called this unconditionally at module scope, and
+        the `mkdir` was not wrapped, so on a read-only filesystem the page died
+        at import before rendering a single element. In read-only mode the
+        directories either already exist (they hold the snapshot being served)
+        or the store open will fail with a message naming the missing file,
+        which is a better error than an OSError out of an import.
+        """
+        if self.read_only:
+            return
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.index_dir.mkdir(parents=True, exist_ok=True)
         for d in (self.data_dir, self.raw_dir, self.index_dir):
@@ -120,6 +208,14 @@ def load_config() -> Config:
 
     cfg.encrypt = _truthy(os.getenv("MEDRAG_ENCRYPT"))
     cfg.offline = _truthy(os.getenv("MEDRAG_OFFLINE"))
+    # Read-only IMPLIES offline, and the implication is one-directional and
+    # enforced here rather than remembered at each call site. A public reader
+    # that could still fetch would let a stranger's search trigger a registry
+    # pull from the server — the counts would move under other visitors, the
+    # server would carry the traffic, and the fetch would try to write.
+    cfg.read_only = _truthy(os.getenv("MEDRAG_READ_ONLY"))
+    if cfg.read_only:
+        cfg.offline = True
     if cfg.offline:
         # Offline means offline: drop the key so no code path can transmit.
         cfg.openai_api_key = None

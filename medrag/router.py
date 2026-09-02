@@ -70,6 +70,26 @@ _REGULATORY_HINTS = re.compile(
     re.IGNORECASE,
 )
 
+# Vocabulary that names the DRUG regulatory store's fields specifically. Kept
+# apart from the device hints above because the two stores answer different
+# questions with different identifiers: "is it cleared" is a 510(k) question and
+# "is it approved" is an NDA/BLA one, and a device question that reaches the drug
+# store costs a pointless lookup while a drug question that reaches only the
+# device store gets silence on the thing actually asked.
+#
+# Both flags can be true at once — "what is the regulatory status of X" is
+# legitimately both — so this is a second orthogonal signal, not a fourth Route.
+_DRUG_REGULATORY_HINTS = re.compile(
+    r"\b(approval|approved|approvals|unapproved|nda|bla|anda|"
+    r"tentative approval|orphan|priority review|breakthrough|accelerated approval|"
+    r"label|labelling|labeling|package insert|prescribing information|"
+    r"indication|indications|indicated for|on-label|off-label|"
+    r"boxed warning|black box|contraindication|contraindications|"
+    r"marketing status|withdrawn|discontinued|biosimilar|generic|"
+    r"drugs\s*@?\s*fda|drugsfda|orange book|exclusivity)\b",
+    re.IGNORECASE,
+)
+
 ROUTER_PROMPT = """Classify this question about a biomedical asset.
 
 STRUCTURED - answerable from a clinical trial registry: which trials exist, their \
@@ -81,13 +101,17 @@ BOTH - genuinely needs registry facts AND published findings.
 Prefer STRUCTURED or SEMANTIC over BOTH. Choose BOTH only when the question \
 cannot be answered without each kind of evidence.
 
-Separately, set "regulatory" true if the question touches FDA clearance, device \
-class, product code, recalls, or adverse events — an openFDA store answers those.
+Separately, set "regulatory" true if the question touches FDA DEVICE clearance, \
+device class, product code, device recalls, or MAUDE adverse events.
+
+Set "drug_regulatory" true if it touches DRUG approval status, approval date, \
+NDA/BLA/ANDA applications, approved indications, labelling, boxed warnings, or \
+marketing status. Both may be true.
 
 Question: {question}
 
 Reply with JSON only: {{"route": "structured|semantic|both", "regulatory": \
-true|false, "reason": "<8 words>"}}"""
+true|false, "drug_regulatory": true|false, "reason": "<8 words>"}}"""
 
 
 @dataclass
@@ -96,7 +120,8 @@ class RoutingDecision:
     reason: str = ""
     method: str = "rules"          # rules | llm | llm-fallback
     filters: dict = field(default_factory=dict)
-    needs_regulatory: bool = False  # consult the openFDA store as well
+    needs_regulatory: bool = False       # consult the openFDA DEVICE store
+    needs_drug_regulatory: bool = False  # consult the openFDA DRUG store
 
     @property
     def needs_trials(self) -> bool:
@@ -148,6 +173,7 @@ def classify_by_rules(question: str) -> RoutingDecision:
     structured = bool(_STRUCTURED_HINTS.search(question))
     semantic = bool(_SEMANTIC_HINTS.search(question))
     regulatory = bool(_REGULATORY_HINTS.search(question))
+    drug_regulatory = bool(_DRUG_REGULATORY_HINTS.search(question))
 
     if structured and semantic:
         route, reason = Route.BOTH, "registry and literature terms present"
@@ -155,10 +181,10 @@ def classify_by_rules(question: str) -> RoutingDecision:
         route, reason = Route.STRUCTURED, "registry vocabulary"
     elif semantic or _TOPIC_NOUNS.search(question):
         route, reason = Route.SEMANTIC, "literature vocabulary"
-    elif regulatory:
-        # A purely regulatory question (clearances, recalls) has no trial or
-        # literature signal; route it structured so the registry is also checked,
-        # and let needs_regulatory pull in the FDA store.
+    elif regulatory or drug_regulatory:
+        # A purely regulatory question (clearances, approvals, recalls) has no
+        # trial or literature signal; route it structured so the registry is also
+        # checked, and let the two regulatory flags pull in the FDA stores.
         route, reason = Route.STRUCTURED, "regulatory vocabulary"
     else:
         # Unmatched questions go to literature: it is the larger, more forgiving
@@ -166,7 +192,8 @@ def classify_by_rules(question: str) -> RoutingDecision:
         route, reason = Route.SEMANTIC, "no registry signal; default to literature"
 
     return RoutingDecision(route=route, reason=reason, method="rules",
-                           filters=extract_filters(question), needs_regulatory=regulatory)
+                           filters=extract_filters(question), needs_regulatory=regulatory,
+                           needs_drug_regulatory=drug_regulatory)
 
 
 class Router:
@@ -197,6 +224,8 @@ class Router:
                 # OR with the regex: the model may miss a regulatory cue, but a
                 # false positive only costs one extra structured lookup.
                 needs_regulatory=bool(payload.get("regulatory")) or rules.needs_regulatory,
+                needs_drug_regulatory=(bool(payload.get("drug_regulatory"))
+                                       or rules.needs_drug_regulatory),
             )
         except Exception:
             # Bad JSON, unknown enum value, API error - fall back rather than fail.

@@ -1,0 +1,154 @@
+# Biomarker vocabulary for trial eligibility matching.
+#
+# EDIT THIS FILE, NOT CODE. Same principle as config/trial_queries.yaml: which
+# synonyms name a marker, and which indication they were reviewed against, is a
+# clinical judgement that belongs to whoever knows the field, not a fact to
+# infer from code. Nothing here is model-generated at query time.
+#
+# Read by medrag/markers.py, which is the ONLY place that owns the negation
+# grammar (how "X-negative", "X wild-type", and "documented NOT to have X"
+# are recognised) and the sentence-classification engine. This file supplies
+# vocabulary only: what names the marker, what its opposite is (if it has a
+# clean binary opposite, like MSS/MSI-H), and what a free-text patient query
+# should resolve to. Two modules read this same table and apply it with
+# different policies — see markers.py's docstring for why they differ.
+#
+# Fields per marker:
+#   label        human-readable name shown in tables
+#   positive     regexes naming the marker itself, matched case-insensitively.
+#                Keep these to the bare name/mutation — do not bake a directional
+#                qualifier ("positive", "amplified", "+") into a pattern meant to
+#                also support negation-suffix detection ("HER2-negative"), or the
+#                negative form will never be recognised as a mention at all.
+#   aliases      patient-facing query synonyms for the free-text "Biomarker"
+#                field on the trial-landscape page, e.g. a patient typing
+#                "pMMR" should resolve to the MSS marker.
+#   opposite     the KEY of a paired marker whose presence is mutually
+#                exclusive with this one (MSS <-> MSI_H is the only established
+#                pair here — an oncologist would treat "excludes MSI-H" as
+#                strong indirect evidence of MSS eligibility). Leave blank for
+#                markers with no such established opposite; RAS/BRAF/HER2/KRAS
+#                mutations are handled correctly without one — a trial that
+#                requires "RAS wild-type" excludes the RAS marker directly via
+#                the negation grammar, it does not need a paired "RAS_WT" key.
+#   curated_for  indications this marker/synonym set has been reviewed against.
+#                Informational today; not yet used to gate matching by
+#                indication, but the intent is that a marker curated for
+#                colorectal trials should say so before being trusted on a
+#                lung-cancer trial.
+#
+# A biomarker query that does not resolve to any entry here falls back to a
+# generic literal-text search (markers.py's uncurated path) — no reviewed
+# synonyms, no negation handling, and it can only ever return UNCLEAR or
+# NOT_MENTIONED, never a confident ELIGIBLE/EXCLUDED verdict. Every match
+# carries which path produced it (`curated: bool`) so the reader is never
+# shown an uncurated guess with the same confidence as a reviewed one.
+
+markers:
+  MSS:
+    label: "MSS / pMMR"
+    curated_for: [colorectal cancer]
+    opposite: MSI_H
+    aliases:
+      - mss
+      - microsatellite stable
+      - microsatellite-stable
+      - microsatellite stability
+      - pmmr
+      - proficient mismatch repair
+      - mismatch repair proficient
+      - non-msi-h
+      - non msi-h
+      - not msi-h
+      - msi stable
+      - msi-stable
+    positive:
+      - \bMSS\b
+      - microsatellite[\s\-]?stable
+      - \bpMMR\b
+      - proficient\s+mismatch[\s\-]?repair
+      - mismatch[\s\-]?repair[\s\-]?proficient
+      # An established synonym, not an instance of the general negation
+      # grammar: "non-MSI-H" is how oncology text states MSS directly, and
+      # must resolve the same way "MSS" itself does — a full ELIGIBLE match,
+      # not the softer ELIGIBLE_BY_EXCLUSION the general grammar would give an
+      # arbitrary negated mention of the opposite marker.
+      - non[\s\-]?MSI[\s\-]?H(?:igh)?
+    # The coverage statement (medrag/coverage.py) reports how many admitting
+    # trials name the marker EXPLICITLY (this list) versus only by a SYNONYM
+    # (any other `positive` entry above). "MSS" itself is the only truly
+    # explicit form; everything else — including "non-MSI-H", despite being
+    # treated as a direct positive match above — is a synonym for reporting
+    # purposes, because a reader asking "how many trials literally say MSS"
+    # should not have "excludes MSI-H" folded into that count just because the
+    # matcher (correctly) treats it as equally strong evidence of eligibility.
+    canonical:
+      - \bMSS\b
+
+  MSI_H:
+    label: "MSI-H / dMMR"
+    curated_for: [colorectal cancer]
+    opposite: MSS
+    aliases:
+      - msi-h
+      - msi high
+      - microsatellite instability-high
+      - dmmr
+      - deficient mismatch repair
+      - mismatch repair deficient
+    positive:
+      - \bMSI[\s\-]?H(?:igh)?\b
+      - microsatellite\s+instabilit\w*[\s\-]?high
+      - \bdMMR\b
+      - deficient\s+mismatch[\s\-]?repair
+      - mismatch[\s\-]?repair[\s\-]?deficient
+    canonical:
+      - \bMSI[\s\-]?H(?:igh)?\b
+
+  RAS:
+    label: "RAS (KRAS/NRAS)"
+    curated_for: [colorectal cancer]
+    aliases: [ras, kras, nras]
+    positive:
+      - \bK?RAS\b
+      - \bNRAS\b
+
+  BRAF_V600E:
+    label: "BRAF V600E"
+    curated_for: [colorectal cancer]
+    aliases: [braf, braf v600e, v600e]
+    positive:
+      - BRAF[\s\-]?V600E?
+      - \bV600E\b
+
+  HER2_AMP:
+    label: "HER2 amplification"
+    curated_for: [colorectal cancer]
+    aliases: [her2, her2 amplification, erbb2]
+    positive:
+      # Deliberately requires a qualifier: a bare "HER2" mention (e.g. "prior
+      # anti-HER2 therapy") is not itself a status statement, so it must not
+      # match at all. "negative"/"neg" are listed as accepted qualifiers so
+      # the marker still counts as MENTIONED on "HER2-negative" text — but see
+      # markers.py's _NEGATION_WITHIN for why that alone would otherwise be
+      # misread as REQUIRED: the qualifier is baked into this single match
+      # (not left dangling afterward, the way "RAS wild-type" is), so the
+      # negation grammar has to check inside the match, not only around it.
+      - HER2[\s\-]?(?:amplif\w*|positive|negative|\bpos\b|\bneg\b|\+)
+      - ERBB2[\s\-]?(?:amplif\w*|positive|negative)
+
+  KRAS_G12C:
+    label: "KRAS G12C"
+    curated_for: [colorectal cancer]
+    aliases: [kras g12c, g12c]
+    positive:
+      - KRAS[\s\-]?G12C
+      - \bG12C\b
+
+  KRAS_G12D:
+    label: "KRAS G12D"
+    curated_for: [colorectal cancer]
+    aliases: [kras g12d, g12d]
+    positive:
+      - KRAS[\s\-]?G12D
+      - \bG12D\b

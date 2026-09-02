@@ -10,7 +10,6 @@ expanding anything.
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -31,9 +30,15 @@ from .claims import (
     ClaimVerdict,
 )
 from .context import TRIAL_LABEL
-from .crypto import harden_outputs, write_secure
+from .crypto import harden_outputs, unguessable_stem, write_secure
 from .memo import DISCLAIMER, _fmt_date, _inline_to_rl
 from .table_render import markdown_table, pdf_table
+
+# Page geometry, stated once — see memo.PAGE_SIZE_IN for why the doc template
+# and the column budget must read the same numbers.
+PAGE_SIZE_IN = (8.5, 11.0)          # LETTER portrait
+SIDE_MARGIN_IN = 0.6
+AVAILABLE_WIDTH_IN = PAGE_SIZE_IN[0] - 2 * SIDE_MARGIN_IN
 
 # Support value -> colour for its cell. Text always names it too, so colour is
 # never the only signal.
@@ -280,6 +285,7 @@ def render_pdf(report: ClaimReport, path: str | Path, generated: datetime | None
         ["#", "Claim", "Support", "Independence", "Sources"], rows,
         [0.25 * inch, 2.7 * inch, 1.35 * inch, 1.3 * inch, 1.5 * inch],
         styles["cell"], cell_colours=cell_colours,
+        available_width=AVAILABLE_WIDTH_IN * inch,
     ))
     story.append(Spacer(1, 10))
 
@@ -307,8 +313,8 @@ def render_pdf(report: ClaimReport, path: str | Path, generated: datetime | None
     SimpleDocTemplate(
         str(path),
         pagesize=LETTER,
-        leftMargin=0.6 * inch,
-        rightMargin=0.6 * inch,
+        leftMargin=SIDE_MARGIN_IN * inch,
+        rightMargin=SIDE_MARGIN_IN * inch,
         topMargin=0.9 * inch,
         bottomMargin=0.9 * inch,
         title=f"Claim verification — {heading}",
@@ -332,7 +338,9 @@ def export(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     base = report.company or report.asset or "claims"
-    stem = stem or re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-") or "claims"
+    # The old stem was the COMPANY NAME, so deck-derived claims landed at a
+    # guessable path. See crypto.unguessable_stem.
+    stem = stem or unguessable_stem(base, "claims")
 
     md_path = out_dir / f"{stem}-claims.md"
     write_secure(md_path, render_markdown(report).encode("utf-8"), passphrase)

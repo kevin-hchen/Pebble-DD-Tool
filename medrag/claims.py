@@ -65,7 +65,7 @@ from dataclasses import dataclass, field
 
 from .config import Config, load_config
 from .context import TRIAL_LABEL, Evidence, build_evidence, render_context
-from .providers import effective_provider, make_client
+from .providers import call_chat, effective_provider, make_client
 from .validation import extract_figures, figure_grounded
 
 # ---------------------------------------------------------------- support axis
@@ -317,6 +317,13 @@ def consent_key(notice: TransmissionNotice, prefix: str = "consent") -> str:
     return f"{prefix}_{digest}"
 
 
+class ModelUnavailable(RuntimeError):
+    """The configured provider refused. Distinct from "no provider configured",
+    which every path here already handles by degrading, and distinct from a
+    response that would not parse. Carries the plain-language message built by
+    `providers.describe_failure` — never the key, never the prompt."""
+
+
 class ConfirmationRequired(Exception):
     """Raised when a run would transmit off-machine but was not confirmed.
 
@@ -420,12 +427,20 @@ def _load_json(client, cfg: Config, instructions: str, data: str = "") -> dict:
     messages = [{"role": "system", "content": instructions}]
     if data:
         messages.append({"role": "user", "content": data})
-    resp = client.chat.completions.create(
+    resp, failure = call_chat(
+        client,
+        provider_key=effective_provider(cfg).key,
         model=cfg.chat_model,
         temperature=0.0,
         response_format={"type": "json_object"},
         messages=messages,
     )
+    if failure is not None:
+        # A provider that refused and a response that would not parse are
+        # different facts, and callers here treat them differently — one is
+        # worth telling the analyst about, the other is already handled by
+        # failing open. Raising a distinct type is what lets them.
+        raise ModelUnavailable(failure.message)
     return json.loads(resp.choices[0].message.content)
 
 
@@ -450,7 +465,17 @@ def extract_claims(deck_text: str, cfg: Config | None = None,
             "supply the claims directly, one per line."
         )
 
-    payload = _load_json(client, cfg, EXTRACTION_PROMPT, _fence("DECK", deck_text))
+    try:
+        payload = _load_json(client, cfg, EXTRACTION_PROMPT, _fence("DECK", deck_text))
+    except ModelUnavailable as exc:
+        # There is no degraded extraction — pulling claims out of a deck IS the
+        # model call. So this raises, like the no-provider case above, but with
+        # the provider's actual refusal instead of a traceback.
+        raise RuntimeError(
+            f"claims could not be extracted from the deck: {exc}\n"
+            "Supply the claims directly, one per line, or fix the provider "
+            "configuration and try again."
+        ) from None
     claims: list[ExtractedClaim] = []
     for c in payload.get("claims") or []:
         if isinstance(c, str):
@@ -623,6 +648,17 @@ def classify_claim(
             cfg,
             CLASSIFY_PROMPT,
             _fence("CLAIM", claim) + "\n\n" + _fence("EXCERPTS", render_context(evidence)),
+        )
+    except ModelUnavailable as exc:
+        # Said accurately: with a 403 there was no response to parse, and
+        # reporting a parse failure would misdescribe the tool's own state.
+        return ClaimVerdict(
+            claim=claim,
+            support=UNVERIFIED,
+            evidence=evidence,
+            assessed=False,
+            model="none",
+            note=f"This claim was not classified: {exc}",
         )
     except Exception:
         return ClaimVerdict(
@@ -824,7 +860,7 @@ class ClaimVerifier:
                 # A stale trials.db degrades to literature-only rather than
                 # crashing the verification run.
                 try:
-                    self.trial_store = TrialStore(db)
+                    self.trial_store = TrialStore(db, read_only=self.cfg.read_only)
                 except TrialStoreSchemaError as exc:
                     self.warnings.append(str(exc).splitlines()[0])
             else:
@@ -833,17 +869,59 @@ class ClaimVerifier:
     def notice(self, claims: list) -> TransmissionNotice:
         return transmission_notice(self.cfg, [_claim_text(c) for c in claims], kind="claims")
 
+    def _warn_collapsed_combination(self, asset: str, query_set: str | None) -> None:
+        """See `agents.collapsed_combination_notes` — one message, both callers."""
+        from . import agents
+
+        if not asset or self.trial_store is None:
+            return
+        for note in agents.collapsed_combination_notes(
+            self.trial_store.intervention_terms(asset, query_set=query_set), asset
+        ):
+            if note not in self.warnings:
+                self.warnings.append(note)
+
     def _retrieve(self, claim: str, asset: str, indication: str, k: int) -> list[Evidence]:
+        from .trials.anchors import anchor_for
+
         trials = []
+        # The same gate the memo path runs, from the same module rather than a
+        # second copy — this retrieval had the identical shape and therefore the
+        # identical defect, and a claim about a company's asset is the LAST
+        # place an unrelated trial should be able to arrive as evidence.
+        anchor = anchor_for(asset, indication, self.trial_store)
         if self.trial_store is not None:
+            for note in anchor.notes():
+                if note not in self.warnings:
+                    self.warnings.append(note)
+        if self.trial_store is not None and anchor:
             trials = self.trial_store.query(
-                intervention=asset or None, condition=indication or None, limit=k
+                intervention=asset or None,
+                # The population the fetch defined, not a substring re-match over
+                # the free-text condition array — the indication a deck writes
+                # ("microsatellite stable metastatic colorectal cancer") is almost
+                # never a substring of what a sponsor registered. Same rule as the
+                # landscape and the census; see CLAUDE.md. `None` when that family
+                # was never ingested, which is reported, not filtered on.
+                query_set=anchor.query_set,
+                limit=k,
             )
             # Structured filters can legitimately return nothing; fall back to
             # free text so a checkable claim is not silently starved of registry
-            # context.
+            # context. A combination that collapsed because ONE of its agents is
+            # unknown to the registry (or to config/agents.yaml) is a different
+            # fact from "there are no trials", so it is named rather than hidden
+            # behind a fallback that then succeeds.
             if not trials:
-                trials = self.trial_store.search(f"{asset} {indication} {claim}".strip(), limit=k)
+                self._warn_collapsed_combination(asset, anchor.query_set)
+                # Never the CLAIM text: it is prose, and ORing its tokens
+                # retrieves on its furniture rather than on its subject.
+                trials = [
+                    r for r in self.trial_store.search(
+                        anchor.search_text(), limit=k, query_set=anchor.query_set,
+                    )
+                    if anchor.is_about(r)
+                ]
 
         passages = self.rag.retriever.retrieve(claim, k=k) if self.rag else []
         return build_evidence(
