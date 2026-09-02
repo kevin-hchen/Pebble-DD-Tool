@@ -43,6 +43,7 @@ rule.
 * [23. The uniform suppression invariant was tested and REJECTED](#23-the-uniform-suppression-invariant-was-tested-and-rejected)
 * [24. The heading-line defect in `iter_criteria` — SIZED IN CHARACTERS, REMEDY REJECTED, STILL OPEN](#24-the-heading-line-defect-in-iter_criteria--sized-in-characters-remedy-rejected-still-open)
 * [25. Acronym plurals are not markers — fixed; the broader rule was REJECTED](#25-acronym-plurals-are-not-markers--fixed-the-broader-rule-was-rejected)
+* [26. Non-Latin eligibility text — a PROSPECTIVE defect, measured as not live](#26-non-latin-eligibility-text--a-prospective-defect-measured-as-not-live)
 
 ---
 
@@ -2943,6 +2944,111 @@ axis"* — which prose cannot evidence — and left directions alone.
 **The lesson, which is the same one §24 records one layer up:** the symptom
 appeared in the fallback, so the fix was aimed at the fallback. The cause was in
 the vocabulary. Locate the defect before choosing the layer to fix it at.
+
+---
+
+## 26. Non-Latin eligibility text — a PROSPECTIVE defect, measured as not live
+
+Measured 2 September 2026, as stage 2 of the pre-migration work, and recorded
+beside §24 and §25 because it is the same class: a defect in how a sentence is
+read. Unlike those two it is **not currently firing**, and this section exists so
+that fact is on record with its measurement rather than assumed either way.
+
+### The behaviour, demonstrated
+
+`markers._context` resolves polarity from English cue regexes (`_EXCL_CUES` /
+`_INCL_CUES`), the negation grammar is English, and `_is_test_requirement` is
+English. Given eligibility text in Chinese or Japanese, none of them fire, and
+`_classify` falls through to `REQUIRED`. Demonstrated on registry-shaped text:
+
+```
+排除标准：1. 微卫星高度不稳定（MSI-H）的患者不符合入组条件   ->  MSI_H: REQUIRED   MSS: EXCLUDED
+入选标准…排除标准：（MSI-H）患者不得入组                      ->  MSI_H: REQUIRED   MSS: EXCLUDED
+除外基準：1. マイクロサテライト安定（MSS）の患者は登録できない  ->  MSS: REQUIRED     MSI_H: EXCLUDED
+排除标准：1. （HER2）阳性的患者不符合入组条件                  ->  (all NOT_MENTIONED)
+```
+
+Every one of those records **excludes** the marker. Three read `REQUIRED`. The
+exclusion is not missed, it is reversed — the same failure §24 describes, reached
+by language instead of by a heading line, and it would fire on every CJK record
+stating an exclusion.
+
+The fourth shows a second, independent mechanism: `\b` fails when a Latin-script
+marker name abuts a CJK character, because Python treats ideographs as word
+characters. `HER2阳性患者` does not match `\bHER2\b`, so the record returns
+`NOT_MENTIONED` — which asserts the text never named the marker. It did.
+
+There is no third outcome. `NOT_ASSESSABLE` is emitted only from
+`_is_test_requirement`, an English regex, so it cannot be reached from CJK prose
+at all. **Non-Latin eligibility text has no honest destination in the current
+code** — it has a confidently wrong one and a silently empty one.
+
+### The measurement: it is not live
+
+`scripts/nonlatin_census.py`, over all 241,254 trials with eligibility text.
+
+| script family | eligibility text WRITTEN in it | script present as symbols only |
+|---|---:|---:|
+| Han (Chinese/Kanji) | **0** | 60 |
+| Hiragana | 0 | 0 |
+| Katakana | **0** | 12 |
+| Hangul | **0** | 13 |
+| Cyrillic | **0** | 146 |
+| Greek | **0** | 10,072 |
+| Arabic / Hebrew / Thai | **0** | 5 / 2 / 1 |
+
+**Zero trials carry a marker verdict off non-Latin text, and zero trials have a
+marker name suppressed by the `\b` boundary failure.** The defect is
+prospective.
+
+**A measurement error, caught and recorded rather than reported.** The first pass
+tested "does this text contain a character of script X" and returned **10,072
+Greek trials**. Every one was `TGF-β`, `β-hCG`, `α`, `μL` — Greek letters as
+scientific notation inside ordinary English. A single character of a script is
+not that script being used. The corrected test requires a run of 4+ consecutive
+characters and 20+ total, which is the difference between a symbol and a
+sentence.
+
+The zero survives inspection rather than resting on the threshold. Across the
+whole store:
+
+- the **longest run of Han characters is 8**, a bracketed gloss inside an English
+  sentence — *"…traditional Chinese medicine with 明确抗肿瘤适应症 (clear antitumor
+  indication)"*. Every Han occurrence is a parenthetical gloss with its English
+  translation beside it.
+- the longest Cyrillic run is 5 — `РКНПК`, a Russian institution acronym, in
+  English text.
+- all 12 "Katakana" trials are the character `・` (U+30FB, katakana middle dot)
+  used as a **bullet** in English text. None contains Japanese.
+
+ClinicalTrials.gov requires English registration, so this is what the store
+should look like. The measurement confirms it rather than assuming it.
+
+### What would make it live, and what the fix would be
+
+**Any of the sources in §Asia stage A.** ChiCTR requires bilingual registration
+for mainland-China registrants but carries Chinese eligibility text alongside;
+jRCT is Japanese-primary with English translations of key fields only; WHO ICTRP
+mirrors both. The first non-Latin eligibility record ingested makes this live on
+that record.
+
+The **minimum honest fix**, unimplemented and deliberately not written now
+because the right shape depends on which source arrives:
+
+1. Detect eligibility text written in a non-Latin script — the run-and-total
+   test above is measured and works.
+2. Emit `NOT_ASSESSABLE` for every marker on such a record rather than falling
+   through to `_classify`. That is the floor, and it is the honest answer: the
+   axis may well be raised, and this tool cannot read it.
+3. Fix the `\b` boundary failure in the same change, so a marker name that is
+   plainly present is not reported as absent.
+
+Proper CJK negation grammar is a much larger piece and is **not** what this
+describes. Step 2 is a refusal to answer, not an answer.
+
+**This is a gate on the Asia work, not a follow-on from it.** Ingesting a
+non-Latin registry before step 2 exists would produce silent inversions toward
+`REQUIRED` on exactly the records the ingest was for.
 
 ---
 
