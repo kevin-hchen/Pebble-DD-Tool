@@ -41,7 +41,7 @@ rule.
 * [21. Deliberately not built, and the complete FDA surface](#21-deliberately-not-built-and-the-complete-fda-surface)
 * [22. Device-parity decisions, recorded 13 August 2026](#22-device-parity-decisions-recorded-13-august-2026)
 * [23. The uniform suppression invariant was tested and REJECTED](#23-the-uniform-suppression-invariant-was-tested-and-rejected)
-* [24. The heading-line defect in `iter_criteria` — MEASURED, NOT YET FIXED](#24-the-heading-line-defect-in-iter_criteria--measured-not-yet-fixed)
+* [24. The heading-line defect in `iter_criteria` — SIZED IN CHARACTERS, REMEDY REJECTED, STILL OPEN](#24-the-heading-line-defect-in-iter_criteria--sized-in-characters-remedy-rejected-still-open)
 
 ---
 
@@ -2597,15 +2597,16 @@ units read before this was written):
    resection", "must not be breastfeeding"). The true population is nearer 90.
 2. **Splitting has a ceiling of 115 of 137, about 84%.** The 22 `NONE` cases
    cannot be reached by any splitting rule and need clause-level polarity.
-3. **`iter_criteria` has a larger defect than under-splitting, in the same
-   function — see §24, which is the next code item and comes BEFORE
-   segmentation.** It treats any line *containing* "inclusion criteria" or
-   "exclusion criteria" as a section heading, so a criterion that merely
-   mentions the phrase flips the section for every unit after it. 71
-   direction-to-different-direction inversions store-wide, twelve times the 6
-   that stopped the attempt described above. Kept as a pointer rather than
-   repeated here so the two cannot drift; §24 holds the numbers, the worked case
-   and the remedy.
+3. **`iter_criteria` has a second defect in the same function — see §24.** It
+   treats any line *containing* "inclusion criteria" or "exclusion criteria" as
+   a section heading, so a criterion that merely mentions the phrase flips the
+   section for every unit after it, and truncates its own line at the first
+   colon. Sized in characters: 19,247 trials carry such a line and 537,578
+   characters of criterion text are discarded store-wide. **Its verdict-level
+   size is UNMEASURED** — the "71 inversions" this list previously carried was
+   measured through an instrument sharing the design flaw that later got the fix
+   rejected, and is superseded. §24 holds the surviving figures, the rejected
+   remedy and why it failed; kept as a pointer so the two cannot drift.
 
 The attempt is not kept as a patch. It is reproducible from this section, and a
 patch that does not apply cleanly six months from now is worse than a
@@ -2613,16 +2614,18 @@ description that still reads.
 
 ---
 
-## 24. The heading-line defect in `iter_criteria` — MEASURED, NOT YET FIXED
+## 24. The heading-line defect in `iter_criteria` — SIZED IN CHARACTERS, REMEDY REJECTED, STILL OPEN
 
 Found 1 September 2026 while hand-reading complete records for the criteria
 segmentation ground truth (§23's "what is left open"). It is **not** the defect
-that work was scoped to, it lives in the same function, and it is larger. It
-gets its own section because a defect recorded only as an aside inside the
-section about a different defect is a defect nobody finds.
+that work was scoped to, and it lives in the same function.
 
-**This is the next code item, ahead of segmentation.** The reason is in
-"Why this goes first" below, and it is not a priority call about size.
+**A start-anchored heading test was written, measured and REJECTED on 2 September
+2026.** This is the third experiment this project has rejected on measurement,
+after §22's `outcomesModule` classifier and §23's uniform suppression invariant.
+The rejection is the most useful thing in this section: the earlier version of it
+recommended start-anchoring as "the remedy", and anyone acting on that would
+rebuild a change already shown to be net-negative.
 
 ### The mechanism
 
@@ -2640,7 +2643,7 @@ Two independent faults in those four lines:
 
 **A. Section flip.** The test is `in`, not a match at the start of the line. Any
 criterion that *mentions* the phrase sets the section for every unit that
-follows it. The phrase turns up in ordinary criterion prose constantly —
+follows. The phrase turns up in ordinary criterion prose constantly —
 *"…provided that they meet other inclusion and exclusion criteria"*, *"Other
 protocol-defined inclusion/exclusion criteria apply"*, *"recovered to ≤Grade 1
 or to levels specified in the inclusion/exclusion criteria"*. Where the trailing
@@ -2653,88 +2656,161 @@ reaches no marker, no FTS index and no reader. On a record written as one long
 line — which is common, see §23's sample — that is most of the criteria.
 
 The two compound: a mid-line mention makes the line a "heading", which then
-truncates it.
+truncates it. A third, smaller fault found while pinning tests: the substring is
+`"criteria"`, so the singular `"Inclusion Criterion:"` is not recognised at all.
 
-### The four measured numbers
+### What IS measured: the size in characters
 
-Whole store, 241,254 trials with eligibility text.
+Whole store, 241,254 trials with eligibility text. **These figures stand.**
 
 | | |
 |---|---:|
 | trials containing a heading phrase that does not start its line | **19,247** |
 | trials losing >25 characters of criterion text to colon truncation | **3,705** |
 | characters of criterion text discarded store-wide | **537,578** |
-| verdict changes vs a start-anchored heading test, through `gate_markers` | **81** across 60 trials |
-| — of which direction-to-different-direction **inversions** | **71** |
+| lines where a combined "inclusion/exclusion" form settles the section by accident | **3,599** |
 
-`scripts/heading_line_damage.py` produces the first three;
-`scripts/heading_anchor_delta.py` the last two. The delta is measured by driving
-`gate_markers` twice — once with the shipped `iter_criteria`, once with the
-anchored variant — never by counting lines and inferring what they must do. That
-is §23's own lesson: when diffing a derived column, drive the function that
-derived it. The 71 is **twelve times** the 6 inversions that were judged enough
-to stop the §23 attempt.
+`scripts/heading_line_damage.py` produces these. They are counts of text that
+does or does not reach the matcher — no verdict is inferred from them, which is
+why they survived the rejection below.
 
-The 81 break down `EXCLUDED → REQUIRED` 32, `REQUIRED → EXCLUDED` 26,
-`EXCLUDED → ELIGIBLE_BY_EXCLUSION` 7, `ELIGIBLE_BY_EXCLUSION → EXCLUDED` 6,
-`NOT_MENTIONED → EXCLUDED` 5, `NOT_MENTIONED → REQUIRED` 5. The 26
-`REQUIRED → EXCLUDED` are markers reading REQUIRED **today** that the anchored
-reading puts at EXCLUDED — the dangerous direction, live.
+### What is NOT measured: how wrong the tool currently is
 
-### The worked case
+**Both verdict-level figures this section has carried are superseded, and
+neither should be quoted.**
 
-**NCT07127822.** Title: *"Assessing Iparomlimab and Tuvonralimab in Recurrent or
-Metastatic MSI-H/dMMR Gastric Cancer"*. Inclusion criterion 5: *"Confirmed by
-PCR or next-generation sequencing (NGS) as microsatellite instability-high
-(MSI-H)"*.
+| figure | what it actually measured | status |
+|---|---|---|
+| "81 changes, 71 inversions" | a start-anchored *instrument* vs HEAD | **superseded** |
+| "91 changes, 77 inversions" | the shipped start-anchored *fix* vs HEAD | **superseded** |
 
-Its criterion 7 ends *"…provided that they meet other inclusion and exclusion
-criteria;"*. That line therefore reads as an exclusion heading:
+The first was produced by `scripts/heading_anchor_delta.py`, whose instrument
+shares the exact design flaw that got the fix rejected — so it measured a
+comparison between HEAD and something also wrong, in both directions. The second
+was produced by `scripts/heading_fix_delta.py` against the shipped fix, and
+hand-adjudication showed the fix was itself wrong on a large share of them.
 
-- `section` flips to `exclusion` for the whole block,
-- everything before the line's first colon — criteria 1 through 4 — is dropped.
+**Neither number describes the defect.** A difference between HEAD and a broken
+candidate is not a measurement of how wrong HEAD is. The verdict-level size of
+this defect is currently **unknown**, and establishing it needs a correct
+remedy first — or an independent hand-read of a drawn sample, which is the
+cheaper route and has not been done.
 
-Result at HEAD: `MSI_H: EXCLUDED`, `MSS: ELIGIBLE_BY_EXCLUSION`. A trial that
-enrols only MSI-H patients is recorded as excluding them, and the landscape
-screen will hide it from exactly the population it is recruiting.
+### Start-anchoring: tested and rejected
 
-Nothing about this record is unusual. It is not malformed, the phrasing is
-routine, and no gate in the suite fires on it.
+The rejected rule: the heading phrase must open the line, after at most an
+enumeration marker and up to two qualifiers drawn from a list read off the
+corpus (`key`, `main`, `major`, `general`, `additional`, `further`, `specific`,
+`primary`, `secondary`, `patient`, `participant`, `subject`, `donor`, `study`,
+`the`), with combined `inclusion/exclusion` forms settling neither section, and
+the colon-truncation half repaired by slicing off the matched phrase rather than
+splitting on a colon.
 
-### The remedy
+Measured through `gate_markers` store-wide: 91 verdict changes across 71 trials,
+77 direction-to-different-direction inversions, 35 toward `REQUIRED`. Of the
+first 39 inversions hand-adjudicated against the complete records:
 
-**Anchor the heading test at the start of the line.** The phrase must open the
-line, after at most an enumeration marker and a short qualifier (`Key`, `Main`,
-`Participant`, `Patient`, `Subject`) — which is how the registry actually writes
-headings, and is what `scripts/heading_anchor_delta.py` implements as its
-measurement instrument. That instrument is deliberately **not** committed as the
-fix: it sizes the defect, and what ships should be decided on its own terms,
-with the colon-truncation half addressed too rather than inherited.
+| | n |
+|---|---:|
+| corrections | 13 |
+| **new errors** | **16** (13 toward `REQUIRED`) |
+| unresolved | 10 |
 
-Pre-registered when the fix is written, matching §23's bars: every one of the 71
-inversions verified individually with the record quoted, split by whether it
-moves toward `REQUIRED`; census/live parity 12/12; the six-trial MSS ground truth
-holding at 4 of 6 with zero rank inversions.
+Adjudication stopped at 39 of 77 because the pre-registered bar — every
+inversion a correction — had already failed beyond doubt, and the remaining 38
+describe code that will not ship.
 
-### Why this goes first, ahead of segmentation
+Six of the new errors are trials whose **own titles contradict the verdict the
+fix produced**, which is as clear as this gets:
 
-Not because it is bigger. Because **segmentation cannot be measured against
-input this defect corrupts.**
+```
+NCT02008383  "…to Treat KRAS Wild-Type Metastatic Colorectal Cancer"     RAS       EXCLUDED -> REQUIRED
+NCT05167409  "…for Refractory Microsatellite Stable Metastatic CRC"      MSI_H     EXCLUDED -> REQUIRED
+NCT01086605  "…Patients With HER2-Negative Metastatic Breast Cancer"     HER2_AMP  EXCLUDED -> REQUIRED
+NCT03812393  "…Positive Triple Negative Breast"                          HER2_AMP  EXCLUDED -> REQUIRED
+NCT05063136  "…for HR+/HER2- Primary Breast Cancer"                      HER2_AMP  EXCLUDED -> REQUIRED
+NCT04389281  TNBC cohort: "must have … HER2 negative/low ER/PR status"   HER2_AMP  EXCLUDED -> REQUIRED
+```
 
-`markers._context` assigns polarity to a unit from its section tag, and
-`collect_signals` then classifies every marker match inside that unit against
-it. Splitting a unit correctly and then handing the pieces a wrong section tag
-produces the wrong direction just as reliably as not splitting it — so a
-segmentation fix graded on records whose sections are wrong is measuring the
-wrong thing. That is the same argument §23 makes for why the suppression fix had
-to wait for segmentation, one layer further up.
+**Why it failed, which is the durable finding.** *Real headings routinely carry
+a scope prefix.* Across the 59 trials in the inversion set the rejected regex
+missed 66 lines that are plainly headings, in nine categories:
 
-Consequence for the segmentation work, stated so it is not re-derived: **the
-segmentation sample must be re-drawn after this lands.** The 32 units already
-hand-read (`docs/segmentation_handread_partial.json`) were read against units
-whose section tag may itself be wrong — NCT07127822 is one of the 32 and is
-exactly that case — so those labels are evidence, not ground truth, until
-re-drawn.
+| category | worked example from the corpus |
+|---|---|
+| scope prefix, dash | `Registration and Randomization - Inclusion Criteria` |
+| scope prefix, phase | `Dose escalation Phase and Dose expansion Phase Inclusion Criteria:` |
+| scope prefix, assay | `MET Amplification Screening Test Exclusion Criteria:` |
+| scope prefix, regimen | `Trastuzumab and Pertuzumab Specific Inclusion Criteria for HER2 cohort` |
+| scope prefix, stage | `Molecular Pre-screening Inclusion criteria` |
+| scope prefix, domain | `Cancer-related exclusion criteria:` / `Medical exclusion criteria` |
+| multi-level numbering | `4.1.3 Exclusion Criteria` / `3.1 Inclusion Criteria` |
+| parenthesised roman | `(I) Inclusion criteria:` / `(II) Exclusion criteria:` |
+| unlisted qualifier | `Select Inclusion Criteria:` / `Basket-specific Inclusion Criteria:` |
+
+No extension of the qualifier list reaches these. A scope prefix is arbitrary
+trial-specific prose, so enumerating it is the same losing game as enumerating
+direction vocabulary in §23.
+
+### The untested hypothesis, for whoever attempts this third
+
+**Heading by SHAPE, not by prefix**: a heading is a line that *terminates at or
+shortly after* the phrase, with no sentence continuing past it. That describes
+every one of the nine categories above without naming any of them, and it
+excludes the mid-line mentions, which are all embedded in sentences that keep
+going.
+
+It is **unimplemented and unmeasured**, and it has a **known false-positive
+class** already visible in the data — lines that end shortly after the phrase
+but are ordinary criteria:
+
+```
+* Received prior cetuximab, except as defined in inclusion criteria
+* Other protocol-defined inclusion criteria could apply
+* Additional in- and exclusion criteria per protocol.
+```
+
+So it needs its own corpus measurement — how often does a line terminate near
+the phrase, and what fraction of those are genuinely headings — **before**
+anyone writes it. Not after.
+
+### The measurement lesson, which has now cost two attempts
+
+Both rejected fixes were written **in the wrong feature space**, and in both
+cases the corpus would have said so beforehand:
+
+- **§23** keyed on direction vocabulary, when the marker names are themselves
+  built from direction words (MSI-**high**, microsatellite **stable**,
+  **proficient** MMR). No weighting of that word list could separate them.
+- **§24** keyed on *what precedes* the phrase, when the discriminating signal is
+  *what follows* it. The qualifier list was dutifully derived from the corpus —
+  and derived on the wrong axis, which made it look evidence-based while being
+  structurally incapable of working.
+
+The rule to carry forward: **derive the rule from the corpus in the same terms
+it will be applied**, and confirm the chosen axis actually separates the two
+populations before writing code against it. §12's floor does this correctly —
+`tests/test_retrieval_relevance.py` asserts the on-topic and off-topic
+distributions overlap, so a clean separation fails the suite rather than being
+silently assumed.
+
+### Status, and where it is pinned
+
+The defect is a **documented known limit**, not a scheduled fix. It is pinned
+executably in `tests/test_criteria_sections.py`, whose `KNOWN_DEFECT` tests
+assert what the code does today and are written to fail the moment somebody
+repairs it — a limit with no executable trace is a limit somebody assumes was
+handled. `tests/fixtures/heading_defect_records.json` holds the worked case.
+
+**The worked case.** NCT07127822, titled *"Assessing Iparomlimab and
+Tuvonralimab in Recurrent or Metastatic MSI-H/dMMR Gastric Cancer"*, inclusion
+criterion 5 *"Confirmed by PCR or next-generation sequencing (NGS) as
+microsatellite instability-high (MSI-H)"*. Its criterion 7 ends *"…provided that
+they meet other inclusion and exclusion criteria;"*, so the section flips to
+exclusion and criteria 1 through 4 are dropped. It reads `MSI_H: EXCLUDED`,
+`MSS: ELIGIBLE_BY_EXCLUSION` — a trial that enrols only MSI-H patients recorded
+as excluding them. Nothing about the record is unusual and no gate in the suite
+fires on it.
 
 ### A correction to §23's population figure, from the same hand-read
 
